@@ -785,12 +785,6 @@ function buildInputList(cid){
     <div><div class="irow-lbl">${a.lbl}</div><div class="irow-sub">${a.sub}</div></div>
     <div class="irow-r"><span class="isym">€</span><input class="iinput" type="number" id="i_${a.k}" value="${D[a.k]}" step="0.01"></div>
   </div>`).join('');
-  ASSETS.forEach(a=>{
-    document.getElementById('i_'+a.k).addEventListener('input',()=>{
-      const v=parseFloat(document.getElementById('i_'+a.k).value);
-      if(!isNaN(v)){D[a.k]=v;renderAll();}
-    });
-  });
 }
 
 // ── LIQ SUB ─────────────────────────────────────────────────
@@ -895,15 +889,23 @@ function renderStorico(){
 
 // ── SALVA ────────────────────────────────────────────────────
 async function salva(){
-  ASSETS.forEach(a=>{const e=document.getElementById('i_'+a.k);if(e){const v=parseFloat(e.value);if(!isNaN(v))D[a.k]=v;}});
+  // leggi tutti i valori dagli input
+  ASSETS.forEach(a=>{
+    const e=document.getElementById('i_'+a.k);
+    if(e){
+      const v=parseFloat(e.value);
+      if(!isNaN(v) && v>=0) D[a.k]=v;
+    }
+  });
   const tot=C.liqSub.cc+C.liqSub.tr;
   if(Math.abs(tot-D.liq)>1) C.liqSub.tr=Math.max(0,D.liq-C.liqSub.cc);
   const c=calc();
   const st=getStor();
   st.push({d:new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}),tot:c.totale,az:D.az,ob:D.ob,or:D.or,liq:D.liq,fe:D.fe});
   localStorage.setItem('patrimonio_storico',JSON.stringify(st));
-  await saveToCloud();
-  renderAll();toast('✓ Salvato');
+  const result = await saveToCloud();
+  renderAll();
+  toast('✓ Salvato');
 }
 
 // ── SALVA CONFIG ─────────────────────────────────────────────
@@ -924,7 +926,13 @@ function loadCfg(){
   document.getElementById('cfgOb').value=C.mix.ob;
   document.getElementById('cfgOr').value=C.mix.or;
   buildLiqSub();
-  buildInputList('cfgValori');
+  buildInputList('cfgValori'); // ricostruisce sempre con i valori aggiornati di D
+}
+
+async function logout(){
+  await sb.auth.signOut();
+  currentUser=null;
+  document.getElementById('authScreen').classList.remove('hidden');
 }
 
 // ── UTILS ────────────────────────────────────────────────────
