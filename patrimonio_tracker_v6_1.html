@@ -526,12 +526,17 @@ async function loadFromCloud(){
 }
 
 async function saveToCloud(){
-  if(!currentUser) return;
+  if(!currentUser){
+    // prova a recuperare la sessione attiva
+    const {data:{session}} = await sb.auth.getSession();
+    if(session?.user) currentUser = session.user;
+    else { console.warn('saveToCloud: nessun utente loggato'); toast('⚠ Sessione scaduta, riaccedi'); return; }
+  }
   const storico = JSON.parse(localStorage.getItem('patrimonio_storico')||'[]');
   const {error} = await sb.from('patrimonio')
     .upsert({user_id:currentUser.id, dati:D, cfg:C, storico, updated_at:new Date().toISOString()},
             {onConflict:'user_id'});
-  if(error) console.error('Cloud save error:',error);
+  if(error){ console.error('Cloud save error:',error); toast('⚠ Errore salvataggio: '+error.message); }
 }
 
 // ── CONFIG ──────────────────────────────────────────────────
