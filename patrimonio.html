@@ -646,12 +646,14 @@ function buildAlerts(c){
 
 // ── ALLOC BARS (home) ────────────────────────────────────────
 function renderAlloc(c){
+  const el = document.getElementById('allocCard');
+  if(!el) return;
   const rows=[
     {lbl:'Azioni',   pa:c.pAz*100, pt:C.mix.az, tv:c.tAz, av:D.az, col:'var(--col-az)'},
     {lbl:'Obbl.',    pa:c.pOb*100, pt:C.mix.ob, tv:c.tOb, av:D.ob, col:'var(--col-ob)'},
     {lbl:'Oro',      pa:c.pOr*100, pt:C.mix.or, tv:c.tOr, av:D.or, col:'var(--col-or)'},
   ];
-  document.getElementById('allocCard').innerHTML = rows.map((r,i)=>{
+  el.innerHTML = rows.map((r,i)=>{
     const d=r.av-r.tv;
     const dc=Math.abs(d)<50?'var(--dim)':d>0?'var(--muted)':'var(--red)';
     const sep=i<rows.length-1?'padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;':'';
