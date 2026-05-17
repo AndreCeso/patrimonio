@@ -2661,16 +2661,6 @@ function allocImportDati(input){
 // ═══════════════════════════════════════════════════════════
 allocLoadState();
 
-// Preload storico se vuoto
-(function(){
-  try {
-    const existing = JSON.parse(localStorage.getItem('fa_storico_v4')||'[]');
-    if(existing.length === 0){
-      const preload = [{"id": "2025-12-15T00:00:00.000Z", "nome": "Tredicesima_2025", "date": "2025-12-15T00:00:00.000Z", "entry": "tredicesima", "scenario": "B", "amount": 1600, "liqCur": 0, "feCur": 0, "alloc": {"liq": 300, "spesa": 150, "future": 100, "obiettivi": 0, "fe": 650, "pac": 174, "pensione": 225}}, {"id": "2025-07-15T00:00:00.000Z", "nome": "Rimborso730_2025", "date": "2025-07-15T00:00:00.000Z", "entry": "rimborso", "scenario": "A", "amount": 3500, "liqCur": 0, "feCur": 0, "alloc": {"liq": 1000, "spesa": 0, "future": 0, "obiettivi": 1065, "fe": 1335, "pac": 100, "pensione": 0}}];
-      localStorage.setItem('fa_storico_v4', JSON.stringify(preload));
-    }
-  } catch(e){}
-})();
 // allocRender() e allocUpdateStoricoBadge() chiamati da openAllocatore()
 </script>
 
@@ -2781,7 +2771,7 @@ allocLoadState();
 </div>
 
 <!-- MODAL -->
-<div id="alloc-modal-overlay" onclick="if(event.target===this)closeModal()">
+<div id="alloc-modal-overlay" onclick="if(event.target===this)allocCloseModal()">
   <div id="alloc-modal-box">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
       <span id="alloc-modal-title" style="font-size:14px;font-weight:700;color:var(--text);"></span>
@@ -2951,7 +2941,7 @@ function macroRowHTML(icon,label,amount,total,color,subsHTML,subId){
   const p=pct(amount,total);
   const hasS=!!subsHTML;
   const chevron=hasS?`<span id="chev-${subId}" style="color:var(--muted);font-size:11px;margin-left:2px">▲</span>`:'';
-  const onclick=hasS?`onclick="toggleSub('${subId}')" style="cursor:pointer"`:`style="cursor:default"`;
+  const onclick=hasS?`onclick="allocToggleSub('${subId}')" style="cursor:pointer"`:`style="cursor:default"`;
   return `
   <div style="margin-bottom:10px">
     <div ${onclick} style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:10px;background:${color}15;border:1.5px solid ${color}40">
@@ -3028,7 +3018,7 @@ function render(){
   // Entry type buttons
   const eContainer=document.getElementById('entry-btns');
   eContainer.innerHTML=ENTRY_TYPES.map(e=>`
-    <button onclick="setEntry('${e.key}')" style="
+    <button onclick="allocSetEntry('${e.key}')" style="
       background:${state.entry===e.key?'var(--green-light)':'var(--bg)'};
       border:2px solid ${state.entry===e.key?'var(--green)':'var(--border)'};
       border-radius:10px;padding:10px;cursor:pointer;text-align:left;transition:all .15s
@@ -3055,7 +3045,7 @@ function render(){
     const active=scenario===s.key;
     const isAuto=!scenarioOverride&&autoSc===s.key;
     return `
-    <div onclick="setScenarioOverride('${s.key}')" style="
+    <div onclick="allocSetScenarioOverride('${s.key}')" style="
       display:flex;align-items:center;gap:12px;
       border:2px solid ${active?s.color:'var(--border)'};
       border-radius:10px;padding:11px 14px;cursor:pointer;
@@ -3216,7 +3206,7 @@ function renderEditModal(){
     <!-- Entry tabs -->
     <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
       ${ENTRY_TYPES.map(e=>`
-        <button onclick="switchEditEntry('${e.key}')" style="
+        <button onclick="allocSwitchEditEntry('${e.key}')" style="
           padding:5px 10px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;
           border:1px solid var(--border);
           background:${editModalEntry===e.key?'var(--green-light)':'var(--bg)'};
@@ -3229,7 +3219,7 @@ function renderEditModal(){
       ${['A','B','C'].map(s=>{
         const sc=SCENARIOS.find(x=>x.key===s);
         const active=editModalScenario===s;
-        return `<button onclick="switchEditScenario('${s}')" style="
+        return `<button onclick="allocSwitchEditScenario('${s}')" style="
           flex:1;padding:8px 4px;cursor:pointer;font-size:11px;font-weight:700;
           border:none;border-radius:8px;
           background:${active?sc.color+'20':'transparent'};
@@ -3564,7 +3554,7 @@ function renderStoricoModal(){
   const tabBar = `
     <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px;background:var(--bg);border-radius:8px;padding:3px">
       ${tabs.map(t=>`
-        <button onclick="switchStoricoTab('${t.key}')" style="
+        <button onclick="allocSwitchStoricoTab('${t.key}')" style="
           flex:1;min-width:80px;padding:7px 8px;cursor:pointer;font-size:11px;font-weight:700;
           border:none;border-radius:7px;white-space:nowrap;
           background:${storicoTab===t.key?'var(--border)':'transparent'};
@@ -3627,8 +3617,8 @@ function renderListaTab(list, container){
         <div style="font-size:9px;color:var(--dim)">${pct(r.alloc.pensione)}</div>
       </td>
       <td style="padding:10px 8px;text-align:center;white-space:nowrap">
-        <button onclick="rinominaRecord('${r.id}')" style="background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:5px;color:var(--blue);cursor:pointer;font-size:10px;padding:3px 7px;margin-right:3px">✎</button>
-        <button onclick="eliminaRecord('${r.id}')" style="background:var(--red-l)12;border:1px solid #fca5a540;border-radius:5px;color:var(--red);cursor:pointer;font-size:10px;padding:3px 7px">🗑</button>
+        <button onclick="allocRinominaRecord('${r.id}')" style="background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:5px;color:var(--blue);cursor:pointer;font-size:10px;padding:3px 7px;margin-right:3px">✎</button>
+        <button onclick="allocEliminaRecord('${r.id}')" style="background:var(--red-l)12;border:1px solid #fca5a540;border-radius:5px;color:var(--red);cursor:pointer;font-size:10px;padding:3px 7px">🗑</button>
       </td>
     </tr>`;
   }).join('');
@@ -3655,7 +3645,7 @@ function renderListaTab(list, container){
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">
       <button onclick="allocExportDati()" style="padding:9px;background:var(--green-light)15;border:1px solid #6ee7b740;border-radius:8px;color:var(--green);cursor:pointer;font-size:11px;font-weight:700">⬇ Esporta dati</button>
-      <button onclick="document.getElementById('import-input').click()" style="padding:9px;background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:8px;color:var(--blue);cursor:pointer;font-size:11px;font-weight:700">⬆ Importa dati</button>
+      <button onclick="document.getElementById('alloc-import-input').click()" style="padding:9px;background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:8px;color:var(--blue);cursor:pointer;font-size:11px;font-weight:700">⬆ Importa dati</button>
       <button onclick="if(confirm('Cancellare tutto lo storico?')){localStorage.removeItem('fa_storico_v4');allocStoricoTab='overview';allocRenderStoricoModal();allocUpdateStoricoBadge();}" style="padding:9px;background:var(--red-l)12;border:1px solid #fca5a540;border-radius:8px;color:var(--red);cursor:pointer;font-size:11px;font-weight:700">🗑 Cancella storico</button>
     </div>
     <input type="file" id="import-input" accept=".json" style="display:none" onchange="importDati(this)">`;
@@ -3680,7 +3670,7 @@ function renderOverviewTab(list, container){
       <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:10px">💡 KPI — seleziona le metriche</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
         ${ALL_KPI.map(k=>`
-          <button onclick="toggleKpi('${k.key}')" id="kpi-btn-${k.key}" style="
+          <button onclick="allocToggleKpi('${k.key}')" id="kpi-btn-${k.key}" style="
             padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;
             border:1px solid ${selectedKpi.includes(k.key)?k.color+'60':'var(--border)'};
             background:${selectedKpi.includes(k.key)?k.color+'20':'var(--bg)'};
@@ -4014,11 +4004,11 @@ updateStoricoBadge();
 </div>
 
 <!-- STORICO MODAL -->
-<div id="alloc-storico-overlay" onclick="if(event.target===this)closeStorico()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1001;align-items:flex-start;justify-content:center;padding:16px 10px;overflow-y:auto;">
+<div id="alloc-storico-overlay" onclick="if(event.target===this)allocCloseStorico()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1001;align-items:flex-start;justify-content:center;padding:16px 10px;overflow-y:auto;">
   <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:640px;max-height:92vh;overflow-y:auto;padding:20px 18px;box-shadow:var(--sh);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
       <span style="font-size:14px;font-weight:700;color:var(--text);">📋 Storico Entrate</span>
-      <button onclick="closeStorico()" style="background:none;border:none;color:var(--dim);font-size:22px;cursor:pointer;line-height:1;">✕</button>
+      <button onclick="allocCloseStorico()" style="background:none;border:none;color:var(--dim);font-size:22px;cursor:pointer;line-height:1;">✕</button>
     </div>
     <div id="alloc-storico-body"></div>
   </div>
