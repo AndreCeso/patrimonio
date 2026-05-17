@@ -444,12 +444,13 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       <div class="crow"><div><div class="crow-lbl">Fondo emergenza massimo</div><div class="crow-sub">Oltre questo importo segnalo eccedenza</div></div><div class="crow-r"><span class="isym">€</span><input class="cinput" type="number" id="cfgMaxFE" step="500"></div></div>
     </div>
 
-    <div class="sec">Mix target investimenti (deve sommare 100%)</div>
-    <div class="info-box">% calcolate su Azioni + Obbligazioni + Oro. Liquidità e Fondo emergenza sono fuori dal mix.</div>
+    <div class="sec">Mix target patrimonio (deve sommare 100%)</div>
+    <div class="info-box">% calcolate sul patrimonio totale. Fondo emergenza è separato e non entra nel mix.</div>
     <div>
       <div class="crow"><div class="crow-lbl">Azioni %</div><div class="crow-r"><input class="cinput" type="number" id="cfgAz" step="1" min="0" max="100"><span class="isym">%</span></div></div>
       <div class="crow"><div class="crow-lbl">Obbligazioni %</div><div class="crow-r"><input class="cinput" type="number" id="cfgOb" step="1" min="0" max="100"><span class="isym">%</span></div></div>
       <div class="crow"><div class="crow-lbl">Oro %</div><div class="crow-r"><input class="cinput" type="number" id="cfgOr" step="1" min="0" max="100"><span class="isym">%</span></div></div>
+      <div class="crow"><div class="crow-lbl">Liquidità %</div><div class="crow-r"><input class="cinput" type="number" id="cfgLiq" step="1" min="0" max="100"><span class="isym">%</span></div></div>
     </div>
     <div class="cfg-warn" id="cfgWarn">⚠ La somma non è 100%</div>
     <button class="btn-p" onclick="salvaConfig()" style="margin-top:14px;">Salva impostazioni</button>
@@ -576,8 +577,8 @@ async function saveToCloud(){
 // ── CONFIG ──────────────────────────────────────────────────
 const DEF = {
   soglia:15000, maxFE:6000,
-  mix:{az:75, ob:10, or:15},   // su Az+Obbl+Oro, devono sommare 100
-  liqPct:10,                    // % liquidità ideale sul totale (info visiva, non usata nel target)
+  // % sul patrimonio totale (az+ob+or+liq = 100%, fe separato)
+  mix:{az:75, ob:10, or:5, liq:10},
   pac:{az:192, or:10},
   liqSub:{cc:10000, tr:4000},
 };
@@ -590,22 +591,23 @@ const fmt  = n => '€'+Math.round(n).toLocaleString('it-IT');
 const fmtD = n => (n>=0?'+':'')+Math.round(n).toLocaleString('it-IT');
 
 // ── CALCOLA ─────────────────────────────────────────────────
-// Mix % applicato su totInv (Az+Obbl+Oro)
-// Target Az = totInv * (mix.az/100) etc.
-// Liquidità gestita separatamente con soglia
+// Mix % sul patrimonio totale (az+ob+or+liq = 100%, fe separato)
+// Liquidità: max(soglia, totale * liq%)
 function calc() {
   const {az,ob,or,liq,fe} = D;
   const totale  = az+ob+or+liq+fe;
   const totInv  = az+ob+or;
   const liqOk   = liq >= C.soglia;
-  const tAz = totInv * (C.mix.az/100);
-  const tOb = totInv * (C.mix.ob/100);
-  const tOr = totInv * (C.mix.or/100);
+  // target calcolati sul patrimonio totale
+  const tAz  = totale * (C.mix.az/100);
+  const tOb  = totale * (C.mix.ob/100);
+  const tOr  = totale * (C.mix.or/100);
+  const tLiq = Math.max(C.soglia, totale * (C.mix.liq/100));
   return {
     totale, totInv, liqOk,
-    tAz, tOb, tOr,
-    dAz: tAz-az, dOb: tOb-ob, dOr: tOr-or,
-    pAz: az/totInv, pOb: ob/totInv, pOr: or/totInv,
+    tAz, tOb, tOr, tLiq,
+    dAz: tAz-az, dOb: tOb-ob, dOr: tOr-or, dLiq: tLiq-liq,
+    pAz: az/totale, pOb: ob/totale, pOr: or/totale, pLiq: liq/totale,
   };
 }
 
@@ -648,10 +650,12 @@ function buildAlerts(c){
 function renderAlloc(c){
   const el = document.getElementById('allocCard');
   if(!el) return;
+  // % sul patrimonio totale
   const rows=[
     {lbl:'Azioni',   pa:c.pAz*100, pt:C.mix.az, tv:c.tAz, av:D.az, col:'var(--col-az)'},
     {lbl:'Obbl.',    pa:c.pOb*100, pt:C.mix.ob, tv:c.tOb, av:D.ob, col:'var(--col-ob)'},
     {lbl:'Oro',      pa:c.pOr*100, pt:C.mix.or, tv:c.tOr, av:D.or, col:'var(--col-or)'},
+    {lbl:'Liquidità',pa:c.pLiq*100,pt:C.mix.liq,tv:c.tLiq,av:D.liq,col:'var(--col-liq)'},
   ];
   el.innerHTML = rows.map((r,i)=>{
     const d=r.av-r.tv;
@@ -689,18 +693,18 @@ function renderStrategia(){
   const c = calc();
   const totale = c.totale;
 
-  // Valori ideali simulazione
+  // Valori ideali simulazione — tutte % sul patrimonio totale
   const simRows = [
-    {lbl:'Azioni (VWCE)',   sub:'Su Az+Obbl+Oro · Trade Republic', pct:C.mix.az, eur:c.tAz},
-    {lbl:'Obbligazioni',    sub:'Su Az+Obbl+Oro · BTP→VAGF',       pct:C.mix.ob, eur:c.tOb},
-    {lbl:'Oro (SGLN)',      sub:'Su Az+Obbl+Oro · Trade Republic', pct:C.mix.or, eur:c.tOr},
-    {lbl:'Liquidità',       sub:`Soglia min ${fmt(C.soglia)} · ora ${fmt(D.liq)}`, pct:C.liqPct, eur:totale*(C.liqPct/100)},
-    {lbl:'Fondo emergenza', sub:`Max consigliato ${fmt(C.maxFE)}`,  pct:null, eur:C.maxFE},
+    {lbl:'Azioni (VWCE)',   sub:'Sul patrimonio totale · Trade Republic', pct:C.mix.az,  eur:c.tAz},
+    {lbl:'Obbligazioni',    sub:'Sul patrimonio totale · BTP→VAGF',       pct:C.mix.ob,  eur:c.tOb},
+    {lbl:'Oro (SGLN)',      sub:'Sul patrimonio totale · Trade Republic', pct:C.mix.or,  eur:c.tOr},
+    {lbl:'Liquidità',       sub:`Min €${C.soglia.toLocaleString('it-IT')} · ora ${fmt(D.liq)}`, pct:C.mix.liq, eur:c.tLiq},
+    {lbl:'Fondo emergenza', sub:`Separato · max consigliato ${fmt(C.maxFE)}`, pct:null,  eur:C.maxFE},
   ];
 
-  // Badge liquidità — Troppa solo se supera la soglia (15k), non l'ideale
+  // Badge liquidità
   const liqPct = D.liq / totale * 100;
-  const liqIdeal = totale * (C.liqPct / 100);
+  const liqIdeal = c.tLiq;
   let liqBadge, liqBadgeBg, liqBadgeFg, liqDot;
   if(D.liq > C.soglia * 1.5){
     liqBadge='Troppa'; liqBadgeBg='#fef2f2'; liqBadgeFg='#b91c1c'; liqDot='#ef4444';
@@ -739,7 +743,7 @@ function renderStrategia(){
         <span>${fmt(b.attuale)} <span style="color:${dc};font-weight:700;">(${delta>=0?'+':''}${Math.round(delta).toLocaleString('it-IT')})</span></span>
       </div>
       <div class="stato-bar-track"><div class="stato-bar-fill" style="width:${pBar.toFixed(1)}%;background:${b.col};"></div></div>
-      <div class="stato-bar-meta"><span>${(b.attuale/c.totInv*100).toFixed(1)}% attuale</span><span>ideale ${fmt(b.ideale)} (${Math.round(b.ideale/c.totInv*100)}%)</span></div>
+      <div class="stato-bar-meta"><span>${(b.attuale/c.totale*100).toFixed(1)}% patrimonio</span><span>ideale ${fmt(b.ideale)} (${Math.round(b.ideale/c.totale*100)}%)</span></div>
     </div>`;
   }).join('');
 
@@ -856,10 +860,12 @@ function buildSteps(c,lim){
 
 // ── PORTAFOGLIO ALLOC ────────────────────────────────────────
 function buildPfAlloc(c){
+  // % sul patrimonio totale
   const rows=[
-    {lbl:'Azioni',  sub:'VWCE · TR',    v:D.az, tv:c.tAz, tot:c.totInv, col:'var(--col-az)'},
-    {lbl:'Obbl.',   sub:'BTP · Intesa', v:D.ob, tv:c.tOb, tot:c.totInv, col:'var(--col-ob)'},
-    {lbl:'Oro',     sub:'SGLN · TR',    v:D.or, tv:c.tOr, tot:c.totInv, col:'var(--col-or)'},
+    {lbl:'Azioni',    sub:'VWCE · TR',       v:D.az,  tv:c.tAz,  tot:c.totale, col:'var(--col-az)'},
+    {lbl:'Obbl.',     sub:'BTP · Intesa',    v:D.ob,  tv:c.tOb,  tot:c.totale, col:'var(--col-ob)'},
+    {lbl:'Oro',       sub:'SGLN · TR',       v:D.or,  tv:c.tOr,  tot:c.totale, col:'var(--col-or)'},
+    {lbl:'Liquidità', sub:'CC + TR',         v:D.liq, tv:c.tLiq, tot:c.totale, col:'var(--col-liq)'},
   ];
   return rows.map((r,i)=>{
     const pa=r.v/r.tot*100, pt=r.tv/r.tot*100, d=r.v-r.tv;
@@ -1046,10 +1052,11 @@ async function salva(){
 async function salvaConfig(){
   C.soglia = parseFloat(document.getElementById('cfgSoglia').value)||C.soglia;
   C.maxFE  = parseFloat(document.getElementById('cfgMaxFE').value)||C.maxFE;
-  C.mix.az = parseFloat(document.getElementById('cfgAz').value)||0;
-  C.mix.ob = parseFloat(document.getElementById('cfgOb').value)||0;
-  C.mix.or = parseFloat(document.getElementById('cfgOr').value)||0;
-  const sum = C.mix.az+C.mix.ob+C.mix.or;
+  C.mix.az  = parseFloat(document.getElementById('cfgAz').value)||0;
+  C.mix.ob  = parseFloat(document.getElementById('cfgOb').value)||0;
+  C.mix.or  = parseFloat(document.getElementById('cfgOr').value)||0;
+  C.mix.liq = parseFloat(document.getElementById('cfgLiq').value)||0;
+  const sum = C.mix.az+C.mix.ob+C.mix.or+C.mix.liq;
   document.getElementById('cfgWarn').style.display = Math.abs(sum-100)>.5?'block':'none';
   if(Math.abs(sum-100)>.5){ toast('⚠ Mix non somma 100%'); return; }
   renderAll();
@@ -1063,6 +1070,7 @@ function loadCfg(){
   document.getElementById('cfgAz').value=C.mix.az;
   document.getElementById('cfgOb').value=C.mix.ob;
   document.getElementById('cfgOr').value=C.mix.or;
+  document.getElementById('cfgLiq').value=C.mix.liq;
   buildLiqSub();
   buildInputList('cfgValori'); // ricostruisce sempre con i valori aggiornati di D
 }
