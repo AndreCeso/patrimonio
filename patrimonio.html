@@ -530,16 +530,16 @@ async function loadFromCloud(){
 
 async function saveToCloud(){
   if(!currentUser){
-    // prova a recuperare la sessione attiva
     const {data:{session}} = await sb.auth.getSession();
     if(session?.user) currentUser = session.user;
-    else { console.warn('saveToCloud: nessun utente loggato'); toast('⚠ Sessione scaduta, riaccedi'); return; }
+    else { console.warn('saveToCloud: nessun utente loggato'); toast('⚠ Sessione scaduta, riaccedi'); return false; }
   }
-  const storico = JSON.parse(localStorage.getItem('patrimonio_storico')||'[]');
+  const storico = getStor();
   const {error} = await sb.from('patrimonio')
     .upsert({user_id:currentUser.id, dati:D, cfg:C, storico, updated_at:new Date().toISOString()},
             {onConflict:'user_id'});
-  if(error){ console.error('Cloud save error:',error); toast('⚠ Errore salvataggio: '+error.message); }
+  if(error){ console.error('Cloud save error:',error); toast('⚠ Errore: '+error.message); return false; }
+  return true;
 }
 
 // ── CONFIG ──────────────────────────────────────────────────
@@ -906,9 +906,9 @@ async function salva(){
   const st=getStor();
   st.push({d:new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}),tot:c.totale,az:D.az,ob:D.ob,or:D.or,liq:D.liq,fe:D.fe});
   localStorage.setItem('patrimonio_storico',JSON.stringify(st));
-  const result = await saveToCloud();
-  renderAll();
-  toast('✓ Salvato');
+  renderAll(); // aggiorna subito la home con i nuovi valori
+  const ok = await saveToCloud();
+  if(ok) toast('✓ Salvato');
 }
 
 // ── SALVA CONFIG ─────────────────────────────────────────────
