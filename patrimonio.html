@@ -743,7 +743,8 @@ function renderStrategia(){
     </div>`;
   }).join('');
 
-  document.getElementById('stratCard').innerHTML = `
+  const _sc=document.getElementById('stratCard'); if(!_sc) return;
+  _sc.innerHTML = `
     <div class="strat-new-header">
       <div class="strat-new-badge">☆ Portafoglio ideale · Obiettivo a regime</div>
     </div>
@@ -1077,58 +1078,64 @@ function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
 // ── RENDER ALL ───────────────────────────────────────────────
+// ── RENDER ALL ───────────────────────────────────────────────
+function el(id){return document.getElementById(id);}
+function set(id,val){const e=el(id);if(e)e.textContent=val;}
+function setH(id,val){const e=el(id);if(e)e.innerHTML=val;}
+function setS(id,prop,val){const e=el(id);if(e)e.style[prop]=val;}
+
 function renderAll(){
-  const c=calc();
-  const b=hidden?'blur(9px)':'none';
+  try{
+    const c=calc();
+    const b=hidden?'blur(9px)':'none';
 
-  // header
-  document.getElementById('patAmt').textContent=fmt(c.totale);
-  document.getElementById('patAmt').style.filter=b;
+    set('patAmt', fmt(c.totale));
+    setS('patAmt','filter',b);
 
-  // cards
-  document.getElementById('cInv').textContent=fmt(c.totInv);
-  document.getElementById('cLiq').textContent=fmt(D.liq);
-  document.getElementById('cFE').textContent=fmt(D.fe);
-  ['cInv','cLiq','cFE'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.filter=b;});
+    set('cInv', fmt(c.totInv));
+    set('cLiq', fmt(D.liq));
+    set('cFE',  fmt(D.fe));
+    ['cInv','cLiq','cFE'].forEach(id=>setS(id,'filter',b));
 
-  document.getElementById('sr-az').textContent=fmt(D.az);
-  document.getElementById('sr-ob').textContent=fmt(D.ob);
-  document.getElementById('sr-or').textContent=fmt(D.or);
-  document.getElementById('sr-cc').textContent=fmt(C.liqSub.cc);
-  document.getElementById('sr-tr').textContent=fmt(C.liqSub.tr);
-  document.getElementById('sr-fe2').textContent=fmt(D.fe);
-  document.getElementById('sr-femax').textContent=fmt(C.maxFE);
-  ['sr-az','sr-ob','sr-or','sr-cc','sr-tr','sr-fe2'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.filter=b;});
+    set('sr-az',  fmt(D.az));
+    set('sr-ob',  fmt(D.ob));
+    set('sr-or',  fmt(D.or));
+    set('sr-cc',  fmt(C.liqSub.cc));
+    set('sr-tr',  fmt(C.liqSub.tr));
+    set('sr-fe2', fmt(D.fe));
+    set('sr-femax',fmt(C.maxFE));
+    ['sr-az','sr-ob','sr-or','sr-cc','sr-tr','sr-fe2'].forEach(id=>setS(id,'filter',b));
 
-  const feOk=D.fe<=C.maxFE;
-  document.getElementById('sr-festat').textContent=feOk?'✓ Nella finestra ideale':'⚠ Sopra il massimo';
-  document.getElementById('sr-festat').style.color=feOk?'var(--green)':'var(--amber)';
+    const feOk=D.fe<=C.maxFE;
+    set('sr-festat', feOk?'✓ Nella finestra ideale':'⚠ Sopra il massimo');
+    setS('sr-festat','color', feOk?'var(--green)':'var(--amber)');
 
-  // soglia
-  const pct=Math.min(D.liq/C.soglia*100,100);
-  document.getElementById('sogliaFill').style.width=pct+'%';
-  document.getElementById('sogliaFill').style.background=D.liq>=C.soglia?'var(--green)':'#d97706';
-  document.getElementById('sogliaStatus').textContent=D.liq>=C.soglia?'✓ Soglia raggiunta':'⚠ Sotto soglia';
-  document.getElementById('sogliaStatus').style.color=D.liq>=C.soglia?'var(--green)':'#b45309';
-  document.getElementById('sogliaPct').textContent=pct.toFixed(0)+'% di '+fmt(C.soglia);
+    const pct=Math.min(D.liq/C.soglia*100,100);
+    setS('sogliaFill','width', pct+'%');
+    setS('sogliaFill','background', D.liq>=C.soglia?'var(--green)':'#d97706');
+    set('sogliaStatus', D.liq>=C.soglia?'✓ Soglia raggiunta':'⚠ Sotto soglia');
+    setS('sogliaStatus','color', D.liq>=C.soglia?'var(--green)':'#b45309');
+    set('sogliaPct', pct.toFixed(0)+'% di '+fmt(C.soglia));
 
-  // home
-  document.getElementById('homeAlerts').innerHTML=buildAlerts(c);
-  renderAlloc(c);
-  renderStrategia();
-  document.getElementById('homeSteps').innerHTML=buildSteps(c,3);
+    setH('homeAlerts', buildAlerts(c));
+    renderAlloc(c);
+    renderStrategia();
+    setH('homeSteps', buildSteps(c,3));
 
-  // portafoglio
-  document.getElementById('pfStrum').innerHTML=buildStrum();
-  document.getElementById('pfAlloc').innerHTML=buildPfAlloc(c);
-  document.querySelectorAll('.strum-val,.abar-val').forEach(e=>e.style.filter=b);
+    setH('pfStrum', buildStrum());
+    setH('pfAlloc', buildPfAlloc(c));
+    document.querySelectorAll('.strum-val,.abar-val').forEach(e=>e.style.filter=b);
 
-  // ribilanciamento
-  document.getElementById('ribStatus').textContent=c.liqOk
-    ?'Regola allocazione attiva — soglia liquidità raggiunta.'
-    :`Soglia non raggiunta (${fmt(D.liq)} / ${fmt(C.soglia)}) — priorità: ricostruire il cuscinetto.`;
-  document.getElementById('ribSteps').innerHTML=buildSteps(c);
+    set('ribStatus', c.liqOk
+      ?'Regola allocazione attiva — soglia liquidità raggiunta.'
+      :`Soglia non raggiunta (${fmt(D.liq)} / ${fmt(C.soglia)}) — priorità: ricostruire il cuscinetto.`);
+    setH('ribSteps', buildSteps(c));
+
+  } catch(err){
+    console.error('renderAll error:', err);
+  }
 }
+
 
 // ── TABS ─────────────────────────────────────────────────────
 const PAGES=['home','portafoglio','ribilanciamento','pac','storico','impostazioni'];
