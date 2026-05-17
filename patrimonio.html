@@ -258,6 +258,19 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 .stato-bar-fill{height:100%;border-radius:99px;transition:width .5s;}
 .stato-bar-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);font-weight:600;}
 
+/* ── SNAPSHOT CARDS ── */
+.snap-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px;box-shadow:var(--sh-sm);}
+.snap-date{font-size:11px;font-weight:700;color:var(--dim);margin-bottom:6px;}
+.snap-tot{font-size:26px;font-weight:900;letter-spacing:-.02em;color:var(--text);margin-bottom:12px;}
+.snap-chips{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.snap-chip{border-radius:var(--r-sm);padding:10px 12px;}
+.snap-chip-lbl{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;}
+.snap-chip-val{font-size:18px;font-weight:900;letter-spacing:-.01em;}
+.snap-chip-sub{font-size:10px;font-weight:600;margin-top:3px;opacity:.75;}
+.snap-nota{background:var(--amber-l);border-left:3px solid #fbbf24;border-radius:0 var(--r-sm) var(--r-sm) 0;padding:8px 12px;font-size:12px;color:var(--amber);font-weight:600;}
+.snap-del{background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;padding:4px;float:right;margin-top:-4px;}
+.snap-del:hover{color:var(--red);}
+
 /* ── MISC ── */
 .cfg-warn{font-size:12px;color:var(--red);font-weight:700;margin-top:6px;display:none;}
 .info-box{background:var(--blue-l);border-radius:var(--r-sm);padding:10px 14px;font-size:12px;color:var(--blue);margin-bottom:10px;}
@@ -418,11 +431,22 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 <div class="page" id="page-storico">
   <div class="hdr" style="padding:20px 20px 24px;"><div class="hdr-greeting">Sezione</div><div class="hdr-name">Storico</div></div>
   <div class="wrap">
+
+    <div class="sec">Salva aggiornamento</div>
+    <div class="card card-p" style="margin-bottom:12px;">
+      <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:8px;">Nota opzionale</div>
+      <textarea id="stor-nota" placeholder="Scrivi una nota..." style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text);resize:vertical;min-height:72px;outline:none;"></textarea>
+      <button class="btn-p" onclick="salvaSnapshot()" style="margin-top:12px;">💾 Salva snapshot</button>
+    </div>
+
     <div class="sec">Andamento patrimonio</div>
-    <div class="card card-p"><div style="position:relative;height:200px;"><canvas id="cStor" role="img" aria-label="Storico patrimonio"></canvas></div></div>
-    <div class="sec">Aggiornamenti</div>
-    <div class="card" style="padding:0;overflow:hidden;" id="storicoList"></div>
-    <button class="btn-g" onclick="cancellaStorico()" style="margin-top:12px;">Cancella storico</button>
+    <div class="card card-p" style="margin-bottom:12px;">
+      <div style="position:relative;height:200px;"><canvas id="cStor" role="img" aria-label="Storico patrimonio"></canvas></div>
+    </div>
+
+    <div class="sec">Storico aggiornamenti</div>
+    <div id="storicoList"></div>
+    <button class="btn-g" onclick="cancellaStorico()" style="margin-top:4px;">Cancella tutto lo storico</button>
   </div>
 </div>
 
@@ -1005,29 +1029,101 @@ function renderPacProj(){
 
 // ── STORICO ──────────────────────────────────────────────────
 function getStor(){try{const v=JSON.parse(localStorage.getItem('patrimonio_storico')||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}}
-function cancellaStorico(){if(confirm('Cancellare tutto lo storico?')){localStorage.removeItem('patrimonio_storico');renderStorico();}}
+function cancellaStorico(){if(confirm('Cancellare tutto lo storico?')){localStorage.removeItem('patrimonio_storico');renderStorico();saveToCloud();}}
+
+function eliminaSnapshot(idx){
+  if(!confirm('Eliminare questo snapshot?')) return;
+  const st=getStor();
+  st.splice(idx,1);
+  localStorage.setItem('patrimonio_storico',JSON.stringify(st));
+  renderStorico();
+  saveToCloud();
+}
+
+async function salvaSnapshot(){
+  const nota = (document.getElementById('stor-nota')?.value||'').trim();
+  const c = calc();
+  const st = getStor();
+  const totInv = D.az+D.ob+D.or;
+  const totAz = totInv>0?Math.round(D.az/totInv*100):0;
+  const totOb = totInv>0?Math.round(D.ob/totInv*100):0;
+  const totOr = totInv>0?Math.round(D.or/totInv*100):0;
+  st.push({
+    d: new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}),
+    tot: c.totale, az:D.az, ob:D.ob, or:D.or, liq:D.liq, fe:D.fe,
+    totInv, pAz:totAz, pOb:totOb, pOr:totOr,
+    nota: nota||null
+  });
+  localStorage.setItem('patrimonio_storico',JSON.stringify(st));
+  if(document.getElementById('stor-nota')) document.getElementById('stor-nota').value='';
+  renderStorico();
+  const ok = await saveToCloud();
+  if(ok) toast('✓ Snapshot salvato');
+}
+
 function renderStorico(){
   const st=getStor();
   const el=document.getElementById('storicoList');
-  if(!st.length){el.innerHTML='<div class="empty">Nessun salvataggio ancora.</div>';return;}
-  el.innerHTML='<div class="stor-row stor-hdr"><span>Data</span><span>Totale</span><span style="text-align:right;">Var.</span></div>'+
-    st.slice().reverse().slice(0,15).map((r,i,arr)=>{
-      const prev=arr[i+1],delta=prev?r.tot-prev.tot:null;
-      const dc=delta===null?'var(--dim)':delta>=0?'var(--green)':'var(--red)';
-      return `<div class="stor-row"><span class="stor-date">${r.d}</span><span class="stor-tot">${fmt(r.tot)}</span><span class="stor-d" style="color:${dc};">${delta!==null?fmtD(delta):'—'}</span></div>`;
-    }).join('');
-  if(charts.stor)charts.stor.destroy();
-  if(st.length>=2){
-    charts.stor=new Chart(document.getElementById('cStor'),{
-      type:'line',
-      data:{labels:st.map(r=>r.d),datasets:[{label:'Patrimonio',data:st.map(r=>r.tot),borderColor:'#006636',backgroundColor:'rgba(0,102,54,.08)',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#006636',fill:true,tension:.4}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-        scales:{x:{ticks:{color:'#9aaa9f',maxTicksLimit:10,font:{size:10}},grid:{color:'rgba(0,0,0,.05)'}},
-                y:{ticks:{color:'#5a6b62',callback:v=>'€'+Math.round(v).toLocaleString('it-IT')},grid:{color:'rgba(0,0,0,.05)'}}}}
-    });
-  } else {
-    document.getElementById('cStor').parentElement.innerHTML='<div class="empty">Salva almeno 2 aggiornamenti per il grafico.</div>';
+  if(!el) return;
+
+  // Grafico
+  const cStorEl = document.getElementById('cStor');
+  if(cStorEl){
+    if(charts.stor) charts.stor.destroy();
+    if(st.length>=2){
+      charts.stor=new Chart(cStorEl,{
+        type:'line',
+        data:{labels:st.map(r=>r.d),datasets:[{label:'Patrimonio',data:st.map(r=>r.tot),borderColor:'#006636',backgroundColor:'rgba(0,102,54,.08)',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#006636',fill:true,tension:.4}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+          scales:{x:{ticks:{color:'#9aaa9f',maxTicksLimit:10,font:{size:10}},grid:{color:'rgba(0,0,0,.05)'}},
+                  y:{ticks:{color:'#5a6b62',callback:v=>'€'+Math.round(v).toLocaleString('it-IT')},grid:{color:'rgba(0,0,0,.05)'}}}}
+      });
+    } else {
+      cStorEl.parentElement.innerHTML='<div class="empty">Salva almeno 2 snapshot per il grafico.</div>';
+    }
   }
+
+  if(!st.length){el.innerHTML='<div class="empty">Nessun snapshot ancora.</div>';return;}
+
+  // Snapshot cards - dal più recente
+  const reversed = [...st].reverse();
+  el.innerHTML = reversed.map((r,i)=>{
+    const origIdx = st.length-1-i;
+    const totInv = r.totInv || (r.az+r.ob+r.or);
+    const pAz = r.pAz ?? (totInv>0?Math.round(r.az/totInv*100):0);
+    const pOb = r.pOb ?? (totInv>0?Math.round(r.ob/totInv*100):0);
+    const pOr = r.pOr ?? (totInv>0?Math.round(r.or/totInv*100):0);
+    const liqPct = r.tot>0?Math.round(r.liq/r.tot*100):0;
+    const invPct = r.tot>0?Math.round(totInv/r.tot*100):0;
+    // delta vs precedente
+    const prev = reversed[i+1];
+    const delta = prev ? r.tot - prev.tot : null;
+    const dc = delta===null?'var(--dim)':delta>=0?'var(--green)':'var(--red)';
+    const deltaHTML = delta!==null
+      ? `<span style="font-size:13px;font-weight:700;color:${dc};margin-left:8px;">${fmtD(delta)}</span>`
+      : '';
+    const notaHTML = r.nota
+      ? `<div class="snap-nota">📝 ${r.nota}</div>`
+      : '';
+    return `<div class="snap-card">
+      <button class="snap-del" onclick="eliminaSnapshot(${origIdx})">🗑</button>
+      <div class="snap-date">${r.d}</div>
+      <div class="snap-tot">${fmt(r.tot)}${deltaHTML}</div>
+      <div class="snap-chips">
+        <div class="snap-chip" style="background:var(--green-light);border:1px solid #6ee7b7;">
+          <div class="snap-chip-lbl" style="color:var(--green);">Liquidità</div>
+          <div class="snap-chip-val" style="color:var(--green);">${fmt(r.liq)}</div>
+          <div class="snap-chip-sub" style="color:var(--green);">${liqPct}%</div>
+        </div>
+        <div class="snap-chip" style="background:var(--blue-l);border:1px solid #bfdbfe;">
+          <div class="snap-chip-lbl" style="color:var(--blue);">Investito</div>
+          <div class="snap-chip-val" style="color:var(--blue);">${fmt(totInv)}</div>
+          <div class="snap-chip-sub" style="color:var(--blue);">Az ${pAz}% · Obbl ${pOb}% · Oro ${pOr}%<br>${invPct}% del patrimonio</div>
+        </div>
+      </div>
+      ${notaHTML}
+    </div>`;
+  }).join('');
 }
 
 // ── SALVA ────────────────────────────────────────────────────
@@ -1038,10 +1134,6 @@ async function salva(){
   });
   // sincronizza liqSub col totale liquidità
   C.liqSub.tr = Math.max(0, D.liq - C.liqSub.cc);
-  const c=calc();
-  const st=getStor();
-  st.push({d:new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}),tot:c.totale,az:D.az,ob:D.ob,or:D.or,liq:D.liq,fe:D.fe});
-  localStorage.setItem('patrimonio_storico',JSON.stringify(st));
   renderAll();
   const ok = await saveToCloud();
   if(ok) toast('✓ Salvato');
