@@ -371,9 +371,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
     <div class="sec">Situazione</div>
     <div id="homeAlerts"></div>
 
-    <div class="sec">Allocazione investimenti · attuale vs target</div>
-    <div class="card card-p"><div id="allocCard"></div></div>
-
     <div class="sec">La tua strategia</div>
     <div id="stratCard"></div>
 
@@ -699,11 +696,11 @@ function renderStrategia(){
     {lbl:'Fondo emergenza', sub:`Max consigliato ${fmt(C.maxFE)}`,  pct:null, eur:C.maxFE},
   ];
 
-  // Badge liquidità
+  // Badge liquidità — Troppa solo se supera la soglia (15k), non l'ideale
   const liqPct = D.liq / totale * 100;
   const liqIdeal = totale * (C.liqPct / 100);
   let liqBadge, liqBadgeBg, liqBadgeFg, liqDot;
-  if(D.liq > liqIdeal * 1.2){
+  if(D.liq > C.soglia * 1.5){
     liqBadge='Troppa'; liqBadgeBg='#fef2f2'; liqBadgeFg='#b91c1c'; liqDot='#ef4444';
   } else if(D.liq < C.soglia){
     liqBadge='Bassa'; liqBadgeBg='#fffbeb'; liqBadgeFg='#92400e'; liqDot='#f59e0b';
@@ -793,9 +790,6 @@ function renderStrategia(){
             <div class="stato-bar-meta">
               <span>${liqPct.toFixed(1)}% del patrimonio</span>
               <span>Soglia min ${fmt(C.soglia)}</span>
-            </div>
-            <div style="margin-top:10px;font-size:12px;color:var(--muted);line-height:1.6;">
-              CC Principale <strong style="color:var(--text);">${fmt(C.liqSub.cc)}</strong> · TR <strong style="color:var(--text);">${fmt(C.liqSub.tr)}</strong>
             </div>
           </div>
         </div>
@@ -1029,35 +1023,36 @@ function renderStorico(){
 
 // ── SALVA ────────────────────────────────────────────────────
 async function salva(){
-  // leggi tutti i valori dagli input
   ASSETS.forEach(a=>{
     const e=document.getElementById('i_'+a.k);
-    if(e){
-      const v=parseFloat(e.value);
-      if(!isNaN(v) && v>=0) D[a.k]=v;
-    }
+    if(e){ const v=parseFloat(e.value); if(!isNaN(v)&&v>=0) D[a.k]=v; }
   });
-  const tot=C.liqSub.cc+C.liqSub.tr;
-  if(Math.abs(tot-D.liq)>1) C.liqSub.tr=Math.max(0,D.liq-C.liqSub.cc);
+  // sincronizza liqSub col totale liquidità
+  C.liqSub.tr = Math.max(0, D.liq - C.liqSub.cc);
   const c=calc();
   const st=getStor();
   st.push({d:new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}),tot:c.totale,az:D.az,ob:D.ob,or:D.or,liq:D.liq,fe:D.fe});
   localStorage.setItem('patrimonio_storico',JSON.stringify(st));
-  renderAll(); // aggiorna subito la home con i nuovi valori
+  renderAll();
   const ok = await saveToCloud();
   if(ok) toast('✓ Salvato');
+  else toast('⚠ Errore salvataggio');
 }
 
 // ── SALVA CONFIG ─────────────────────────────────────────────
 async function salvaConfig(){
-  C.soglia=parseFloat(document.getElementById('cfgSoglia').value)||C.soglia;
-  C.maxFE =parseFloat(document.getElementById('cfgMaxFE').value)||C.maxFE;
-  C.mix.az=parseFloat(document.getElementById('cfgAz').value)||0;
-  C.mix.ob=parseFloat(document.getElementById('cfgOb').value)||0;
-  C.mix.or=parseFloat(document.getElementById('cfgOr').value)||0;
-  const sum=C.mix.az+C.mix.ob+C.mix.or;
-  document.getElementById('cfgWarn').style.display=Math.abs(sum-100)>.5?'block':'none';
-  await saveToCloud();renderAll();toast('✓ Impostazioni salvate');
+  C.soglia = parseFloat(document.getElementById('cfgSoglia').value)||C.soglia;
+  C.maxFE  = parseFloat(document.getElementById('cfgMaxFE').value)||C.maxFE;
+  C.mix.az = parseFloat(document.getElementById('cfgAz').value)||0;
+  C.mix.ob = parseFloat(document.getElementById('cfgOb').value)||0;
+  C.mix.or = parseFloat(document.getElementById('cfgOr').value)||0;
+  const sum = C.mix.az+C.mix.ob+C.mix.or;
+  document.getElementById('cfgWarn').style.display = Math.abs(sum-100)>.5?'block':'none';
+  if(Math.abs(sum-100)>.5){ toast('⚠ Mix non somma 100%'); return; }
+  renderAll();
+  const ok = await saveToCloud();
+  if(ok) toast('✓ Impostazioni salvate');
+  else toast('⚠ Errore salvataggio');
 }
 function loadCfg(){
   document.getElementById('cfgSoglia').value=C.soglia;
