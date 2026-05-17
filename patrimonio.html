@@ -213,14 +213,15 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 .page{display:none;animation:fadeUp .18s ease;}
 .page.active{display:block;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
-.tabbar{position:fixed;bottom:0;left:0;right:0;height:var(--tab-h);background:var(--white);border-top:1px solid var(--border);display:flex;align-items:stretch;z-index:200;box-shadow:0 -2px 16px rgba(0,0,0,.07);}
+.tabbar{position:fixed;bottom:0;left:0;right:0;height:var(--tab-h);background:var(--white);border-top:1px solid var(--border);display:flex;align-items:stretch;z-index:200;box-shadow:0 -2px 16px rgba(0,0,0,.07);transition:transform .3s ease;}
+.tabbar.hidden{transform:translateY(100%);}
 .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:none;border:none;cursor:pointer;color:var(--dim);font-size:9px;font-weight:700;letter-spacing:.03em;font-family:'Inter',sans-serif;padding-bottom:4px;transition:color .15s;}
 .tab-btn svg{width:22px;height:22px;transition:transform .15s;}
 .tab-btn.active{color:var(--green);}
 .tab-btn.active svg{transform:scale(1.1);}
 
 /* ── TOAST ── */
-.toast{position:fixed;bottom:calc(var(--tab-h)+16px);left:50%;transform:translateX(-50%) translateY(16px);background:var(--green);color:#fff;padding:10px 22px;border-radius:24px;font-size:13px;font-weight:700;opacity:0;transition:opacity .25s,transform .25s;z-index:999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,102,54,.35);pointer-events:none;}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-12px);background:var(--green);color:#fff;padding:10px 22px;border-radius:24px;font-size:13px;font-weight:700;opacity:0;transition:opacity .25s,transform .25s;z-index:1000;white-space:nowrap;box-shadow:0 4px 20px rgba(0,102,54,.35);pointer-events:none;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 /* ── MISC ── */
@@ -1008,7 +1009,29 @@ function goTab(n){
   if(n==='pac'){buildPac();renderPacProj();}
   if(n==='impostazioni')loadCfg();
   window.scrollTo({top:0,behavior:'smooth'});
+  document.querySelector('.tabbar')?.classList.remove('hidden');
 }
+
+// ── SCROLL HIDE TABBAR ───────────────────────────────────────
+(function(){
+  let lastY=0, ticking=false;
+  window.addEventListener('scroll',()=>{
+    if(!ticking){
+      window.requestAnimationFrame(()=>{
+        const y=window.scrollY;
+        const tb=document.querySelector('.tabbar');
+        if(tb){
+          // nascondi se scroll verso il basso e oltre 60px dall'alto
+          if(y>lastY && y>60) tb.classList.add('hidden');
+          else tb.classList.remove('hidden');
+        }
+        lastY=y;
+        ticking=false;
+      });
+      ticking=true;
+    }
+  },{passive:true});
+})();
 
 // ── INIT ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
