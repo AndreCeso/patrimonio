@@ -491,7 +491,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 
     <div class="sec">Andamento patrimonio</div>
     <div class="card card-p" style="margin-bottom:12px;">
-      <div style="position:relative;height:200px;"><canvas id="cStor" role="img" aria-label="Storico patrimonio"></canvas></div>
+      <div id="cStor-wrap" style="position:relative;height:200px;"><canvas id="cStor" role="img" aria-label="Storico patrimonio"></canvas></div>
     </div>
 
     <div class="sec">Storico aggiornamenti</div>
@@ -1121,11 +1121,14 @@ function renderStorico(){
   if(!el) return;
 
   // Grafico
-  const cStorEl = document.getElementById('cStor');
-  if(cStorEl){
-    if(charts.stor) charts.stor.destroy();
+  const cStorWrap = document.getElementById('cStor-wrap');
+  if(cStorWrap){
+    if(charts.stor){ charts.stor.destroy(); charts.stor=null; }
     if(st.length>=2){
-      charts.stor=new Chart(cStorEl,{
+      // ripristina sempre il canvas fresco per evitare problemi di stato
+      cStorWrap.innerHTML='<canvas id="cStor" style="position:absolute;inset:0;" role="img"></canvas>';
+      const canvas = document.getElementById('cStor');
+      charts.stor=new Chart(canvas,{
         type:'line',
         data:{labels:st.map(r=>r.d),datasets:[{label:'Patrimonio',data:st.map(r=>r.tot),borderColor:'#006636',backgroundColor:'rgba(0,102,54,.08)',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#006636',fill:true,tension:.4}]},
         options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
@@ -1133,7 +1136,7 @@ function renderStorico(){
                   y:{ticks:{color:'#5a6b62',callback:v=>'€'+Math.round(v).toLocaleString('it-IT')},grid:{color:'rgba(0,0,0,.05)'}}}}
       });
     } else {
-      cStorEl.parentElement.innerHTML='<div class="empty">Salva almeno 2 snapshot per il grafico.</div>';
+      cStorWrap.innerHTML='<div class="empty" style="padding:40px 0;text-align:center;color:var(--dim);font-size:13px;">Salva almeno 2 snapshot per il grafico.</div>';
     }
   }
 
