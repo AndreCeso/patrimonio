@@ -491,7 +491,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 
     <div class="sec">Andamento patrimonio</div>
     <div class="card card-p" style="margin-bottom:12px;">
-      <div id="cStor-wrap" style="position:relative;height:200px;"><canvas id="cStor" role="img" aria-label="Storico patrimonio"></canvas></div>
+      <div id="cStor-wrap" style="position:relative;height:200px;min-height:200px;"><canvas id="cStor" role="img" aria-label="Storico patrimonio"></canvas></div>
     </div>
 
     <div class="sec">Storico aggiornamenti</div>
@@ -1125,16 +1125,19 @@ function renderStorico(){
   if(cStorWrap){
     if(charts.stor){ charts.stor.destroy(); charts.stor=null; }
     if(st.length>=2){
-      // ripristina sempre il canvas fresco per evitare problemi di stato
-      cStorWrap.innerHTML='<canvas id="cStor" style="position:absolute;inset:0;" role="img"></canvas>';
-      const canvas = document.getElementById('cStor');
-      charts.stor=new Chart(canvas,{
-        type:'line',
-        data:{labels:st.map(r=>r.d),datasets:[{label:'Patrimonio',data:st.map(r=>r.tot),borderColor:'#006636',backgroundColor:'rgba(0,102,54,.08)',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#006636',fill:true,tension:.4}]},
-        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-          scales:{x:{ticks:{color:'#9aaa9f',maxTicksLimit:10,font:{size:10}},grid:{color:'rgba(0,0,0,.05)'}},
-                  y:{ticks:{color:'#5a6b62',callback:v=>'€'+Math.round(v).toLocaleString('it-IT')},grid:{color:'rgba(0,0,0,.05)'}}}}
-      });
+      cStorWrap.innerHTML='<canvas id="cStor" role="img"></canvas>';
+      setTimeout(()=>{
+        const canvas = document.getElementById('cStor');
+        if(!canvas) return;
+        charts.stor=new Chart(canvas,{
+          type:'line',
+          data:{labels:st.map((r,i)=>st.findIndex(x=>x.d===r.d)===i?r.d:r.d+' #'+(i+1)),
+            datasets:[{label:'Patrimonio',data:st.map(r=>r.tot),borderColor:'#006636',backgroundColor:'rgba(0,102,54,.08)',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#006636',fill:true,tension:.4}]},
+          options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+            scales:{x:{ticks:{color:'#9aaa9f',maxTicksLimit:10,font:{size:10}},grid:{color:'rgba(0,0,0,.05)'}},
+                    y:{ticks:{color:'#5a6b62',callback:v=>'€'+Math.round(v).toLocaleString('it-IT')},grid:{color:'rgba(0,0,0,.05)'}}}}
+        });
+      }, 100);
     } else {
       cStorWrap.innerHTML='<div class="empty" style="padding:40px 0;text-align:center;color:var(--dim);font-size:13px;">Salva almeno 2 snapshot per il grafico.</div>';
     }
