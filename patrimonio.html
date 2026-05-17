@@ -864,7 +864,7 @@ function renderPacProj(){
 }
 
 // ── STORICO ──────────────────────────────────────────────────
-function getStor(){return JSON.parse(localStorage.getItem('patrimonio_storico')||'[]');}
+function getStor(){try{const v=JSON.parse(localStorage.getItem('patrimonio_storico')||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}}
 function cancellaStorico(){if(confirm('Cancellare tutto lo storico?')){localStorage.removeItem('patrimonio_storico');renderStorico();}}
 function renderStorico(){
   const st=getStor();
