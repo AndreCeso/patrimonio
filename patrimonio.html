@@ -614,11 +614,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
 });
 
-async function logout(){
-  await sb.auth.signOut();
-  document.getElementById('authScreen').classList.remove('hidden');
-  currentUser=null;
-}
+
 
 // ── CLOUD SYNC ───────────────────────────────────────────────
 // ── CLOUD SYNC ───────────────────────────────────────────────
