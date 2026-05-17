@@ -289,6 +289,64 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 .hub-card-meta{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
 .hub-badge{font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:.04em;}
 .hub-arrow{color:var(--dim);font-size:18px;}
+
+/* ══════════ ALLOCATORE ══════════ */
+/* Modal overlay allocatore */
+#alloc-modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 1050;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 16px 10px;
+  overflow-y: auto;
+}
+#alloc-modal-overlay.open { display: flex; }
+#alloc-modal-box {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  width: 100%; max-width: 580px;
+  max-height: 88vh; overflow-y: auto;
+  padding: 20px 18px;
+  box-shadow: var(--sh);
+}
+/* Storico allocatore overlay */
+#alloc-storico-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 1051;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 16px 10px;
+  overflow-y: auto;
+}
+/* Sub-list allocatore */
+.alloc-sub-list { padding-left: 12px; padding-top: 5px; }
+.alloc-sub-list.hidden { display: none; }
+/* Note badges allocatore */
+.alloc-note { font-size: 11px; padding: 7px 12px; border-radius: var(--r-sm); margin-bottom: 5px; line-height: 1.5; font-weight:600; }
+.alloc-note-overflow { background: var(--blue-l);  border:1px solid #bfdbfe; color: var(--blue); }
+.alloc-note-cap      { background: var(--amber-l); border:1px solid #fde68a; color: var(--amber); }
+.alloc-note-skip     { background: var(--red-l);   border:1px solid #fecaca; color: var(--red); }
+/* Sum badge */
+.alloc-sum-ok  { background: var(--green-light); color: var(--green); font-size:10px; margin-left:6px; padding:1px 7px; border-radius:5px; font-weight:700; }
+.alloc-sum-err { background: var(--red-l); color: var(--red); font-size:10px; margin-left:6px; padding:1px 7px; border-radius:5px; font-weight:700; }
+/* Bar fill */
+.alloc-bar-fill { transition: width 0.4s ease; }
+/* Schermata allocatore fullscreen */
+#page-allocatore {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  z-index: 500;
+  overflow-y: auto;
+  padding-bottom: 40px;
+  display: none;
+}
+#page-allocatore.active { display: block; }
+
 /* ── MISC ── */
 .cfg-warn{font-size:12px;color:var(--red);font-weight:700;margin-top:6px;display:none;}
 .info-box{background:var(--blue-l);border-radius:var(--r-sm);padding:10px 14px;font-size:12px;color:var(--blue);margin-bottom:10px;}
