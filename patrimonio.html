@@ -1432,5 +1432,1357 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
 });
 </script>
+
+<!-- ══════════ ALLOCATORE ══════════ -->
+<div id="page-allocatore">
+  <div style="position:sticky;top:0;z-index:100;background:var(--green);padding:10px 16px;display:flex;align-items:center;gap:12px;">
+    <button onclick="closeAllocatore()" style="background:rgba(255,255,255,.2);border:none;border-radius:8px;padding:6px 14px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">← Hub</button>
+    <span style="color:rgba(255,255,255,.7);font-size:12px;font-weight:600;">Financial Allocator</span>
+  </div>
+  <!-- HEADER -->
+<div style="background:var(--green);padding:32px 20px 52px;">
+  <div style="max-width:680px;margin:0 auto;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:3px;">Financial Allocator</div>
+        <div style="font-size:26px;font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1.1;">Ripartizione<br>Entrate Extra</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:6px;">Tredicesima · Rimborso 730 · Bonus · Rafforzamento</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;margin-top:4px;">
+        <button id="alloc-btn-edit-pct" onclick="openModal('edit')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">✎ %</button>
+        <button id="alloc-btn-config" onclick="openModal('config')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">⚙ Config</button>
+        <button id="alloc-btn-storico" onclick="openModal('storico')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">📋 Storico</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="alloc-main" style="max-width:680px;margin:-32px auto 0;padding:0 14px 20px;position:relative;z-index:10;">
+
+  <!-- INPUTS CARD -->
+  <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:18px 16px;margin-bottom:12px;box-shadow:var(--sh-sm);">
+    <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:14px;">📥 Dati di ingresso</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div>
+        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:5px;">Liquidità c/c attuale</div>
+        <div style="position:relative">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--green);font-size:13px">€</span>
+          <input id="alloc-inp-liq" type="text" placeholder="0" oninput="onInputChange()" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:9px 10px 9px 26px;color:var(--text);font-size:14px"/>
+        </div>
+        <div style="font-size:10px;color:var(--dim);font-weight:600;margin-top:3px;" id="hint-liq-target">Target €${state.cfg.liqTarget.toLocaleString('it-IT')}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:5px;">Fondo emergenza attuale</div>
+        <div style="position:relative">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--red);font-size:13px">€</span>
+          <input id="alloc-inp-fe" type="text" placeholder="0" oninput="onInputChange()" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:9px 10px 9px 26px;color:var(--text);font-size:14px"/>
+        </div>
+        <div style="font-size:10px;color:var(--dim);font-weight:600;margin-top:3px;" id="hint-fe-target">Target €${state.cfg.feTarget.toLocaleString('it-IT')}</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:5px;">Importo entrata</div>
+      <div style="position:relative">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--green);font-size:20px">€</span>
+        <input id="alloc-inp-amount" type="text" placeholder="0" oninput="onInputChange()" style="width:100%;background:var(--bg);border:2px solid var(--border);border-radius:var(--r-sm);padding:13px 14px 13px 38px;color:var(--text);font-size:22px;font-weight:800;"/>
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:8px;">Tipo di entrata</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px" id="alloc-entry-btns"></div>
+  </div>
+
+  <!-- SCENARIO CARD -->
+  <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:18px 16px;margin-bottom:12px;box-shadow:var(--sh-sm);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);font-weight:700;">📍 Scenario</div>
+      <button id="alloc-btn-auto-back" onclick="setScenarioOverride(null)" style="display:none;font-size:10px;color:var(--green);background:var(--green-light);border:1px solid #6ee7b7;border-radius:6px;padding:3px 9px;cursor:pointer">← Torna ad Auto</button>
+    </div>
+    <div id="alloc-scenario-auto-badge" style="font-size:11px;color:var(--green);background:var(--green-light);border:1px solid #a7f3d0;border-radius:var(--r-sm);padding:7px 12px;margin-bottom:10px;"></div>
+    <div id="alloc-scenario-btns" style="display:flex;flex-direction:column;gap:7px"></div>
+  </div>
+
+  <!-- NOTES -->
+  <div id="alloc-notes-area" style="margin-bottom:12px"></div>
+
+  <!-- RESULTS CARD -->
+  <div id="alloc-results-card" style="display:none;background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:18px 16px;margin-bottom:12px;box-shadow:var(--sh-sm);">
+    <div id="alloc-results-title" style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:14px;"></div>
+
+    <!-- Macro rows injected here -->
+    <div id="alloc-macro-liq"></div>
+    <div id="alloc-macro-spesa"></div>
+    <div id="alloc-macro-jolly"></div>
+    <div id="alloc-macro-fin"></div>
+
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:var(--muted);font-weight:600;">Totale allocato</span>
+      <span id="alloc-total-display" style="font-size:20px;font-weight:800;color:var(--green)"></span>
+    </div>
+    <button onclick="saveToStorico()" style="margin-top:12px;width:100%;padding:10px;background:var(--green-light);border:1px solid #6ee7b7;border-radius:var(--r-sm);color:var(--green);cursor:pointer;font-size:12px;font-weight:700;">
+      ＋ Salva in Storico
+    </button>
+  </div>
+
+  <!-- SUMMARY CHIPS -->
+  <div id="alloc-summary-chips" style="display:none;display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;"></div>
+
+
+
+  <!-- EMPTY STATE -->
+  <div id="alloc-empty-state" style="background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:30px 20px;text-align:center;color:var(--dim);font-size:13px;box-shadow:var(--sh-sm);">
+    Inserisci i dati e l'importo per vedere la ripartizione ↑
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div id="alloc-modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div id="alloc-modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <span id="alloc-modal-title" style="font-size:14px;font-weight:700;color:var(--text);"></span>
+      <button onclick="closeModal()" style="background:none;border:none;color:var(--dim);font-size:22px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div id="alloc-modal-body"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════
+const DEFAULT_CONFIG = {
+  feTarget: 6000, liqTarget: 15000,
+  pacMin: 100, pensioneMin: 100, pensioneCap: 1200,
+  overflowLiq: 'jolly_future', overflowFe: 'pac',
+  overflowPensione: 'pac', skipPac: 'jolly_future', skipPensione: 'jolly_future'
+};
+
+// Override config per tipo di entrata — sovrascrive solo le chiavi specificate
+const ENTRY_CONFIG_OVERRIDE = {
+  rimborso: { overflowLiq: 'pac' },
+};
+
+const DEFAULT_MODEL = {
+  rafforzamento: {
+    A:{macro:{liq:5, spesa:10,jolly:10,fin:75},jolly:{future:50,obiettivi:50},fin:{fe:70,pac:20,pensione:10}},
+    B:{macro:{liq:15,spesa:10,jolly:10,fin:65},jolly:{future:40,obiettivi:60},fin:{fe:0, pac:65,pensione:35}},
+    C:{macro:{liq:0, spesa:10,jolly:20,fin:70},jolly:{future:40,obiettivi:60},fin:{fe:0, pac:70,pensione:30}},
+  },
+  tredicesima: {
+    A:{macro:{liq:10,spesa:25,jolly:15,fin:50},jolly:{future:60,obiettivi:40},fin:{fe:60,pac:24,pensione:16}},
+    B:{macro:{liq:20,spesa:25,jolly:20,fin:35},jolly:{future:55,obiettivi:45},fin:{fe:0, pac:65,pensione:35}},
+    C:{macro:{liq:0, spesa:30,jolly:25,fin:45},jolly:{future:55,obiettivi:45},fin:{fe:0, pac:70,pensione:30}},
+  },
+  rimborso: {
+    A:{macro:{liq:5, spesa:15,jolly:10,fin:70},jolly:{future:50,obiettivi:50},fin:{fe:65,pac:23,pensione:12}},
+    B:{macro:{liq:30,spesa:15,jolly:15,fin:40},jolly:{future:45,obiettivi:55},fin:{fe:0, pac:65,pensione:35}},
+    C:{macro:{liq:0, spesa:15,jolly:20,fin:65},jolly:{future:45,obiettivi:55},fin:{fe:0, pac:70,pensione:30}},
+  },
+  bonus: {
+    A:{macro:{liq:10,spesa:20,jolly:15,fin:55},jolly:{future:50,obiettivi:50},fin:{fe:60,pac:24,pensione:16}},
+    B:{macro:{liq:20,spesa:25,jolly:20,fin:35},jolly:{future:50,obiettivi:50},fin:{fe:0, pac:65,pensione:35}},
+    C:{macro:{liq:0, spesa:35,jolly:25,fin:40},jolly:{future:50,obiettivi:50},fin:{fe:0, pac:70,pensione:30}},
+  },
+};
+
+const ENTRY_TYPES = [
+  {key:'rafforzamento',label:'Rafforzamento',icon:'💪',desc:'Entrata fredda, acceleratore patrimoniale'},
+  {key:'tredicesima',  label:'Tredicesima',  icon:'🎄',desc:'Semi-strutturata, periodo natalizio'},
+  {key:'rimborso',     label:'Rimborso 730', icon:'📄',desc:'Capitale che ritorna, non un premio'},
+  {key:'bonus',        label:'Bonus / Extra',icon:'⭐',desc:'Premio imprevedibile, max flessibilità'},
+];
+const SCENARIOS = [
+  {key:'A',icon:'🚨',label:'Scenario A',desc:'FE da completare — priorità assoluta',color:'#e05c3a'},
+  {key:'B',icon:'📈',label:'Scenario B',desc:'FE ✓ — Liquidità da completare',     color:'#f59e0b'},
+  {key:'C',icon:'🏆',label:'Scenario C',desc:'FE ✓ — Liquidità ✓ — Tutto saturo', color:'#34c78a'},
+];
+const OVERFLOW_OPTS = [
+  {key:'jolly_future',   label:'🔮 Spese Future'},
+  {key:'jolly_obiettivi',label:'🏁 Obiettivi in Corso'},
+  {key:'spesa',          label:'🛒 Spesa & Gratif.'},
+  {key:'pac',            label:'📊 PAC ETF'},
+  {key:'pensione',       label:'🏛️ Fondo Pensione'},
+];
+const OVERFLOW_LABELS = Object.fromEntries(OVERFLOW_OPTS.map(o=>[o.key,o.label]));
+const MC = {liq:'#006636',spesa:'#7c3aed',jolly:'#d97706',fin:'#1e40af'};
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let state = {
+  amount: 0, liqCur: 0, feCur: 0,
+  entry: 'bonus',
+  scenarioOverride: null,
+  model: JSON.parse(JSON.stringify(DEFAULT_MODEL)),
+  cfg: {...DEFAULT_CONFIG},
+  openSubs: {jolly: true, fin: true},
+};
+
+function r5(n){ return Math.round(n/5)*5; }
+function fmtN(n){ return r5(Math.max(0,n)).toLocaleString('it-IT'); }
+function pct(a,b){ return b>0?Math.round((a/b)*100):0; }
+function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+
+function autoScenario(liq,fe){
+  if(fe<state.cfg.feTarget) return 'A';
+  if(liq<state.cfg.liqTarget) return 'B';
+  return 'C';
+}
+
+// ═══════════════════════════════════════════════════════════
+// COMPUTE
+// ═══════════════════════════════════════════════════════════
+function resolveKey(key){
+  const map={jolly_future:'future',jolly_obiettivi:'obiettivi',spesa:'spesa',pac:'pac',pensione:'pensione'};
+  return map[key]||'future';
+}
+
+function compute(amount, entryType, scenario, liqCur, feCur, model, cfg){
+  cfg = Object.assign({}, cfg, ENTRY_CONFIG_OVERRIDE[entryType]||{});
+  const m = model[entryType][scenario];
+  const liqGap = Math.max(0, cfg.liqTarget - liqCur);
+  const feGap  = Math.max(0, cfg.feTarget - feCur);
+  const notes  = [];
+
+  let liq   = (m.macro.liq   /100)*amount;
+  let spesa = (m.macro.spesa /100)*amount;
+  let jolly = (m.macro.jolly /100)*amount;
+  let fin   = (m.macro.fin   /100)*amount;
+
+  let fe       = (m.fin.fe       /100)*fin;
+  let pac      = (m.fin.pac      /100)*fin;
+  let pensione = (m.fin.pensione /100)*fin;
+  let future    = (m.jolly.future    /100)*jolly;
+  let obiettivi = (m.jolly.obiettivi /100)*jolly;
+
+  const leaves = {liq,spesa,future,obiettivi,fe,pac,pensione};
+
+  function addTo(key,amt){
+    const k=resolveKey(key);
+    if(k in leaves) leaves[k]+=amt;
+    else leaves.future+=amt;
+  }
+
+  if(leaves.liq>liqGap){
+    const ov=leaves.liq-liqGap; leaves.liq=liqGap;
+    addTo(cfg.overflowLiq,ov);
+    if(ov>0.01) notes.push({type:'overflow',msg:`€${fmtN(ov)} Liquidità eccedente → ${OVERFLOW_LABELS[cfg.overflowLiq]}`});
+  }
+  if(leaves.fe>feGap){
+    const ov=leaves.fe-feGap; leaves.fe=feGap;
+    addTo(cfg.overflowFe,ov);
+    if(ov>0.01) notes.push({type:'overflow',msg:`€${fmtN(ov)} FE eccedente → ${OVERFLOW_LABELS[cfg.overflowFe]}`});
+  }
+  if(leaves.pensione>cfg.pensioneCap){
+    const ov=leaves.pensione-cfg.pensioneCap; leaves.pensione=cfg.pensioneCap;
+    addTo(cfg.overflowPensione,ov);
+    notes.push({type:'cap',msg:`Fondo Pensione cappato a €${cfg.pensioneCap} → €${fmtN(ov)} → ${OVERFLOW_LABELS[cfg.overflowPensione]}`});
+  }
+  if(leaves.pac>0&&leaves.pac<cfg.pacMin){
+    const ov=leaves.pac;
+    notes.push({type:'skip',msg:`PAC €${fmtN(ov)} sotto €${cfg.pacMin} → ${OVERFLOW_LABELS[cfg.skipPac]}`});
+    leaves.pac=0; addTo(cfg.skipPac,ov);
+  }
+  if(leaves.pensione>0&&leaves.pensione<cfg.pensioneMin){
+    const ov=leaves.pensione;
+    notes.push({type:'skip',msg:`Fondo Pensione €${fmtN(ov)} sotto €${cfg.pensioneMin} → ${OVERFLOW_LABELS[cfg.skipPensione]}`});
+    leaves.pensione=0; addTo(cfg.skipPensione,ov);
+  }
+
+  const rounded={};
+  Object.keys(leaves).forEach(k=>{ rounded[k]=r5(Math.max(0,leaves[k])); });
+  const t5=r5(amount);
+  const sumR=Object.values(rounded).reduce((a,b)=>a+b,0);
+  rounded.spesa=Math.max(0,rounded.spesa+(t5-sumR));
+
+  return {rounded,notes};
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER HELPERS
+// ═══════════════════════════════════════════════════════════
+function macroRowHTML(icon,label,amount,total,color,subsHTML,subId){
+  const p=pct(amount,total);
+  const hasS=!!subsHTML;
+  const chevron=hasS?`<span id="chev-${subId}" style="color:var(--muted);font-size:11px;margin-left:2px">▲</span>`:'';
+  const onclick=hasS?`onclick="toggleSub('${subId}')" style="cursor:pointer"`:`style="cursor:default"`;
+  return `
+  <div style="margin-bottom:10px">
+    <div ${onclick} style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:10px;background:${color}15;border:1.5px solid ${color}40">
+      <span style="font-size:20px">${icon}</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:${color};margin-bottom:5px">${label}</div>
+        <div style="height:4px;background:var(--bg2);border-radius:2px;overflow:hidden">
+          <div class="alloc-bar-fill" style="height:100%;width:${Math.min(p,100)}%;background:${color};border-radius:2px"></div>
+        </div>
+      </div>
+      <div style="text-align:right;min-width:80px">
+        <div style="font-size:18px;font-weight:800;color:${color}">${amount===0?'€0':'€'+fmtN(amount)}</div>
+        <div style="font-size:11px;color:var(--dim)">${p}% entrata</div>
+      </div>
+      ${chevron}
+    </div>
+    ${hasS?`<div id="sub-${subId}" class="alloc-sub-list">${subsHTML}</div>`:''}
+  </div>`;
+}
+
+function subRowHTML(icon,label,amount,macroAmt,color,badge){
+  const p=pct(amount,macroAmt);
+  const badgeHTML=badge?`<span style="font-size:9px;background:${badge.bg};color:${badge.fg};border-radius:4px;padding:1px 6px;font-weight:700;letter-spacing:1px;margin-left:6px">${badge.text}</span>`:'';
+  return `
+  <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;margin-bottom:5px;background:var(--bg);border-radius:var(--r-sm);border:1px solid var(--border)">
+    <span style="font-size:14px">${icon}</span>
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;margin-bottom:4px">
+        <span style="font-size:12px;color:var(--text)">${label}</span>${badgeHTML}
+      </div>
+      <div style="height:2px;background:var(--bg2);border-radius:1px;overflow:hidden">
+        <div class="alloc-bar-fill" style="height:100%;width:${Math.min(p,100)}%;background:${color};border-radius:1px"></div>
+      </div>
+    </div>
+    <div style="text-align:right;min-width:72px">
+      <div style="font-size:14px;font-weight:700;color:${amount===0?'var(--dim)':color}">${amount===0?'—':'€'+fmtN(amount)}</div>
+      <div style="font-size:10px;color:var(--dim)">${p}% macro</div>
+    </div>
+  </div>`;
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// TOGGLE SUB
+// ═══════════════════════════════════════════════════════════
+function toggleSub(id){
+  const el=document.getElementById('sub-'+id);
+  const chev=document.getElementById('chev-'+id);
+  if(!el) return;
+  el.classList.toggle('hidden');
+  if(chev) chev.textContent=el.classList.contains('hidden')?'▼':'▲';
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN RENDER
+// ═══════════════════════════════════════════════════════════
+function render(){
+  const {amount,liqCur,feCur,entry,scenarioOverride,model,cfg} = state;
+  const autoSc = autoScenario(liqCur,feCur);
+  const scenario = scenarioOverride||autoSc;
+
+  // Header buttons modified indicator
+  const modelMod = JSON.stringify(model)!==JSON.stringify(DEFAULT_MODEL);
+  const cfgMod   = JSON.stringify(cfg)  !==JSON.stringify(DEFAULT_CONFIG);
+  document.getElementById('btn-edit-pct').textContent = '✎ %'+(modelMod?' •':'');
+  document.getElementById('btn-edit-pct').style.color = modelMod?'#f59e0b':'var(--muted)';
+  document.getElementById('btn-edit-pct').style.borderColor = modelMod?'#f59e0b40':'var(--border)';
+  document.getElementById('btn-edit-pct').style.background = modelMod?'#f59e0b15':'var(--border)';
+  document.getElementById('btn-config').textContent = '⚙ Config'+(cfgMod?' •':'');
+  document.getElementById('btn-config').style.color = cfgMod?'#f59e0b':'var(--muted)';
+  document.getElementById('btn-config').style.borderColor = cfgMod?'#f59e0b40':'var(--border)';
+  document.getElementById('btn-config').style.background = cfgMod?'#f59e0b15':'var(--border)';
+
+  // Entry type buttons
+  const eContainer=document.getElementById('entry-btns');
+  eContainer.innerHTML=ENTRY_TYPES.map(e=>`
+    <button onclick="setEntry('${e.key}')" style="
+      background:${state.entry===e.key?'var(--green-light)':'var(--bg)'};
+      border:2px solid ${state.entry===e.key?'var(--green)':'var(--border)'};
+      border-radius:10px;padding:10px;cursor:pointer;text-align:left;transition:all .15s
+    ">
+      <div style="font-size:18px;margin-bottom:3px">${e.icon}</div>
+      <div style="font-size:12px;font-weight:700;color:${state.entry===e.key?'var(--green)':'var(--text)'}">${e.label}</div>
+      <div style="font-size:10px;color:var(--dim);line-height:1.4;margin-top:2px">${e.desc}</div>
+    </button>
+  `).join('');
+
+  // Scenario
+  const autoBack=document.getElementById('btn-auto-back');
+  const autoBadge=document.getElementById('scenario-auto-badge');
+  if(scenarioOverride){
+    autoBack.style.display='block';
+    autoBack.textContent=`← Torna ad Auto (${autoSc})`;
+    autoBadge.style.display='none';
+  } else {
+    autoBack.style.display='none';
+    autoBadge.style.display='block';
+    autoBadge.innerHTML=`✦ Rilevato automaticamente: <strong>Scenario ${autoSc}</strong> <span style="color:var(--dim)">· clicca per forzare</span>`;
+  }
+  document.getElementById('scenario-btns').innerHTML=SCENARIOS.map(s=>{
+    const active=scenario===s.key;
+    const isAuto=!scenarioOverride&&autoSc===s.key;
+    return `
+    <div onclick="setScenarioOverride('${s.key}')" style="
+      display:flex;align-items:center;gap:12px;
+      border:2px solid ${active?s.color:'var(--border)'};
+      border-radius:10px;padding:11px 14px;cursor:pointer;
+      background:${active?s.color+'18':'var(--bg)'};transition:all .15s
+    ">
+      <span style="font-size:18px">${s.icon}</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:${active?s.color:'var(--text)'}">
+          ${s.label}${isAuto?`<span style="font-size:9px;color:${s.color};margin-left:7px;opacity:.8">AUTO</span>`:''}
+        </div>
+        <div style="font-size:11px;color:var(--dim)">${s.desc}</div>
+      </div>
+      ${active?`<div style="width:8px;height:8px;border-radius:50%;background:${s.color};flex-shrink:0"></div>`:''}
+    </div>`;
+  }).join('');
+
+  const emptyState=document.getElementById('empty-state');
+  const resultsCard=document.getElementById('results-card');
+  const summaryChips=document.getElementById('summary-chips');
+  const notesArea=document.getElementById('notes-area');
+
+  if(amount<=0){
+    emptyState.style.display='block';
+    resultsCard.style.display='none';
+    summaryChips.style.display='none';
+    notesArea.innerHTML='';
+    return;
+  }
+
+  emptyState.style.display='none';
+  const res=compute(amount,entry,scenario,liqCur,feCur,model,cfg);
+  const R=res.rounded;
+
+  // Notes
+  notesArea.innerHTML=res.notes.map(n=>`
+    <div class="note note-${n.type}" style="margin-bottom:5px">
+      ${n.type==='skip'?'⚠️ ':n.type==='cap'?'🔒 ':'↩️ '}${n.msg}
+    </div>`).join('');
+
+  // Results title
+  const entMeta=ENTRY_TYPES.find(e=>e.key===entry);
+  document.getElementById('results-title').innerHTML=
+    `💡 ${entMeta.icon} ${entMeta.label} · Scenario ${scenario}`+
+    (modelMod?`<span style="color:var(--amber);margin-left:6px;font-size:9px">% personalizzate</span>`:'');
+
+  // Macro rows
+  document.getElementById('macro-liq').innerHTML=
+    macroRowHTML('💧','Liquidità di Comfort',R.liq,r5(amount),MC.liq,null,'');
+  document.getElementById('macro-spesa').innerHTML=
+    macroRowHTML('🛒','Spesa & Gratificazione',R.spesa,r5(amount),MC.spesa,null,'');
+
+  const jollySubs=
+    subRowHTML('🔮','Spese Future',      R.future,   R.future+R.obiettivi,'#fdba74',null)+
+    subRowHTML('🏁','Obiettivi in Corso',R.obiettivi,R.future+R.obiettivi,'#fbbf24',null);
+  document.getElementById('macro-jolly').innerHTML=
+    macroRowHTML('🎯','Jolly Strategico',R.future+R.obiettivi,r5(amount),MC.jolly,jollySubs,'jolly');
+
+  const finTotal=R.fe+R.pac+R.pensione;
+  const finSubs=
+    subRowHTML('📊','PAC ETF',        R.pac,     finTotal,'#60a5fa',
+      R.pac===0?{text:'SKIP',bg:'#e05c3a20',fg:'#e05c3a'}:null)+
+    subRowHTML('🏛️','Fondo Pensione', R.pensione,finTotal,'#818cf8',
+      R.pensione>=cfg.pensioneCap?{text:`CAP €${cfg.pensioneCap}`,bg:'#f59e0b20',fg:'#f59e0b'}:null)+
+    subRowHTML('🛡️','Fondo Emergenza',R.fe,      finTotal,'#e05c3a',
+      feCur>=state.cfg.feTarget?{text:'SATURO',bg:'#34c78a20',fg:'#34c78a'}:null);
+  document.getElementById('macro-fin').innerHTML=
+    macroRowHTML('💪','Rafforzamento Finanziario',finTotal,r5(amount),MC.fin,finSubs,'fin');
+
+  document.getElementById('total-display').textContent=`€${fmtN(amount)}`;
+  resultsCard.style.display='block';
+
+  // Summary chips
+  const chips=[
+    {label:'Liquidità',       val:R.liq,                color:MC.liq,   icon:'💧'},
+    {label:'Spesa & Gratif.', val:R.spesa,              color:MC.spesa, icon:'🛒'},
+    {label:'Jolly Strategico',val:R.future+R.obiettivi, color:MC.jolly, icon:'🎯'},
+    {label:'Rafforzamento',   val:R.fe+R.pac+R.pensione,color:MC.fin,   icon:'💪'},
+  ];
+  summaryChips.innerHTML=chips.map(c=>`
+    <div style="background:${c.color}10;border:1px solid ${c.color}30;border-radius:10px;padding:12px 14px">
+      <div style="font-size:11px;color:${c.color};margin-bottom:4px">${c.icon} ${c.label}</div>
+      <div style="font-size:18px;font-weight:800;color:var(--text)">€${fmtN(c.val)}</div>
+      <div style="font-size:10px;color:var(--dim)">${pct(c.val,r5(amount))}% dell'entrata</div>
+    </div>`).join('');
+  summaryChips.style.display='grid';
+
+
+}
+
+// ═══════════════════════════════════════════════════════════
+// EVENT HANDLERS
+// ═══════════════════════════════════════════════════════════
+function onInputChange(){
+  state.amount = parseFloat((document.getElementById('inp-amount').value||'').replace(',','.'))||0;
+  state.liqCur = parseFloat((document.getElementById('inp-liq').value||'').replace(',','.'))||0;
+  state.feCur  = parseFloat((document.getElementById('inp-fe').value||'').replace(',','.'))||0;
+  // update auto scenario
+  state.scenarioOverride = state.scenarioOverride; // keep manual if set
+  render();
+}
+function setEntry(key){ state.entry=key; render(); }
+function setScenarioOverride(key){
+  if(state.scenarioOverride===key) state.scenarioOverride=null;
+  else state.scenarioOverride=key;
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════════
+let currentModal=null;
+let editModalEntry=state.entry;
+let editModalScenario='A';
+
+function openModal_orig(type){
+  currentModal=type;
+  editModalEntry=state.entry;
+  document.getElementById('modal-overlay').classList.add('open');
+  if(type==='edit'){
+    document.getElementById('modal-title').textContent='✎ Modifica percentuali';
+    renderEditModal();
+  } else {
+    document.getElementById('modal-title').textContent='⚙ Configurazione limiti e reindirizzamenti';
+    renderConfigModal();
+  }
+}
+function closeModal(){ document.getElementById('modal-overlay').classList.remove('open'); currentModal=null; }
+
+// ─── EDIT MODAL ───────────────────────────────────────────
+function renderEditModal(){
+  const m  = state.model[editModalEntry][editModalScenario];
+  const dm = DEFAULT_MODEL[editModalEntry][editModalScenario];
+  const isMod=(g,k)=>Math.round(m[g][k])!==Math.round(dm[g][k]);
+
+  const macroSum=Object.values(m.macro).reduce((a,b)=>a+b,0);
+  const jollySum=m.jolly.future+m.jolly.obiettivi;
+  const finSum=m.fin.fe+m.fin.pac+m.fin.pensione;
+  const sb=(s)=>`<span class="${Math.round(s)===100?'sum-ok':'sum-err'}">= ${Math.round(s)}%</span>`;
+
+  function pctRow(label,group,key,color){
+    const val=m[group][key];
+    const mod=isMod(group,key);
+    return `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:11px;color:${mod?'#f59e0b':'var(--muted)'};flex:1;min-width:140px">${label}</span>
+      <input type="range" min="0" max="100" value="${Math.round(val)}"
+        style="flex:2;accent-color:${color};cursor:pointer"
+        oninput="updateModelPct('${editModalEntry}','${editModalScenario}','${group}','${key}',this.value)"/>
+      <div style="width:44px;text-align:center;font-size:12px;font-weight:700;
+        color:${mod?'#f59e0b':color};background:${mod?'#f59e0b15':'var(--bg)'};
+        border:1px solid ${mod?'#f59e0b40':'var(--border)'};border-radius:6px;padding:3px 0" id="pct-${group}-${key}">
+        ${Math.round(val)}%
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('modal-body').innerHTML=`
+    <!-- Entry tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+      ${ENTRY_TYPES.map(e=>`
+        <button onclick="switchEditEntry('${e.key}')" style="
+          padding:5px 10px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;
+          border:1px solid var(--border);
+          background:${editModalEntry===e.key?'var(--green-light)':'var(--bg)'};
+          color:${editModalEntry===e.key?'var(--green)':'var(--muted)'}">
+          ${e.icon} ${e.label}
+        </button>`).join('')}
+    </div>
+    <!-- Scenario tabs -->
+    <div style="display:flex;background:var(--bg);border-radius:8px;padding:3px;margin-bottom:16px">
+      ${['A','B','C'].map(s=>{
+        const sc=SCENARIOS.find(x=>x.key===s);
+        const active=editModalScenario===s;
+        return `<button onclick="switchEditScenario('${s}')" style="
+          flex:1;padding:8px 4px;cursor:pointer;font-size:11px;font-weight:700;
+          border:none;border-radius:8px;
+          background:${active?sc.color+'20':'transparent'};
+          color:${active?sc.color:'var(--dim)'};
+          border-bottom:${active?`2px solid ${sc.color}`:'2px solid transparent'};
+          transition:all .15s">${sc.icon} Scenario ${s}</button>`;
+      }).join('')}
+    </div>
+
+    <!-- Macro group -->
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">
+        Macro ${sb(macroSum)}
+      </div>
+      ${pctRow('💧 Liquidità Comfort','macro','liq',MC.liq)}
+      ${pctRow('🛒 Spesa & Gratif.','macro','spesa',MC.spesa)}
+      ${pctRow('🎯 Jolly Strategico','macro','jolly',MC.jolly)}
+      ${pctRow('💪 Rafforzamento Fin.','macro','fin',MC.fin)}
+    </div>
+
+    <!-- Jolly group -->
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">
+        Jolly Strategico — sottovoci ${sb(jollySum)}
+      </div>
+      ${pctRow('🔮 Spese Future','jolly','future','#fdba74')}
+      ${pctRow('🏁 Obiettivi in Corso','jolly','obiettivi','#fbbf24')}
+    </div>
+
+    <!-- Fin group -->
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">
+        Rafforzamento Fin. — sottovoci ${sb(finSum)}
+      </div>
+      ${pctRow('🛡️ Fondo Emergenza','fin','fe','#e05c3a')}
+      ${pctRow('📊 PAC ETF','fin','pac','#60a5fa')}
+      ${pctRow('🏛️ Fondo Pensione','fin','pensione','#818cf8')}
+    </div>
+
+    <button onclick="resetEntryScenario()" style="width:100%;padding:9px;background:var(--amber-l)12;border:1px solid #fde68a40;border-radius:8px;color:var(--amber);cursor:pointer;font-size:12px;font-weight:700;margin-bottom:8px">
+      ↺ Reset default per ${ENTRY_TYPES.find(e=>e.key===editModalEntry)?.label} · Scenario ${editModalScenario}
+    </button>
+    <button onclick="resetAllModel()" style="width:100%;padding:9px;background:var(--red-l)12;border:1px solid #fca5a540;border-radius:8px;color:var(--red);cursor:pointer;font-size:12px;font-weight:700">
+      ↺ Reset TUTTE le percentuali ai valori default
+    </button>
+  `;
+}
+
+function updateModelPct(entry,scenario,group,key,val){
+  state.model[entry][scenario][group][key]=Number(val);
+  // update display
+  const el=document.getElementById(`pct-${group}-${key}`);
+  if(el) el.textContent=Math.round(val)+'%';
+  // refresh sum badges
+  renderEditModal();
+  render();
+}
+function switchEditEntry(key){ editModalEntry=key; renderEditModal(); }
+function switchEditScenario(key){ editModalScenario=key; renderEditModal(); }
+function resetEntryScenario(){
+  state.model[editModalEntry][editModalScenario]=deepClone(DEFAULT_MODEL[editModalEntry][editModalScenario]);
+  renderEditModal(); render();
+}
+function resetAllModel(){
+  state.model=deepClone(DEFAULT_MODEL); renderEditModal(); render();
+}
+
+// ─── CONFIG MODAL ─────────────────────────────────────────
+function renderConfigModal(){
+  const cfg=state.cfg;
+  const def=DEFAULT_CONFIG;
+  const mod=(k)=>cfg[k]!==def[k];
+
+  function numRow(label,key){
+    return `
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">
+        ${label}${mod(key)?'<span style="color:var(--amber);margin-left:6px;font-size:10px">modificato</span>':''}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:var(--muted);font-size:13px">€</span>
+        <input type="number" min="0" value="${cfg[key]}"
+          onchange="updateCfgNum('${key}',this.value)"
+          style="width:90px;background:var(--bg);border:1.5px solid ${mod(key)?'#fbbf24':'var(--border)'};border-radius:var(--r-sm);padding:7px 10px;color:var(--text);font-size:13px"/>
+      </div>
+    </div>`;
+  }
+
+  function selectRow(label,key){
+    return `
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">
+        ${label}${mod(key)?'<span style="color:var(--amber);margin-left:6px;font-size:10px">modificato</span>':''}
+      </div>
+      <select onchange="updateCfgSelect('${key}',this.value)"
+        style="width:100%;background:var(--bg);border:1.5px solid ${mod(key)?'#fbbf24':'var(--border)'};border-radius:var(--r-sm);padding:7px 10px;color:var(--text);font-size:12px;cursor:pointer">
+        ${OVERFLOW_OPTS.map(o=>`<option value="${o.key}" ${cfg[key]===o.key?'selected':''}>${o.label}</option>`).join('')}
+      </select>
+    </div>`;
+  }
+
+  document.getElementById('modal-body').innerHTML=`
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">Target patrimonio</div>
+      ${numRow('Target liquidità','liqTarget')}
+      ${numRow('Target fondo emergenza','feTarget')}
+    </div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">Soglie minime</div>
+      ${numRow('PAC ETF — minimo per attivazione','pacMin')}
+      ${numRow('Fondo Pensione — minimo','pensioneMin')}
+      ${numRow('Fondo Pensione — cap annuale','pensioneCap')}
+    </div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">Reindirizzamento eccedenze</div>
+      ${selectRow('Liquidità eccedente target →','overflowLiq')}
+      ${selectRow('Fondo Emergenza eccedente →','overflowFe')}
+      ${selectRow('Fondo Pensione oltre cap →','overflowPensione')}
+    </div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">Reindirizzamento skip soglia</div>
+      ${selectRow('PAC sotto soglia →','skipPac')}
+      ${selectRow('Fondo Pensione sotto soglia →','skipPensione')}
+    </div>
+    <button onclick="resetCfg()" style="width:100%;padding:9px;background:var(--amber-l)12;border:1px solid #fde68a40;border-radius:8px;color:var(--amber);cursor:pointer;font-size:12px;font-weight:700">
+      ↺ Reset configurazione di default
+    </button>
+  `;
+}
+
+function updateCfgNum(key,val){ state.cfg[key]=Number(val); render(); renderConfigModal(); }
+function updateCfgSelect(key,val){ state.cfg[key]=val; render(); renderConfigModal(); }
+function resetCfg(){ state.cfg={...DEFAULT_CONFIG}; render(); renderConfigModal(); }
+
+// ═══════════════════════════════════════════════════════════
+// LOCALSTORAGE PERSISTENCE
+// ═══════════════════════════════════════════════════════════
+const LS_STATE   = 'fa_state_v4';
+const LS_STORICO = 'fa_storico_v4';
+
+function saveState(){
+  try {
+    const s = {
+      amount: state.amount, liqCur: state.liqCur, feCur: state.feCur,
+      entry: state.entry, scenarioOverride: state.scenarioOverride,
+      model: state.model, cfg: state.cfg, openSubs: state.openSubs
+    };
+    localStorage.setItem(LS_STATE, JSON.stringify(s));
+  } catch(e){}
+}
+
+function loadState(){
+  try {
+    const raw = localStorage.getItem(LS_STATE);
+    if(!raw) return;
+    const s = JSON.parse(raw);
+    if(s.amount)          state.amount          = s.amount;
+    if(s.liqCur)          state.liqCur          = s.liqCur;
+    if(s.feCur)           state.feCur           = s.feCur;
+    if(s.entry)           state.entry           = s.entry;
+    if(s.scenarioOverride!==undefined) state.scenarioOverride = s.scenarioOverride;
+    if(s.model)           state.model           = s.model;
+    if(s.cfg)             state.cfg             = {...DEFAULT_CONFIG, ...s.cfg};
+    if(s.openSubs)        state.openSubs        = s.openSubs;
+    // Restore inputs
+    if(s.amount)  document.getElementById('inp-amount').value = s.amount;
+    if(s.liqCur)  document.getElementById('inp-liq').value    = s.liqCur;
+    if(s.feCur)   document.getElementById('inp-fe').value     = s.feCur;
+  } catch(e){}
+}
+
+// Patch render to also persist state
+const _origRender = render;
+render = function(){
+  _origRender();
+  saveState();
+};
+
+// ═══════════════════════════════════════════════════════════
+// STORICO
+// ═══════════════════════════════════════════════════════════
+function getStorico(){
+  try { return JSON.parse(localStorage.getItem(LS_STORICO)||'[]'); } catch(e){ return []; }
+}
+function saveStorico(list){
+  try { localStorage.setItem(LS_STORICO, JSON.stringify(list)); } catch(e){}
+}
+
+function autoNome(entryKey, date){
+  const mesi = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  const d = new Date(date);
+  const m = mesi[d.getMonth()];
+  const y = d.getFullYear();
+  const labels = {rafforzamento:'Rafforzamento', tredicesima:'Tredicesima', rimborso:'Rimborso730', bonus:'Bonus'};
+  return `${labels[entryKey]||entryKey}_${m}${y}`;
+}
+
+function saveToStorico(){
+  const {amount, liqCur, feCur, entry, scenarioOverride, model, cfg} = state;
+  if(amount <= 0) return;
+  const autoSc   = autoScenario(liqCur, feCur);
+  const scenario = scenarioOverride || autoSc;
+  const res      = compute(amount, entry, scenario, liqCur, feCur, model, cfg);
+  const R        = res.rounded;
+  const now      = new Date().toISOString();
+  const nome     = autoNome(entry, now);
+
+  const record = {
+    id:       now,
+    nome:     nome,
+    date:     now,
+    entry:    entry,
+    scenario: scenario,
+    amount:   r5(amount),
+    liqCur:   liqCur,
+    feCur:    feCur,
+    alloc: {
+      liq:      R.liq,
+      spesa:    R.spesa,
+      future:   R.future,
+      obiettivi:R.obiettivi,
+      fe:       R.fe,
+      pac:      R.pac,
+      pensione: R.pensione,
+    }
+  };
+
+  const list = getStorico();
+  list.unshift(record);
+  saveStorico(list);
+
+  // Flash feedback
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = '✓ Salvato!';
+  btn.style.background = '#34c78a30';
+  setTimeout(()=>{ btn.textContent=orig; btn.style.background='#34c78a15'; }, 1500);
+
+  // Update badge
+  updateStoricoBadge();
+}
+
+function updateStoricoBadge(){
+  const n = getStorico().length;
+  const btn = document.getElementById('btn-storico');
+  if(btn) btn.textContent = n > 0 ? `📋 Storico (${n})` : '📋 Storico';
+}
+
+function rinominaRecord(id){
+  const list = getStorico();
+  const rec  = list.find(r=>r.id===id);
+  if(!rec) return;
+  const nuovo = prompt('Rinomina voce:', rec.nome);
+  if(nuovo && nuovo.trim()){
+    rec.nome = nuovo.trim();
+    saveStorico(list);
+    renderStoricoModal();
+  }
+}
+
+function eliminaRecord(id){
+  if(!confirm('Eliminare questa voce?')) return;
+  const list = getStorico().filter(r=>r.id!==id);
+  saveStorico(list);
+  renderStoricoModal();
+  updateStoricoBadge();
+}
+
+function closeStorico(){
+  document.getElementById('storico-overlay').style.display='none';
+}
+
+function openModal(type){
+  currentModal=type;
+  editModalEntry=state.entry;
+  if(type==='storico'){
+    document.getElementById('storico-overlay').style.display='flex';
+    renderStoricoModal();
+    return;
+  }
+  document.getElementById('modal-overlay').classList.add('open');
+  if(type==='edit'){
+    document.getElementById('modal-title').textContent='✎ Modifica percentuali';
+    renderEditModal();
+  } else {
+    document.getElementById('modal-title').textContent='⚙ Configurazione limiti e reindirizzamenti';
+    renderConfigModal();
+  }
+}
+
+let storicoTab = 'overview';
+const ENTRY_ICONS  = {rafforzamento:'💪', tredicesima:'🎄', rimborso:'📄', bonus:'⭐'};
+const ENTRY_COLORS = {rafforzamento:'#4f8ef7', tredicesima:'#34c78a', rimborso:'#f59e0b', bonus:'#a78bfa'};
+const SC_LABELS    = {A:'Sc. A', B:'Sc. B', C:'Sc. C'};
+const SC_COLORS    = {A:'#e05c3a', B:'#f59e0b', C:'#34c78a'};
+
+const ALL_KPI = [
+  {key:'totRaf',      label:'Rafforzamento',   color:'#4f8ef7', fn: list=>list.reduce((a,r)=>a+r.alloc.fe+r.alloc.pac+r.alloc.pensione,0)},
+  {key:'totPac',      label:'PAC ETF',         color:'#60a5fa', fn: list=>list.reduce((a,r)=>a+r.alloc.pac,0)},
+  {key:'totPensione', label:'Pensione',        color:'#818cf8', fn: list=>list.reduce((a,r)=>a+r.alloc.pensione,0)},
+  {key:'totFe',       label:'FE versato',      color:'#e05c3a', fn: list=>list.reduce((a,r)=>a+r.alloc.fe,0)},
+  {key:'totJolly',    label:'Jolly',           color:'#fb923c', fn: list=>list.reduce((a,r)=>a+r.alloc.future+r.alloc.obiettivi,0)},
+  {key:'totSpesa',    label:'Spesa',           color:'#a78bfa', fn: list=>list.reduce((a,r)=>a+r.alloc.spesa,0)},
+  {key:'totLiq',      label:'Liquidità',       color:'#34c78a', fn: list=>list.reduce((a,r)=>a+r.alloc.liq,0)},
+  {key:'pctPac',      label:'% media PAC',     color:'#60a5fa', fn: list=>{const v=list.filter(r=>r.amount>0);return v.length?Math.round(v.reduce((a,r)=>a+r.alloc.pac/r.amount*100,0)/v.length):0;}, isPercent:true},
+  {key:'pctRaf',      label:'% media Raff.',   color:'#4f8ef7', fn: list=>{const v=list.filter(r=>r.amount>0);return v.length?Math.round(v.reduce((a,r)=>a+(r.alloc.fe+r.alloc.pac+r.alloc.pensione)/r.amount*100,0)/v.length):0;}, isPercent:true},
+];
+
+let selectedKpi = ['totRaf','totPac','totPensione'];
+
+const ENTRY_TYPES_ORDER = ['rafforzamento','tredicesima','rimborso','bonus'];
+const ENTRY_LABELS_FULL = {rafforzamento:'Rafforzamento', tredicesima:'Tredicesima', rimborso:'Rimborso 730', bonus:'Bonus / Extra'};
+
+function renderStoricoModal(){
+  const list = getStorico();
+  const body = document.getElementById('storico-body');
+
+  if(list.length === 0){
+    body.innerHTML = '<div style="text-align:center;color:var(--dim);font-size:13px;padding:40px 0">Nessuna voce salvata ancora.<br>Compila l\'allocatore e premi &quot;Salva in Storico&quot;.</div>';
+    return;
+  }
+
+  const entryTypes = ENTRY_TYPES_ORDER.filter(e => list.some(r=>r.entry===e));
+
+  // Tab bar: Overview + one per entry type present
+  const tabs = [
+    {key:'overview', label:'📊 Overview'},
+    {key:'lista',    label:'🗂 Lista'},
+    ...entryTypes.map(e=>({key:e, label: ENTRY_ICONS[e]+' '+ENTRY_LABELS_FULL[e]}))
+  ];
+
+  const tabBar = `
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px;background:var(--bg);border-radius:8px;padding:3px">
+      ${tabs.map(t=>`
+        <button onclick="switchStoricoTab('${t.key}')" style="
+          flex:1;min-width:80px;padding:7px 8px;cursor:pointer;font-size:11px;font-weight:700;
+          border:none;border-radius:7px;white-space:nowrap;
+          background:${storicoTab===t.key?'var(--border)':'transparent'};
+          color:${storicoTab===t.key?'var(--text)':'var(--dim)'}">
+          ${t.label}
+        </button>`).join('')}
+    </div>`;
+
+  body.innerHTML = tabBar + '<div id="storico-tab-content"></div>';
+  const tc = document.getElementById('storico-tab-content');
+
+  if(storicoTab === 'lista')          renderListaTab(list, tc);
+  else if(storicoTab === 'overview')  renderOverviewTab(list, tc);
+  else                                renderEntryTab(list, storicoTab, tc);
+}
+
+// ── TAB LISTA ────────────────────────────────────────────────
+function renderListaTab(list, container){
+  const tableRows = list.map(r => {
+    const d    = new Date(r.date);
+    const ds   = d.toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'2-digit'});
+    const ec   = ENTRY_COLORS[r.entry]||'var(--muted)';
+    const sc   = SC_COLORS[r.scenario]||'var(--muted)';
+    const sl   = SC_LABELS[r.scenario]||r.scenario;
+    const raf  = r.alloc.fe + r.alloc.pac + r.alloc.pensione;
+    const jolly= r.alloc.future + r.alloc.obiettivi;
+    const pct  = v => r.amount>0 ? Math.round(v/r.amount*100)+'%' : '0%';
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:10px 8px;white-space:nowrap">
+        <div style="font-size:12px;font-weight:700;color:var(--text)">${r.nome}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:1px">${ds}</div>
+      </td>
+      <td style="padding:10px 8px;text-align:center;white-space:nowrap">
+        <span style="font-size:11px;background:${ec}20;color:${ec};border:1px solid ${ec}40;border-radius:4px;padding:2px 7px">${ENTRY_LABELS_FULL[r.entry]||r.entry}</span>
+        <span style="font-size:11px;margin-left:4px;background:${sc}20;color:${sc};border:1px solid ${sc}40;border-radius:4px;padding:2px 6px">${sl}</span>
+      </td>
+      <td style="padding:10px 8px;text-align:right;font-size:13px;font-weight:700;color:var(--blue);white-space:nowrap">€${r.amount.toLocaleString('it-IT')}</td>
+      <td style="padding:10px 8px;text-align:right">
+        <div style="font-size:12px;color:var(--green);white-space:nowrap">€${r.alloc.liq.toLocaleString('it-IT')}</div>
+        <div style="font-size:9px;color:var(--dim)">${pct(r.alloc.liq)}</div>
+      </td>
+      <td style="padding:10px 8px;text-align:right">
+        <div style="font-size:12px;color:#a78bfa;white-space:nowrap">€${r.alloc.spesa.toLocaleString('it-IT')}</div>
+        <div style="font-size:9px;color:var(--dim)">${pct(r.alloc.spesa)}</div>
+      </td>
+      <td style="padding:10px 8px;text-align:right">
+        <div style="font-size:12px;color:#fb923c;white-space:nowrap">€${jolly.toLocaleString('it-IT')}</div>
+        <div style="font-size:9px;color:var(--dim)">${pct(jolly)}</div>
+      </td>
+      <td style="padding:10px 8px;text-align:right">
+        <div style="font-size:12px;color:#4f8ef7;white-space:nowrap">€${raf.toLocaleString('it-IT')}</div>
+        <div style="font-size:9px;color:var(--dim)">${pct(raf)}</div>
+      </td>
+      <td style="padding:10px 8px;text-align:right">
+        <div style="font-size:12px;color:#1e40af;white-space:nowrap">€${r.alloc.pac.toLocaleString('it-IT')}</div>
+        <div style="font-size:9px;color:var(--dim)">${pct(r.alloc.pac)}</div>
+      </td>
+      <td style="padding:10px 8px;text-align:right">
+        <div style="font-size:12px;color:#4f46e5;white-space:nowrap">€${r.alloc.pensione.toLocaleString('it-IT')}</div>
+        <div style="font-size:9px;color:var(--dim)">${pct(r.alloc.pensione)}</div>
+      </td>
+      <td style="padding:10px 8px;text-align:center;white-space:nowrap">
+        <button onclick="rinominaRecord('${r.id}')" style="background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:5px;color:var(--blue);cursor:pointer;font-size:10px;padding:3px 7px;margin-right:3px">✎</button>
+        <button onclick="eliminaRecord('${r.id}')" style="background:var(--red-l)12;border:1px solid #fca5a540;border-radius:5px;color:var(--red);cursor:pointer;font-size:10px;padding:3px 7px">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div style="overflow-x:auto;margin-bottom:12px">
+      <table style="width:100%;border-collapse:collapse;font-family:inherit;min-width:680px">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="padding:8px;text-align:left;font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase">Voce</th>
+            <th style="padding:8px;font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase">Tipo / Scenario</th>
+            <th style="padding:8px;text-align:right;font-size:10px;color:var(--muted);font-weight:600">Importo</th>
+            <th style="padding:8px;text-align:right;font-size:10px;color:var(--green);font-weight:600">Liquidità</th>
+            <th style="padding:8px;text-align:right;font-size:10px;color:#a78bfa;font-weight:600">Spesa</th>
+            <th style="padding:8px;text-align:right;font-size:10px;color:#fb923c;font-weight:600">Jolly</th>
+            <th style="padding:8px;text-align:right;font-size:10px;color:#4f8ef7;font-weight:600">Raff.</th>
+            <th style="padding:8px;text-align:right;font-size:10px;color:#1e40af;font-weight:600">PAC ETF</th>
+            <th style="padding:8px;text-align:right;font-size:10px;color:#4f46e5;font-weight:600">Pensione</th>
+            <th style="padding:8px;font-size:10px;color:var(--muted);font-weight:600"></th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">
+      <button onclick="exportDati()" style="padding:9px;background:var(--green-light)15;border:1px solid #6ee7b740;border-radius:8px;color:var(--green);cursor:pointer;font-size:11px;font-weight:700">⬇ Esporta dati</button>
+      <button onclick="document.getElementById('import-input').click()" style="padding:9px;background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:8px;color:var(--blue);cursor:pointer;font-size:11px;font-weight:700">⬆ Importa dati</button>
+      <button onclick="if(confirm('Cancellare tutto lo storico?')){localStorage.removeItem('${LS_STORICO}');storicoTab='overview';renderStoricoModal();updateStoricoBadge();}" style="padding:9px;background:var(--red-l)12;border:1px solid #fca5a540;border-radius:8px;color:var(--red);cursor:pointer;font-size:11px;font-weight:700">🗑 Cancella storico</button>
+    </div>
+    <input type="file" id="import-input" accept=".json" style="display:none" onchange="importDati(this)">`;
+}
+
+// ── TAB OVERVIEW ─────────────────────────────────────────────
+function renderOverviewTab(list, container){
+  // Sort oldest first for cumulative chart
+  const sorted = [...list].reverse();
+
+  // Totale gestito fisso
+  const totaleGestito = list.reduce((a,r)=>a+r.amount,0);
+  const totaleCard = `
+    <div style="background:var(--green-light);border:1px solid #6ee7b7;border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:11px;color:var(--green);font-weight:600;letter-spacing:1px;text-transform:uppercase">Totale gestito</div>
+      <div style="font-size:24px;font-weight:800;color:var(--green)">€${totaleGestito.toLocaleString('it-IT')}</div>
+    </div>`;
+
+  // KPI selettore
+  const kpiSel = `
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:10px">💡 KPI — seleziona le metriche</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        ${ALL_KPI.map(k=>`
+          <button onclick="toggleKpi('${k.key}')" id="kpi-btn-${k.key}" style="
+            padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;
+            border:1px solid ${selectedKpi.includes(k.key)?k.color+'60':'var(--border)'};
+            background:${selectedKpi.includes(k.key)?k.color+'20':'var(--bg)'};
+            color:${selectedKpi.includes(k.key)?k.color:'var(--dim)'}">
+            ${k.label}
+          </button>`).join('')}
+      </div>
+      <div id="kpi-results" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+    </div>`;
+
+  // Cumulative growth chart
+  const cumChart = `
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">Crescita cumulativa per bucket</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:10px">ogni punto = totale accumulato fino a quella entrata</div>
+      <div style="position:relative;height:220px"><canvas id="chart-cumulative"></canvas></div>
+    </div>`;
+
+  container.innerHTML = totaleCard + kpiSel + cumChart;
+  renderKpiResults(list);
+  setTimeout(()=> drawOverviewCharts(sorted), 50);
+}
+
+function drawOverviewCharts(sorted){
+  const labels = sorted.map(r=>r.nome);
+  const scaleOpts = {
+    x:{ticks:{color:'var(--dim)',font:{size:10}},grid:{color:'var(--border)'}},
+    y:{ticks:{color:'var(--dim)',font:{size:10}},grid:{color:'var(--border)'}}
+  };
+
+  // Cumulative lines
+  const BUCKETS = [
+    {label:'PAC ETF',       color:'#60a5fa', fn: r=>r.alloc.pac},
+    {label:'Pensione',      color:'#818cf8', fn: r=>r.alloc.pensione},
+    {label:'FE',            color:'#e05c3a', fn: r=>r.alloc.fe},
+    {label:'Jolly',         color:'#fb923c', fn: r=>r.alloc.future+r.alloc.obiettivi},
+    {label:'Spesa',         color:'#a78bfa', fn: r=>r.alloc.spesa},
+    {label:'Liquidità',     color:'#34c78a', fn: r=>r.alloc.liq},
+  ];
+
+  const cumulativeDatasets = BUCKETS.map(b=>{
+    let cum = 0;
+    return {
+      label: b.label,
+      data: sorted.map(r=>{ cum += b.fn(r); return cum; }),
+      borderColor: b.color,
+      backgroundColor: b.color+'15',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 4,
+      pointBackgroundColor: b.color,
+      borderWidth: 2,
+    };
+  });
+
+  const el1 = document.getElementById('chart-cumulative');
+  if(el1){
+    if(el1._chart) el1._chart.destroy();
+    el1._chart = new Chart(el1,{
+      type:'line',
+      data:{ labels, datasets: cumulativeDatasets },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:true, position:'top', labels:{color:'var(--muted)',font:{size:10},padding:10,boxWidth:10} } },
+        scales: scaleOpts,
+      }
+    });
+  }
+
+}
+
+// ── TAB PER TIPO ENTRATA ─────────────────────────────────────
+function renderEntryTab(list, entry, container){
+  const ec   = ENTRY_COLORS[entry]||'var(--muted)';
+  const voci = list.filter(r=>r.entry===entry).reverse(); // oldest first
+
+  if(voci.length === 0){
+    container.innerHTML = '<div style="text-align:center;color:var(--dim);font-size:12px;padding:30px">Nessuna voce per questo tipo.</div>';
+    return;
+  }
+
+  const labels = voci.map(r=>r.nome);
+
+  // Donut grid — una torta per ogni voce
+  const donutsHTML = `
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-weight:600">Distribuzione per voce</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+        ${voci.map((r,i)=>`
+          <div style="text-align:center">
+            <div style="font-size:10px;color:${ec};margin-bottom:6px;font-weight:700">${r.nome}</div>
+            <div style="position:relative;height:150px"><canvas id="donut-entry-${i}"></canvas></div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+  // Horizontal stacked bar — confronto bucket nel tempo
+  const stackedHTML = voci.length < 2 ? '' : `
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;font-weight:600">Confronto distribuzione nel tempo</div>
+      <div style="position:relative;height:${Math.max(120,voci.length*50)}px"><canvas id="chart-entry-stacked"></canvas></div>
+    </div>`;
+
+  // Line charts per bucket principale
+  const lineHTML = voci.length < 2 ? '' : `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      ${[
+        {label:'PAC ETF',  color:'#60a5fa', fn:r=>r.alloc.pac,     id:'line-pac'},
+        {label:'Pensione', color:'#818cf8', fn:r=>r.alloc.pensione, id:'line-pens'},
+        {label:'Raff. tot',color:'#4f8ef7', fn:r=>r.alloc.fe+r.alloc.pac+r.alloc.pensione, id:'line-raf'},
+        {label:'Jolly',    color:'#fb923c', fn:r=>r.alloc.future+r.alloc.obiettivi, id:'line-jolly'},
+      ].map(b=>`
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:11px;color:${b.color};margin-bottom:8px;font-weight:600">${b.label}</div>
+          <div style="position:relative;height:120px"><canvas id="${b.id}"></canvas></div>
+        </div>`).join('')}
+    </div>`;
+
+  container.innerHTML = donutsHTML + stackedHTML + lineHTML;
+
+  setTimeout(()=>{
+    // Draw donuts
+    voci.forEach((r,i)=>{
+      const raf   = r.alloc.fe+r.alloc.pac+r.alloc.pensione;
+      const jolly = r.alloc.future+r.alloc.obiettivi;
+      const el = document.getElementById('donut-entry-'+i);
+      if(!el) return;
+      if(el._chart) el._chart.destroy();
+      el._chart = new Chart(el,{
+        type:'doughnut',
+        data:{
+          labels:['Liquidità','Spesa','Jolly','Rafforzamento'],
+          datasets:[{
+            data:[r.alloc.liq, r.alloc.spesa, jolly, raf],
+            backgroundColor:['#34c78a','#a78bfa','#fb923c','#4f8ef7'],
+            borderColor:'var(--bg)', borderWidth:2,
+          }]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          plugins:{
+              legend:{ display:true, position:'bottom', labels:{color:'var(--muted)',font:{size:9},padding:6,boxWidth:8} },
+              tooltip:{ callbacks:{ label: ctx => {
+                const total = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
+                const pct = total>0?Math.round(ctx.raw/total*100):0;
+                return ' '+ctx.label+': €'+ctx.raw.toLocaleString('it-IT')+' ('+pct+'%)';
+              }}}
+            }
+        }
+      });
+    });
+
+    // Stacked horizontal bar
+    if(voci.length >= 2){
+      const ALLOC_FIELDS = [
+        {label:'Liquidità',    color:'#34c78a', fn:r=>r.alloc.liq},
+        {label:'Spesa',        color:'#a78bfa', fn:r=>r.alloc.spesa},
+        {label:'Jolly',        color:'#fb923c', fn:r=>r.alloc.future+r.alloc.obiettivi},
+        {label:'PAC',          color:'#60a5fa', fn:r=>r.alloc.pac},
+        {label:'Pensione',     color:'#818cf8', fn:r=>r.alloc.pensione},
+        {label:'FE',           color:'#e05c3a', fn:r=>r.alloc.fe},
+      ];
+      const el = document.getElementById('chart-entry-stacked');
+      if(el){
+        if(el._chart) el._chart.destroy();
+        el._chart = new Chart(el,{
+          type:'bar',
+          data:{
+            labels,
+            datasets: ALLOC_FIELDS.map(f=>({
+              label:f.label,
+              data: voci.map(r=>f.fn(r)),
+              backgroundColor:f.color+'cc',
+              borderWidth:0, borderRadius:2,
+            }))
+          },
+          options:{
+            indexAxis:'y',
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{ display:true, position:'top', labels:{color:'var(--muted)',font:{size:10},padding:8,boxWidth:10} } },
+            scales:{
+              x:{stacked:true,ticks:{color:'var(--dim)',font:{size:10}},grid:{color:'var(--border)'}},
+              y:{stacked:true,ticks:{color:'var(--muted)',font:{size:10}},grid:{display:false}}
+            }
+          }
+        });
+      }
+
+      // Line charts
+      [
+        {label:'PAC ETF',  color:'#60a5fa', fn:r=>r.alloc.pac,     id:'line-pac'},
+        {label:'Pensione', color:'#818cf8', fn:r=>r.alloc.pensione, id:'line-pens'},
+        {label:'Raff. tot',color:'#4f8ef7', fn:r=>r.alloc.fe+r.alloc.pac+r.alloc.pensione, id:'line-raf'},
+        {label:'Jolly',    color:'#fb923c', fn:r=>r.alloc.future+r.alloc.obiettivi, id:'line-jolly'},
+      ].forEach(b=>{
+        const el = document.getElementById(b.id);
+        if(!el) return;
+        if(el._chart) el._chart.destroy();
+        el._chart = new Chart(el,{
+          type:'line',
+          data:{
+            labels,
+            datasets:[{
+              data: voci.map(r=>b.fn(r)),
+              borderColor:b.color, backgroundColor:b.color+'20',
+              fill:true, tension:0.3, pointRadius:4, pointBackgroundColor:b.color, borderWidth:2,
+            }]
+          },
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{legend:{display:false}},
+            scales:{
+              x:{ticks:{color:'var(--dim)',font:{size:9}},grid:{color:'var(--border)'}},
+              y:{ticks:{color:'var(--dim)',font:{size:9}},grid:{color:'var(--border)'},beginAtZero:true}
+            }
+          }
+        });
+      });
+    }
+  }, 50);
+}
+
+// ── KPI helpers ──────────────────────────────────────────────
+function toggleKpi(key){
+  if(selectedKpi.includes(key)){
+    if(selectedKpi.length > 1) selectedKpi = selectedKpi.filter(k=>k!==key);
+  } else {
+    selectedKpi.push(key);
+  }
+  ALL_KPI.forEach(k=>{
+    const btn = document.getElementById('kpi-btn-'+k.key);
+    if(!btn) return;
+    const on = selectedKpi.includes(k.key);
+    btn.style.border     = `1px solid ${on?k.color+'60':'var(--border)'}`;
+    btn.style.background = on?k.color+'20':'var(--bg)';
+    btn.style.color      = on?k.color:'var(--dim)';
+  });
+  renderKpiResults(getStorico());
+}
+
+function renderKpiResults(list){
+  const el = document.getElementById('kpi-results');
+  if(!el) return;
+  el.innerHTML = ALL_KPI.filter(k=>selectedKpi.includes(k.key)).map(k=>{
+    const val = k.fn(list);
+    return `
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+        <div style="font-size:10px;color:${k.color};margin-bottom:4px">${k.label}</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);">${k.isPercent?val+'%':'€'+val.toLocaleString('it-IT')}</div>
+      </div>`;
+  }).join('');
+}
+
+function switchStoricoTab(tab){
+  storicoTab = tab;
+  renderStoricoModal();
+}
+
+
+
+// ═══════════════════════════════════════════════════════════
+// EXPORT / IMPORT
+// ═══════════════════════════════════════════════════════════
+function exportDati(){
+  const payload = {
+    version: 'fa_v4',
+    exportedAt: new Date().toISOString(),
+    storico: JSON.parse(localStorage.getItem(LS_STORICO)||'[]'),
+    appState: localStorage.getItem(LS_STATE)||null,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'allocatore-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importDati(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const payload = JSON.parse(e.target.result);
+      if(!payload.version || !payload.version.startsWith('fa_v')){
+        alert('File non valido o non compatibile.');
+        return;
+      }
+      if(!confirm('Importare i dati? Lo storico attuale verrà sovrascritto.')) return;
+
+      if(payload.storico){
+        localStorage.setItem(LS_STORICO, JSON.stringify(payload.storico));
+      }
+      if(payload.appState){
+        localStorage.setItem(LS_STATE, payload.appState);
+        loadState();
+        render();
+      }
+      updateStoricoBadge();
+      renderStoricoModal();
+      alert('✓ Importazione completata — '+payload.storico.length+' voci caricate.');
+    } catch(err){
+      alert("Errore durante l'importazione: "+err.message);
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+loadState();
+
+// Preload storico storico se vuoto
+(function(){
+  try {
+    const existing = JSON.parse(localStorage.getItem('fa_storico_v4')||'[]');
+    if(existing.length === 0){
+      const preload = [{"id": "2025-12-15T00:00:00.000Z", "nome": "Tredicesima_2025", "date": "2025-12-15T00:00:00.000Z", "entry": "tredicesima", "scenario": "B", "amount": 1600, "liqCur": 0, "feCur": 0, "alloc": {"liq": 300, "spesa": 150, "future": 100, "obiettivi": 0, "fe": 650, "pac": 174, "pensione": 225}}, {"id": "2025-07-15T00:00:00.000Z", "nome": "Rimborso730_2025", "date": "2025-07-15T00:00:00.000Z", "entry": "rimborso", "scenario": "A", "amount": 3500, "liqCur": 0, "feCur": 0, "alloc": {"liq": 1000, "spesa": 0, "future": 0, "obiettivi": 1065, "fe": 1335, "pac": 100, "pensione": 0}}];
+      localStorage.setItem('fa_storico_v4', JSON.stringify(preload));
+    }
+  } catch(e){}
+})();
+
+render();
+updateStoricoBadge();
+</script>
+</div>
+
+<!-- STORICO MODAL -->
+<div id="alloc-storico-overlay" onclick="if(event.target===this)closeStorico()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1001;align-items:flex-start;justify-content:center;padding:16px 10px;overflow-y:auto;">
+  <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--r);width:100%;max-width:640px;max-height:92vh;overflow-y:auto;padding:20px 18px;box-shadow:var(--sh);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <span style="font-size:14px;font-weight:700;color:var(--text);">📋 Storico Entrate</span>
+      <button onclick="closeStorico()" style="background:none;border:none;color:var(--dim);font-size:22px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div id="alloc-storico-body"></div>
+  </div>
+</div>
+
+
 </body>
 </html>
