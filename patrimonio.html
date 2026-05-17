@@ -399,12 +399,13 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       </div>
     </div>
 
-    <div class="hub-card-disabled">
+    <div class="hub-card" onclick="openAllocatore()">
       <div class="hub-card-icon" style="background:var(--amber-l);">💰</div>
       <div class="hub-card-title" style="color:var(--text);">Financial Allocator</div>
       <div class="hub-card-desc">Ripartisci entrate extra — tredicesima, bonus, rimborsi — tra i tuoi obiettivi finanziari.</div>
       <div class="hub-card-meta">
-        <span class="hub-badge" style="background:var(--amber-l);color:var(--amber);">Coming soon</span>
+        <span class="hub-badge" style="background:var(--amber-l);color:var(--amber);">Apri</span>
+        <span class="hub-arrow">→</span>
       </div>
     </div>
 
@@ -1398,6 +1399,26 @@ function goTab(n){
 })();
 
 
+
+// ── ALLOCATORE ───────────────────────────────────────────────
+function openAllocatore(){
+  document.getElementById('hubScreen').classList.add('hidden');
+  document.getElementById('page-allocatore').classList.add('active');
+  // Precompila liq e fe dai dati del tracker
+  const liqEl = document.getElementById('alloc-inp-liq');
+  const feEl  = document.getElementById('alloc-inp-fe');
+  if(liqEl) liqEl.value = D.liq;
+  if(feEl)  feEl.value  = D.fe;
+  // Render solo ora che gli elementi sono visibili nel DOM
+  allocOnInputChange();
+  allocRender();
+  allocUpdateStoricoBadge();
+}
+function closeAllocatore(){
+  document.getElementById('page-allocatore').classList.remove('active');
+  document.getElementById('hubScreen').classList.remove('hidden');
+}
+
 // ── HUB ──────────────────────────────────────────────────────
 function showHub(){
   document.getElementById('hubDate').textContent =
@@ -1431,6 +1452,1226 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
 });
+</script>
+
+<script>
+// ══════════ ALLOCATORE JS ══════════
+// ═══════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════
+const ALLOC_DEFAULT_CONFIG = {
+  feTarget: 6000, liqTarget: 15000,
+  pacMin: 100, pensioneMin: 100, pensioneCap: 1200,
+  overflowLiq: 'jolly_future', overflowFe: 'pac',
+  overflowPensione: 'pac', skipPac: 'jolly_future', skipPensione: 'jolly_future'
+};
+
+// Override config per tipo di entrata — sovrascrive solo le chiavi specificate
+const ALLOC_ENTRY_CONFIG_OVERRIDE = {
+  rimborso: { overflowLiq: 'pac' },
+};
+
+const ALLOC_DEFAULT_MODEL = {
+  rafforzamento: {
+    A:{macro:{liq:5, spesa:10,jolly:10,fin:75},jolly:{future:50,obiettivi:50},fin:{fe:70,pac:20,pensione:10}},
+    B:{macro:{liq:15,spesa:10,jolly:10,fin:65},jolly:{future:40,obiettivi:60},fin:{fe:0, pac:65,pensione:35}},
+    C:{macro:{liq:0, spesa:10,jolly:20,fin:70},jolly:{future:40,obiettivi:60},fin:{fe:0, pac:70,pensione:30}},
+  },
+  tredicesima: {
+    A:{macro:{liq:10,spesa:25,jolly:15,fin:50},jolly:{future:60,obiettivi:40},fin:{fe:60,pac:24,pensione:16}},
+    B:{macro:{liq:20,spesa:25,jolly:20,fin:35},jolly:{future:55,obiettivi:45},fin:{fe:0, pac:65,pensione:35}},
+    C:{macro:{liq:0, spesa:30,jolly:25,fin:45},jolly:{future:55,obiettivi:45},fin:{fe:0, pac:70,pensione:30}},
+  },
+  rimborso: {
+    A:{macro:{liq:5, spesa:15,jolly:10,fin:70},jolly:{future:50,obiettivi:50},fin:{fe:65,pac:23,pensione:12}},
+    B:{macro:{liq:30,spesa:15,jolly:15,fin:40},jolly:{future:45,obiettivi:55},fin:{fe:0, pac:65,pensione:35}},
+    C:{macro:{liq:0, spesa:15,jolly:20,fin:65},jolly:{future:45,obiettivi:55},fin:{fe:0, pac:70,pensione:30}},
+  },
+  bonus: {
+    A:{macro:{liq:10,spesa:20,jolly:15,fin:55},jolly:{future:50,obiettivi:50},fin:{fe:60,pac:24,pensione:16}},
+    B:{macro:{liq:20,spesa:25,jolly:20,fin:35},jolly:{future:50,obiettivi:50},fin:{fe:0, pac:65,pensione:35}},
+    C:{macro:{liq:0, spesa:35,jolly:25,fin:40},jolly:{future:50,obiettivi:50},fin:{fe:0, pac:70,pensione:30}},
+  },
+};
+
+const ALLOC_ENTRY_TYPES = [
+  {key:'rafforzamento',label:'Rafforzamento',icon:'💪',desc:'Entrata fredda, acceleratore patrimoniale'},
+  {key:'tredicesima',  label:'Tredicesima',  icon:'🎄',desc:'Semi-strutturata, periodo natalizio'},
+  {key:'rimborso',     label:'Rimborso 730', icon:'📄',desc:'Capitale che ritorna, non un premio'},
+  {key:'bonus',        label:'Bonus / Extra',icon:'⭐',desc:'Premio imprevedibile, max flessibilità'},
+];
+const ALLOC_SCENARIOS = [
+  {key:'A',icon:'🚨',label:'Scenario A',desc:'FE da completare — priorità assoluta',color:'#e05c3a'},
+  {key:'B',icon:'📈',label:'Scenario B',desc:'FE ✓ — Liquidità da completare',     color:'#f59e0b'},
+  {key:'C',icon:'🏆',label:'Scenario C',desc:'FE ✓ — Liquidità ✓ — Tutto saturo', color:'#34c78a'},
+];
+const ALLOC_OVERFLOW_OPTS = [
+  {key:'jolly_future',   label:'🔮 Spese Future'},
+  {key:'jolly_obiettivi',label:'🏁 Obiettivi in Corso'},
+  {key:'spesa',          label:'🛒 Spesa & Gratif.'},
+  {key:'pac',            label:'📊 PAC ETF'},
+  {key:'pensione',       label:'🏛️ Fondo Pensione'},
+];
+const ALLOC_OVERFLOW_LABELS = Object.fromEntries(ALLOC_OVERFLOW_OPTS.map(o=>[o.key,o.label]));
+const ALLOC_MC = {liq:'#006636',spesa:'#7c3aed',jolly:'#d97706',fin:'#1e40af'};
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let allocState = {
+  amount: 0, liqCur: 0, feCur: 0,
+  entry: 'bonus',
+  scenarioOverride: null,
+  model: JSON.parse(JSON.stringify(ALLOC_DEFAULT_MODEL)),
+  cfg: {...ALLOC_DEFAULT_CONFIG},
+  openSubs: {jolly: true, fin: true},
+};
+
+function allocR5(n){ return Math.round(n/5)*5; }
+function allocFmtN(n){ return allocR5(Math.max(0,n)).toLocaleString('it-IT'); }
+function allocPct(a,b){ return b>0?Math.round((a/b)*100):0; }
+function allocDeepClone(o){ return JSON.parse(JSON.stringify(o)); }
+
+function allocAutoScenario(liq,fe){
+  if(fe<allocState.cfg.feTarget) return 'A';
+  if(liq<allocState.cfg.liqTarget) return 'B';
+  return 'C';
+}
+
+// ═══════════════════════════════════════════════════════════
+// COMPUTE
+// ═══════════════════════════════════════════════════════════
+function allocResolveKey(key){
+  const map={jolly_future:'future',jolly_obiettivi:'obiettivi',spesa:'spesa',pac:'pac',pensione:'pensione'};
+  return map[key]||'future';
+}
+
+function allocCompute(amount, entryType, scenario, liqCur, feCur, model, cfg){
+  cfg = Object.assign({}, cfg, ALLOC_ENTRY_CONFIG_OVERRIDE[entryType]||{});
+  const m = model[entryType][scenario];
+  const liqGap = Math.max(0, cfg.liqTarget - liqCur);
+  const feGap  = Math.max(0, cfg.feTarget - feCur);
+  const notes  = [];
+
+  let liq   = (m.macro.liq   /100)*amount;
+  let spesa = (m.macro.spesa /100)*amount;
+  let jolly = (m.macro.jolly /100)*amount;
+  let fin   = (m.macro.fin   /100)*amount;
+
+  let fe       = (m.fin.fe       /100)*fin;
+  let pac      = (m.fin.pac      /100)*fin;
+  let pensione = (m.fin.pensione /100)*fin;
+  let future    = (m.jolly.future    /100)*jolly;
+  let obiettivi = (m.jolly.obiettivi /100)*jolly;
+
+  const leaves = {liq,spesa,future,obiettivi,fe,pac,pensione};
+
+  function addTo(key,amt){
+    const k=allocResolveKey(key);
+    if(k in leaves) leaves[k]+=amt;
+    else leaves.future+=amt;
+  }
+
+  if(leaves.liq>liqGap){
+    const ov=leaves.liq-liqGap; leaves.liq=liqGap;
+    addTo(cfg.overflowLiq,ov);
+    if(ov>0.01) notes.push({type:'overflow',msg:`€${allocFmtN(ov)} Liquidità eccedente → ${ALLOC_OVERFLOW_LABELS[cfg.overflowLiq]}`});
+  }
+  if(leaves.fe>feGap){
+    const ov=leaves.fe-feGap; leaves.fe=feGap;
+    addTo(cfg.overflowFe,ov);
+    if(ov>0.01) notes.push({type:'overflow',msg:`€${allocFmtN(ov)} FE eccedente → ${ALLOC_OVERFLOW_LABELS[cfg.overflowFe]}`});
+  }
+  if(leaves.pensione>cfg.pensioneCap){
+    const ov=leaves.pensione-cfg.pensioneCap; leaves.pensione=cfg.pensioneCap;
+    addTo(cfg.overflowPensione,ov);
+    notes.push({type:'cap',msg:`Fondo Pensione cappato a €${cfg.pensioneCap} → €${allocFmtN(ov)} → ${ALLOC_OVERFLOW_LABELS[cfg.overflowPensione]}`});
+  }
+  if(leaves.pac>0&&leaves.pac<cfg.pacMin){
+    const ov=leaves.pac;
+    notes.push({type:'skip',msg:`PAC €${allocFmtN(ov)} sotto €${cfg.pacMin} → ${ALLOC_OVERFLOW_LABELS[cfg.skipPac]}`});
+    leaves.pac=0; addTo(cfg.skipPac,ov);
+  }
+  if(leaves.pensione>0&&leaves.pensione<cfg.pensioneMin){
+    const ov=leaves.pensione;
+    notes.push({type:'skip',msg:`Fondo Pensione €${allocFmtN(ov)} sotto €${cfg.pensioneMin} → ${ALLOC_OVERFLOW_LABELS[cfg.skipPensione]}`});
+    leaves.pensione=0; addTo(cfg.skipPensione,ov);
+  }
+
+  const rounded={};
+  Object.keys(leaves).forEach(k=>{ rounded[k]=allocR5(Math.max(0,leaves[k])); });
+  const t5=allocR5(amount);
+  const sumR=Object.values(rounded).reduce((a,b)=>a+b,0);
+  rounded.spesa=Math.max(0,rounded.spesa+(t5-sumR));
+
+  return {rounded,notes};
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER HELPERS
+// ═══════════════════════════════════════════════════════════
+function allocMacroRowHTML(icon,label,amount,total,color,subsHTML,subId){
+  const p=allocPct(amount,total);
+  const hasS=!!subsHTML;
+  const chevron=hasS?`<span id="chev-${subId}" style="color:var(--muted);font-size:11px;margin-left:2px">▲</span>`:'';
+  const onclick=hasS?`onclick="allocToggleSub('${subId}')" style="cursor:pointer"`:`style="cursor:default"`;
+  return `
+  <div style="margin-bottom:10px">
+    <div ${onclick} style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:10px;background:${color}15;border:1.5px solid ${color}40">
+      <span style="font-size:20px">${icon}</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:${color};margin-bottom:5px">${label}</div>
+        <div style="height:4px;background:var(--bg2);border-radius:2px;overflow:hidden">
+          <div class="alloc-bar-fill" style="height:100%;width:${Math.min(p,100)}%;background:${color};border-radius:2px"></div>
+        </div>
+      </div>
+      <div style="text-align:right;min-width:80px">
+        <div style="font-size:18px;font-weight:800;color:${color}">${amount===0?'€0':'€'+allocFmtN(amount)}</div>
+        <div style="font-size:11px;color:var(--dim)">${p}% entrata</div>
+      </div>
+      ${chevron}
+    </div>
+    ${hasS?`<div id="sub-${subId}" class="sub-list">${subsHTML}</div>`:''}
+  </div>`;
+}
+
+function allocSubRowHTML(icon,label,amount,macroAmt,color,badge){
+  const p=allocPct(amount,macroAmt);
+  const badgeHTML=badge?`<span style="font-size:9px;background:${badge.bg};color:${badge.fg};border-radius:4px;padding:1px 6px;font-weight:700;letter-spacing:1px;margin-left:6px">${badge.text}</span>`:'';
+  return `
+  <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;margin-bottom:5px;background:var(--bg);border-radius:var(--r-sm);border:1px solid var(--border)">
+    <span style="font-size:14px">${icon}</span>
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;margin-bottom:4px">
+        <span style="font-size:12px;color:var(--text)">${label}</span>${badgeHTML}
+      </div>
+      <div style="height:2px;background:var(--bg2);border-radius:1px;overflow:hidden">
+        <div class="alloc-bar-fill" style="height:100%;width:${Math.min(p,100)}%;background:${color};border-radius:1px"></div>
+      </div>
+    </div>
+    <div style="text-align:right;min-width:72px">
+      <div style="font-size:14px;font-weight:700;color:${amount===0?'var(--dim)':color}">${amount===0?'—':'€'+allocFmtN(amount)}</div>
+      <div style="font-size:10px;color:var(--dim)">${p}% macro</div>
+    </div>
+  </div>`;
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// TOGGLE SUB
+// ═══════════════════════════════════════════════════════════
+function allocToggleSub(id){
+  const el=document.getElementById('sub-'+id);
+  const chev=document.getElementById('chev-'+id);
+  if(!el) return;
+  el.classList.toggle('hidden');
+  if(chev) chev.textContent=el.classList.contains('hidden')?'▼':'▲';
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN RENDER
+// ═══════════════════════════════════════════════════════════
+function allocRender(){
+  const {amount,liqCur,feCur,entry,scenarioOverride,model,cfg} = allocState;
+  const autoSc = allocAutoScenario(liqCur,feCur);
+  const scenario = scenarioOverride||autoSc;
+
+  // Header buttons modified indicator
+  const modelMod = JSON.stringify(model)!==JSON.stringify(ALLOC_DEFAULT_MODEL);
+  const cfgMod   = JSON.stringify(cfg)  !==JSON.stringify(ALLOC_DEFAULT_CONFIG);
+  document.getElementById('alloc-btn-edit-pct').textContent = '✎ %'+(modelMod?' •':'');
+  document.getElementById('alloc-btn-edit-pct').style.color = modelMod?'#f59e0b':'var(--muted)';
+  document.getElementById('alloc-btn-edit-pct').style.borderColor = modelMod?'#f59e0b40':'var(--border)';
+  document.getElementById('alloc-btn-edit-pct').style.background = modelMod?'#f59e0b15':'var(--border)';
+  document.getElementById('alloc-btn-config').textContent = '⚙ Config'+(cfgMod?' •':'');
+  document.getElementById('alloc-btn-config').style.color = cfgMod?'#f59e0b':'var(--muted)';
+  document.getElementById('alloc-btn-config').style.borderColor = cfgMod?'#f59e0b40':'var(--border)';
+  document.getElementById('alloc-btn-config').style.background = cfgMod?'#f59e0b15':'var(--border)';
+
+  // Entry type buttons
+  const eContainer=document.getElementById('alloc-entry-btns');
+  eContainer.innerHTML=ALLOC_ENTRY_TYPES.map(e=>`
+    <button onclick="allocSetEntry('${e.key}')" style="
+      background:${allocState.entry===e.key?'var(--green-light)':'var(--bg)'};
+      border:2px solid ${allocState.entry===e.key?'var(--green)':'var(--border)'};
+      border-radius:10px;padding:10px;cursor:pointer;text-align:left;transition:all .15s
+    ">
+      <div style="font-size:18px;margin-bottom:3px">${e.icon}</div>
+      <div style="font-size:12px;font-weight:700;color:${allocState.entry===e.key?'var(--green)':'var(--text)'}">${e.label}</div>
+      <div style="font-size:10px;color:var(--dim);line-height:1.4;margin-top:2px">${e.desc}</div>
+    </button>
+  `).join('');
+
+  // Scenario
+  const autoBack=document.getElementById('alloc-btn-auto-back');
+  const autoBadge=document.getElementById('alloc-scenario-auto-badge');
+  if(scenarioOverride){
+    autoBack.style.display='block';
+    autoBack.textContent=`← Torna ad Auto (${autoSc})`;
+    autoBadge.style.display='none';
+  } else {
+    autoBack.style.display='none';
+    autoBadge.style.display='block';
+    autoBadge.innerHTML=`✦ Rilevato automaticamente: <strong>Scenario ${autoSc}</strong> <span style="color:var(--dim)">· clicca per forzare</span>`;
+  }
+  document.getElementById('alloc-scenario-btns').innerHTML=ALLOC_SCENARIOS.map(s=>{
+    const active=scenario===s.key;
+    const isAuto=!scenarioOverride&&autoSc===s.key;
+    return `
+    <div onclick="allocSetScenarioOverride('${s.key}')" style="
+      display:flex;align-items:center;gap:12px;
+      border:2px solid ${active?s.color:'var(--border)'};
+      border-radius:10px;padding:11px 14px;cursor:pointer;
+      background:${active?s.color+'18':'var(--bg)'};transition:all .15s
+    ">
+      <span style="font-size:18px">${s.icon}</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:${active?s.color:'var(--text)'}">
+          ${s.label}${isAuto?`<span style="font-size:9px;color:${s.color};margin-left:7px;opacity:.8">AUTO</span>`:''}
+        </div>
+        <div style="font-size:11px;color:var(--dim)">${s.desc}</div>
+      </div>
+      ${active?`<div style="width:8px;height:8px;border-radius:50%;background:${s.color};flex-shrink:0"></div>`:''}
+    </div>`;
+  }).join('');
+
+  const emptyState=document.getElementById('alloc-empty-state');
+  const resultsCard=document.getElementById('alloc-results-card');
+  const summaryChips=document.getElementById('alloc-summary-chips');
+  const notesArea=document.getElementById('alloc-notes-area');
+
+  if(amount<=0){
+    emptyState.style.display='block';
+    resultsCard.style.display='none';
+    summaryChips.style.display='none';
+    notesArea.innerHTML='';
+    return;
+  }
+
+  emptyState.style.display='none';
+  const res=allocCompute(amount,entry,scenario,liqCur,feCur,model,cfg);
+  const R=res.rounded;
+
+  // Notes
+  notesArea.innerHTML=res.notes.map(n=>`
+    <div class="note note-${n.type}" style="margin-bottom:5px">
+      ${n.type==='skip'?'⚠️ ':n.type==='cap'?'🔒 ':'↩️ '}${n.msg}
+    </div>`).join('');
+
+  // Results title
+  const entMeta=ALLOC_ENTRY_TYPES.find(e=>e.key===entry);
+  document.getElementById('alloc-results-title').innerHTML=
+    `💡 ${entMeta.icon} ${entMeta.label} · Scenario ${scenario}`+
+    (modelMod?`<span style="color:var(--amber);margin-left:6px;font-size:9px">% personalizzate</span>`:'');
+
+  // Macro rows
+  document.getElementById('alloc-macro-liq').innerHTML=
+    allocMacroRowHTML('💧','Liquidità di Comfort',R.liq,allocR5(amount),ALLOC_MC.liq,null,'');
+  document.getElementById('alloc-macro-spesa').innerHTML=
+    allocMacroRowHTML('🛒','Spesa & Gratificazione',R.spesa,allocR5(amount),ALLOC_MC.spesa,null,'');
+
+  const jollySubs=
+    allocSubRowHTML('🔮','Spese Future',      R.future,   R.future+R.obiettivi,'#fdba74',null)+
+    allocSubRowHTML('🏁','Obiettivi in Corso',R.obiettivi,R.future+R.obiettivi,'#fbbf24',null);
+  document.getElementById('alloc-macro-jolly').innerHTML=
+    allocMacroRowHTML('🎯','Jolly Strategico',R.future+R.obiettivi,allocR5(amount),ALLOC_MC.jolly,jollySubs,'jolly');
+
+  const finTotal=R.fe+R.pac+R.pensione;
+  const finSubs=
+    allocSubRowHTML('📊','PAC ETF',        R.pac,     finTotal,'#60a5fa',
+      R.pac===0?{text:'SKIP',bg:'#e05c3a20',fg:'#e05c3a'}:null)+
+    allocSubRowHTML('🏛️','Fondo Pensione', R.pensione,finTotal,'#818cf8',
+      R.pensione>=cfg.pensioneCap?{text:`CAP €${cfg.pensioneCap}`,bg:'#f59e0b20',fg:'#f59e0b'}:null)+
+    allocSubRowHTML('🛡️','Fondo Emergenza',R.fe,      finTotal,'#e05c3a',
+      feCur>=allocState.cfg.feTarget?{text:'SATURO',bg:'#34c78a20',fg:'#34c78a'}:null);
+  document.getElementById('alloc-macro-fin').innerHTML=
+    allocMacroRowHTML('💪','Rafforzamento Finanziario',finTotal,allocR5(amount),ALLOC_MC.fin,finSubs,'fin');
+
+  document.getElementById('alloc-total-display').textContent=`€${allocFmtN(amount)}`;
+  resultsCard.style.display='block';
+
+  // Summary chips
+  const chips=[
+    {label:'Liquidità',       val:R.liq,                color:ALLOC_MC.liq,   icon:'💧'},
+    {label:'Spesa & Gratif.', val:R.spesa,              color:ALLOC_MC.spesa, icon:'🛒'},
+    {label:'Jolly Strategico',val:R.future+R.obiettivi, color:ALLOC_MC.jolly, icon:'🎯'},
+    {label:'Rafforzamento',   val:R.fe+R.pac+R.pensione,color:ALLOC_MC.fin,   icon:'💪'},
+  ];
+  summaryChips.innerHTML=chips.map(c=>`
+    <div style="background:${c.color}10;border:1px solid ${c.color}30;border-radius:10px;padding:12px 14px">
+      <div style="font-size:11px;color:${c.color};margin-bottom:4px">${c.icon} ${c.label}</div>
+      <div style="font-size:18px;font-weight:800;color:var(--text)">€${allocFmtN(c.val)}</div>
+      <div style="font-size:10px;color:var(--dim)">${allocPct(c.val,allocR5(amount))}% dell'entrata</div>
+    </div>`).join('');
+  summaryChips.style.display='grid';
+
+
+}
+
+// ═══════════════════════════════════════════════════════════
+// EVENT HANDLERS
+// ═══════════════════════════════════════════════════════════
+function allocOnInputChange(){
+  allocState.amount = parseFloat((document.getElementById('alloc-inp-amount').value||'').replace(',','.'))||0;
+  allocState.liqCur = parseFloat((document.getElementById('alloc-inp-liq').value||'').replace(',','.'))||0;
+  allocState.feCur  = parseFloat((document.getElementById('alloc-inp-fe').value||'').replace(',','.'))||0;
+  // update auto scenario
+  allocState.scenarioOverride = allocState.scenarioOverride; // keep manual if set
+  allocRender();
+}
+function allocSetEntry(key){ allocState.entry=key; allocRender(); }
+function allocSetScenarioOverride(key){
+  if(allocState.scenarioOverride===key) allocState.scenarioOverride=null;
+  else allocState.scenarioOverride=key;
+  allocRender();
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════════
+let allocCurrentModal=null;
+let allocEditModalEntry=allocState.entry;
+let allocEditModalScenario='A';
+
+function allocOpenModal_orig(type){
+  allocCurrentModal=type;
+  allocEditModalEntry=allocState.entry;
+  document.getElementById('alloc-modal-overlay').classList.add('open');
+  if(type==='edit'){
+    document.getElementById('alloc-modal-title').textContent='✎ Modifica percentuali';
+    allocRenderEditModal();
+  } else {
+    document.getElementById('alloc-modal-title').textContent='⚙ Configurazione limiti e reindirizzamenti';
+    allocRenderConfigModal();
+  }
+}
+function allocCloseModal(){ document.getElementById('alloc-modal-overlay').classList.remove('open'); allocCurrentModal=null; }
+
+// ─── EDIT MODAL ───────────────────────────────────────────
+function allocRenderEditModal(){
+  const m  = allocState.model[allocEditModalEntry][allocEditModalScenario];
+  const dm = ALLOC_DEFAULT_MODEL[allocEditModalEntry][allocEditModalScenario];
+  const isMod=(g,k)=>Math.round(m[g][k])!==Math.round(dm[g][k]);
+
+  const macroSum=Object.values(m.macro).reduce((a,b)=>a+b,0);
+  const jollySum=m.jolly.future+m.jolly.obiettivi;
+  const finSum=m.fin.fe+m.fin.pac+m.fin.pensione;
+  const sb=(s)=>`<span class="${Math.round(s)===100?'sum-ok':'sum-err'}">= ${Math.round(s)}%</span>`;
+
+  function pctRow(label,group,key,color){
+    const val=m[group][key];
+    const mod=isMod(group,key);
+    return `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:11px;color:${mod?'#f59e0b':'var(--muted)'};flex:1;min-width:140px">${label}</span>
+      <input type="range" min="0" max="100" value="${Math.round(val)}"
+        style="flex:2;accent-color:${color};cursor:pointer"
+        oninput="allocUpdateModelPct('${allocEditModalEntry}','${allocEditModalScenario}','${group}','${key}',this.value)"/>
+      <div style="width:44px;text-align:center;font-size:12px;font-weight:700;
+        color:${mod?'#f59e0b':color};background:${mod?'#f59e0b15':'var(--bg)'};
+        border:1px solid ${mod?'#f59e0b40':'var(--border)'};border-radius:6px;padding:3px 0" id="pct-${group}-${key}">
+        ${Math.round(val)}%
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('alloc-modal-body').innerHTML=`
+    <!-- Entry tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+      ${ALLOC_ENTRY_TYPES.map(e=>`
+        <button onclick="allocSwitchEditEntry('${e.key}')" style="
+          padding:5px 10px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;
+          border:1px solid var(--border);
+          background:${allocEditModalEntry===e.key?'var(--green-light)':'var(--bg)'};
+          color:${allocEditModalEntry===e.key?'var(--green)':'var(--muted)'}">
+          ${e.icon} ${e.label}
+        </button>`).join('')}
+    </div>
+    <!-- Scenario tabs -->
+    <div style="display:flex;background:var(--bg);border-radius:8px;padding:3px;margin-bottom:16px">
+      ${['A','B','C'].map(s=>{
+        const sc=ALLOC_SCENARIOS.find(x=>x.key===s);
+        const active=allocEditModalScenario===s;
+        return `<button onclick="allocSwitchEditScenario('${s}')" style="
+          flex:1;padding:8px 4px;cursor:pointer;font-size:11px;font-weight:700;
+          border:none;border-radius:8px;
+          background:${active?sc.color+'20':'transparent'};
+          color:${active?sc.color:'var(--dim)'};
+          border-bottom:${active?`2px solid ${sc.color}`:'2px solid transparent'};
+          transition:all .15s">${sc.icon} Scenario ${s}</button>`;
+      }).join('')}
+    </div>
+
+    <!-- Macro group -->
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">
+        Macro ${sb(macroSum)}
+      </div>
+      ${pctRow('💧 Liquidità Comfort','macro','liq',ALLOC_MC.liq)}
+      ${pctRow('🛒 Spesa & Gratif.','macro','spesa',ALLOC_MC.spesa)}
+      ${pctRow('🎯 Jolly Strategico','macro','jolly',ALLOC_MC.jolly)}
+      ${pctRow('💪 Rafforzamento Fin.','macro','fin',ALLOC_MC.fin)}
+    </div>
+
+    <!-- Jolly group -->
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">
+        Jolly Strategico — sottovoci ${sb(jollySum)}
+      </div>
+      ${pctRow('🔮 Spese Future','jolly','future','#fdba74')}
+      ${pctRow('🏁 Obiettivi in Corso','jolly','obiettivi','#fbbf24')}
+    </div>
+
+    <!-- Fin group -->
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">
+        Rafforzamento Fin. — sottovoci ${sb(finSum)}
+      </div>
+      ${pctRow('🛡️ Fondo Emergenza','fin','fe','#e05c3a')}
+      ${pctRow('📊 PAC ETF','fin','pac','#60a5fa')}
+      ${pctRow('🏛️ Fondo Pensione','fin','pensione','#818cf8')}
+    </div>
+
+    <button onclick="allocResetEntryScenario()" style="width:100%;padding:9px;background:var(--amber-l)12;border:1px solid #fde68a40;border-radius:8px;color:var(--amber);cursor:pointer;font-size:12px;font-weight:700;margin-bottom:8px">
+      ↺ Reset default per ${ALLOC_ENTRY_TYPES.find(e=>e.key===allocEditModalEntry)?.label} · Scenario ${allocEditModalScenario}
+    </button>
+    <button onclick="allocResetAllModel()" style="width:100%;padding:9px;background:var(--red-l)12;border:1px solid #fca5a540;border-radius:8px;color:var(--red);cursor:pointer;font-size:12px;font-weight:700">
+      ↺ Reset TUTTE le percentuali ai valori default
+    </button>
+  `;
+}
+
+function allocUpdateModelPct(entry,scenario,group,key,val){
+  allocState.model[entry][scenario][group][key]=Number(val);
+  // update display
+  const el=document.getElementById(`pct-${group}-${key}`);
+  if(el) el.textContent=Math.round(val)+'%';
+  // refresh sum badges
+  allocRenderEditModal();
+  allocRender();
+}
+function allocSwitchEditEntry(key){ allocEditModalEntry=key; allocRenderEditModal(); }
+function allocSwitchEditScenario(key){ allocEditModalScenario=key; allocRenderEditModal(); }
+function allocResetEntryScenario(){
+  allocState.model[allocEditModalEntry][allocEditModalScenario]=allocDeepClone(ALLOC_DEFAULT_MODEL[allocEditModalEntry][allocEditModalScenario]);
+  allocRenderEditModal(); allocRender();
+}
+function allocResetAllModel(){
+  allocState.model=allocDeepClone(ALLOC_DEFAULT_MODEL); allocRenderEditModal(); allocRender();
+}
+
+// ─── CONFIG MODAL ─────────────────────────────────────────
+function allocRenderConfigModal(){
+  const cfg=allocState.cfg;
+  const def=ALLOC_DEFAULT_CONFIG;
+  const mod=(k)=>cfg[k]!==def[k];
+
+  function numRow(label,key){
+    return `
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">
+        ${label}${mod(key)?'<span style="color:var(--amber);margin-left:6px;font-size:10px">modificato</span>':''}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:var(--muted);font-size:13px">€</span>
+        <input type="number" min="0" value="${cfg[key]}"
+          onchange="allocUpdateCfgNum('${key}',this.value)"
+          style="width:90px;background:var(--bg);border:1.5px solid ${mod(key)?'#fbbf24':'var(--border)'};border-radius:var(--r-sm);padding:7px 10px;color:var(--text);font-size:13px"/>
+      </div>
+    </div>`;
+  }
+
+  function selectRow(label,key){
+    return `
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">
+        ${label}${mod(key)?'<span style="color:var(--amber);margin-left:6px;font-size:10px">modificato</span>':''}
+      </div>
+      <select onchange="allocUpdateCfgSelect('${key}',this.value)"
+        style="width:100%;background:var(--bg);border:1.5px solid ${mod(key)?'#fbbf24':'var(--border)'};border-radius:var(--r-sm);padding:7px 10px;color:var(--text);font-size:12px;cursor:pointer">
+        ${ALLOC_OVERFLOW_OPTS.map(o=>`<option value="${o.key}" ${cfg[key]===o.key?'selected':''}>${o.label}</option>`).join('')}
+      </select>
+    </div>`;
+  }
+
+  document.getElementById('alloc-modal-body').innerHTML=`
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">Target patrimonio</div>
+      ${numRow('Target liquidità','liqTarget')}
+      ${numRow('Target fondo emergenza','feTarget')}
+    </div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">Soglie minime</div>
+      ${numRow('PAC ETF — minimo per attivazione','pacMin')}
+      ${numRow('Fondo Pensione — minimo','pensioneMin')}
+      ${numRow('Fondo Pensione — cap annuale','pensioneCap')}
+    </div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">Reindirizzamento eccedenze</div>
+      ${selectRow('Liquidità eccedente target →','overflowLiq')}
+      ${selectRow('Fondo Emergenza eccedente →','overflowFe')}
+      ${selectRow('Fondo Pensione oltre cap →','overflowPensione')}
+    </div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">Reindirizzamento skip soglia</div>
+      ${selectRow('PAC sotto soglia →','skipPac')}
+      ${selectRow('Fondo Pensione sotto soglia →','skipPensione')}
+    </div>
+    <button onclick="allocResetCfg()" style="width:100%;padding:9px;background:var(--amber-l)12;border:1px solid #fde68a40;border-radius:8px;color:var(--amber);cursor:pointer;font-size:12px;font-weight:700">
+      ↺ Reset configurazione di default
+    </button>
+  `;
+}
+
+function allocUpdateCfgNum(key,val){ allocState.cfg[key]=Number(val); allocRender(); allocRenderConfigModal(); }
+function allocUpdateCfgSelect(key,val){ allocState.cfg[key]=val; allocRender(); allocRenderConfigModal(); }
+function allocResetCfg(){ allocState.cfg={...ALLOC_DEFAULT_CONFIG}; allocRender(); allocRenderConfigModal(); }
+
+// ═══════════════════════════════════════════════════════════
+// LOCALSTORAGE PERSISTENCE
+// ═══════════════════════════════════════════════════════════
+const ALLOC_LS_STATE   = 'fa_state_v4';
+const ALLOC_LS_STORICO = 'fa_storico_v4';
+
+function allocSaveState(){
+  try {
+    const s = {
+      amount: allocState.amount, liqCur: allocState.liqCur, feCur: allocState.feCur,
+      entry: allocState.entry, scenarioOverride: allocState.scenarioOverride,
+      model: allocState.model, cfg: allocState.cfg, openSubs: allocState.openSubs
+    };
+    localStorage.setItem(ALLOC_LS_STATE, JSON.stringify(s));
+  } catch(e){}
+}
+
+function allocLoadState(){
+  try {
+    const raw = localStorage.getItem(ALLOC_LS_STATE);
+    if(!raw) return;
+    const s = JSON.parse(raw);
+    if(s.amount)          allocState.amount          = s.amount;
+    if(s.liqCur)          allocState.liqCur          = s.liqCur;
+    if(s.feCur)           allocState.feCur           = s.feCur;
+    if(s.entry)           allocState.entry           = s.entry;
+    if(s.scenarioOverride!==undefined) allocState.scenarioOverride = s.scenarioOverride;
+    if(s.model)           allocState.model           = s.model;
+    if(s.cfg)             allocState.cfg             = {...ALLOC_DEFAULT_CONFIG, ...s.cfg};
+    if(s.openSubs)        allocState.openSubs        = s.openSubs;
+    // Restore inputs
+    if(s.amount)  document.getElementById('alloc-inp-amount').value = s.amount;
+    if(s.liqCur)  document.getElementById('alloc-inp-liq').value    = s.liqCur;
+    if(s.feCur)   document.getElementById('alloc-inp-fe').value     = s.feCur;
+  } catch(e){}
+}
+
+// Patch allocRender to also persist allocState
+const _origAllocRender = allocRender;
+allocRender = function(){
+  _origAllocRender();
+  allocSaveState();
+};
+
+// ═══════════════════════════════════════════════════════════
+// STORICO
+// ═══════════════════════════════════════════════════════════
+function allocGetStorico(){
+  try { return JSON.parse(localStorage.getItem(ALLOC_LS_STORICO)||'[]'); } catch(e){ return []; }
+}
+function allocSaveStorico(list){
+  try { localStorage.setItem(ALLOC_LS_STORICO, JSON.stringify(list)); } catch(e){}
+}
+
+function allocAutoNome(entryKey, date){
+  const mesi = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  const d = new Date(date);
+  const m = mesi[d.getMonth()];
+  const y = d.getFullYear();
+  const labels = {rafforzamento:'Rafforzamento', tredicesima:'Tredicesima', rimborso:'Rimborso730', bonus:'Bonus'};
+  return `${labels[entryKey]||entryKey}_${m}${y}`;
+}
+
+function allocSaveToStorico(){
+  const {amount, liqCur, feCur, entry, scenarioOverride, model, cfg} = allocState;
+  if(amount <= 0) return;
+  const autoSc   = allocAutoScenario(liqCur, feCur);
+  const scenario = scenarioOverride || autoSc;
+  const res      = allocCompute(amount, entry, scenario, liqCur, feCur, model, cfg);
+  const R        = res.rounded;
+  const now      = new Date().toISOString();
+  const nome     = allocAutoNome(entry, now);
+
+  const record = {
+    id:       now,
+    nome:     nome,
+    date:     now,
+    entry:    entry,
+    scenario: scenario,
+    amount:   allocR5(amount),
+    liqCur:   liqCur,
+    feCur:    feCur,
+    alloc: {
+      liq:      R.liq,
+      spesa:    R.spesa,
+      future:   R.future,
+      obiettivi:R.obiettivi,
+      fe:       R.fe,
+      pac:      R.pac,
+      pensione: R.pensione,
+    }
+  };
+
+  const list = allocGetStorico();
+  list.unshift(record);
+  allocSaveStorico(list);
+
+  // Flash feedback
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = '✓ Salvato!';
+  btn.style.background = '#34c78a30';
+  setTimeout(()=>{ btn.textContent=orig; btn.style.background='#34c78a15'; }, 1500);
+
+  // Update badge
+  allocUpdateStoricoBadge();
+}
+
+function allocUpdateStoricoBadge(){
+  const n = allocGetStorico().length;
+  const btn = document.getElementById('alloc-btn-storico');
+  if(btn) btn.textContent = n > 0 ? `📋 Storico (${n})` : '📋 Storico';
+}
+
+function allocRinominaRecord(id){
+  const list = allocGetStorico();
+  const rec  = list.find(r=>r.id===id);
+  if(!rec) return;
+  const nuovo = prompt('Rinomina voce:', rec.nome);
+  if(nuovo && nuovo.trim()){
+    rec.nome = nuovo.trim();
+    allocSaveStorico(list);
+    allocRenderStoricoModal();
+  }
+}
+
+function allocEliminaRecord(id){
+  if(!confirm('Eliminare questa voce?')) return;
+  const list = allocGetStorico().filter(r=>r.id!==id);
+  allocSaveStorico(list);
+  allocRenderStoricoModal();
+  allocUpdateStoricoBadge();
+}
+
+function allocCloseStorico(){
+  document.getElementById('alloc-storico-overlay').style.display='none';
+}
+
+function allocOpenModal(type){
+  allocCurrentModal=type;
+  allocEditModalEntry=allocState.entry;
+  if(type==='storico'){
+    document.getElementById('alloc-storico-overlay').style.display='flex';
+    allocRenderStoricoModal();
+    return;
+  }
+  document.getElementById('alloc-modal-overlay').classList.add('open');
+  if(type==='edit'){
+    document.getElementById('alloc-modal-title').textContent='✎ Modifica percentuali';
+    allocRenderEditModal();
+  } else {
+    document.getElementById('alloc-modal-title').textContent='⚙ Configurazione limiti e reindirizzamenti';
+    allocRenderConfigModal();
+  }
+}
+
+let allocStoricoTab = 'overview';
+const ALLOC_ENTRY_ICONS  = {rafforzamento:'💪', tredicesima:'🎄', rimborso:'📄', bonus:'⭐'};
+const ALLOC_ENTRY_COLORS = {rafforzamento:'#4f8ef7', tredicesima:'#34c78a', rimborso:'#f59e0b', bonus:'#a78bfa'};
+const ALLOC_SC_LABELS    = {A:'Sc. A', B:'Sc. B', C:'Sc. C'};
+const ALLOC_SC_COLORS    = {A:'#e05c3a', B:'#f59e0b', C:'#34c78a'};
+
+const ALLOC_ALL_KPI = [
+  {key:'totRaf',      label:'Rafforzamento',   color:'#4f8ef7', fn: list=>list.reduce((a,r)=>a+r.alloc.fe+r.alloc.pac+r.alloc.pensione,0)},
+  {key:'totPac',      label:'PAC ETF',         color:'#60a5fa', fn: list=>list.reduce((a,r)=>a+r.alloc.pac,0)},
+  {key:'totPensione', label:'Pensione',        color:'#818cf8', fn: list=>list.reduce((a,r)=>a+r.alloc.pensione,0)},
+  {key:'totFe',       label:'FE versato',      color:'#e05c3a', fn: list=>list.reduce((a,r)=>a+r.alloc.fe,0)},
+  {key:'totJolly',    label:'Jolly',           color:'#fb923c', fn: list=>list.reduce((a,r)=>a+r.alloc.future+r.alloc.obiettivi,0)},
+  {key:'totSpesa',    label:'Spesa',           color:'#a78bfa', fn: list=>list.reduce((a,r)=>a+r.alloc.spesa,0)},
+  {key:'totLiq',      label:'Liquidità',       color:'#34c78a', fn: list=>list.reduce((a,r)=>a+r.alloc.liq,0)},
+  {key:'pctPac',      label:'% media PAC',     color:'#60a5fa', fn: list=>{const v=list.filter(r=>r.amount>0);return v.length?Math.round(v.reduce((a,r)=>a+r.alloc.pac/r.amount*100,0)/v.length):0;}, isPercent:true},
+  {key:'pctRaf',      label:'% media Raff.',   color:'#4f8ef7', fn: list=>{const v=list.filter(r=>r.amount>0);return v.length?Math.round(v.reduce((a,r)=>a+(r.alloc.fe+r.alloc.pac+r.alloc.pensione)/r.amount*100,0)/v.length):0;}, isPercent:true},
+];
+
+let allocSelectedKpi = ['totRaf','totPac','totPensione'];
+
+const ALLOC_ENTRY_TYPES_ORDER = ['rafforzamento','tredicesima','rimborso','bonus'];
+const ALLOC_ENTRY_LABELS_FULL = {rafforzamento:'Rafforzamento', tredicesima:'Tredicesima', rimborso:'Rimborso 730', bonus:'Bonus / Extra'};
+
+function allocRenderStoricoModal(){
+  const list = allocGetStorico();
+  const body = document.getElementById('alloc-storico-body');
+
+  if(list.length === 0){
+    body.innerHTML = '<div style="text-align:center;color:var(--dim);font-size:13px;padding:40px 0">Nessuna voce salvata ancora.<br>Compila l\'allocatore e premi &quot;Salva in Storico&quot;.</div>';
+    return;
+  }
+
+  const entryTypes = ALLOC_ENTRY_TYPES_ORDER.filter(e => list.some(r=>r.entry===e));
+
+  // Tab bar: Overview + one per entry type present
+  const tabs = [
+    {key:'overview', label:'📊 Overview'},
+    {key:'lista',    label:'🗂 Lista'},
+    ...entryTypes.map(e=>({key:e, label: ALLOC_ENTRY_ICONS[e]+' '+ALLOC_ENTRY_LABELS_FULL[e]}))
+  ];
+
+  const tabBar = `
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px;background:var(--bg);border-radius:8px;padding:3px">
+      ${tabs.map(t=>`
+        <button onclick="allocSwitchStoricoTab('${t.key}')" style="
+          flex:1;min-width:80px;padding:7px 8px;cursor:pointer;font-size:11px;font-weight:700;
+          border:none;border-radius:7px;white-space:nowrap;
+          background:${allocStoricoTab===t.key?'var(--border)':'transparent'};
+          color:${allocStoricoTab===t.key?'var(--text)':'var(--dim)'}">
+          ${t.label}
+        </button>`).join('')}
+    </div>`;
+
+  body.innerHTML = tabBar + '<div id="storico-tab-content"></div>';
+  const tc = document.getElementById('storico-tab-content');
+
+  if(allocStoricoTab === 'lista')          allocRenderListaTab(list, tc);
+  else if(allocStoricoTab === 'overview')  allocRenderOverviewTab(list, tc);
+  else                                allocRenderEntryTab(list, allocStoricoTab, tc);
+}
+
+// ── TAB LISTA ────────────────────────────────────────────────
+function allocRenderListaTab(list, container){
+  const tableRows = list.map(r => {
+    const d    = new Date(r.date);
+    const ds   = d.toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'2-digit'});
+    const ec   = ALLOC_ENTRY_COLORS[r.entry]||'var(--muted)';
+    const sc   = ALLOC_SC_COLORS[r.scenario]||'var(--muted)';
+    const sl   = ALLOC_SC_LABELS[r.scenario]||r.scenario;
+    const raf  = r.alloc.fe + r.alloc.pac + r.alloc.pensione;
+    const jolly= r.alloc.future + r.alloc.obiettivi;
+    const pct  = v => r.amount>0 ? Math.round(v/r.amount*100)+'%' : '0%';
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:10px 8px;white-space:nowrap">
+        <div style="font-size:12px;font-weight:700;color:var(--text)">${r.nome}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:1px">${ds}</div>
+      </td>
+      <td style="padding:10px 8px;text-align:center;white-space:nowrap">
+        <span style="font-size:11px;background:${ec}20;color:${ec};border:1px solid ${ec}40;border-radius:4px;padding:2px 7px">${ALLOC_ENTRY_LABELS_FULL[r.entry]||r.entry}</span>
+        <span style="font-size:11px;margin-left:4px;background:${sc}20;color:${sc};border:1px solid ${sc}40;border-radius:4px;padding:2px 6px">${sl}</span>
+      </td>
+      <td style="padding:10px 8px;text-align:right;font-size:13px;font-weight:700;color:var(--blue);white-space:nowrap">€${r.amount.toLocaleString('it-IT')}</td>
+      <td style="padding:10px 8px;text-align:right">
+        <div style="font-size:12px;color:var(--green);white-space:nowrap">€${r.alloc.liq.toLocaleString('it-IT')}</div>
+        <div style="font-size:9px;color:var(--dim)">${allocPct(r.alloc.liq)}</div>
+      </td>
+      <td style="padding:10px 8px;text-align:right">
+        <div style="font-size:12px;color:#a78bfa;white-space:nowrap">€${r.alloc.spesa.toLocaleString('it-IT')}</div>
+        <div style="font-size:9px;color:var(--dim)">${allocPct(r.alloc.spesa)}</div>
+      </td>
+      <td style="padding:10px 8px;text-align:right">
+        <div style="font-size:12px;color:#fb923c;white-space:nowrap">€${jolly.toLocaleString('it-IT')}</div>
+        <div style="font-size:9px;color:var(--dim)">${allocPct(jolly)}</div>
+      </td>
+      <td style="padding:10px 8px;text-align:right">
+        <div style="font-size:12px;color:#4f8ef7;white-space:nowrap">€${raf.toLocaleString('it-IT')}</div>
+        <div style="font-size:9px;color:var(--dim)">${allocPct(raf)}</div>
+      </td>
+      <td style="padding:10px 8px;text-align:right">
+        <div style="font-size:12px;color:#1e40af;white-space:nowrap">€${r.alloc.pac.toLocaleString('it-IT')}</div>
+        <div style="font-size:9px;color:var(--dim)">${allocPct(r.alloc.pac)}</div>
+      </td>
+      <td style="padding:10px 8px;text-align:right">
+        <div style="font-size:12px;color:#4f46e5;white-space:nowrap">€${r.alloc.pensione.toLocaleString('it-IT')}</div>
+        <div style="font-size:9px;color:var(--dim)">${allocPct(r.alloc.pensione)}</div>
+      </td>
+      <td style="padding:10px 8px;text-align:center;white-space:nowrap">
+        <button onclick="allocRinominaRecord('${r.id}')" style="background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:5px;color:var(--blue);cursor:pointer;font-size:10px;padding:3px 7px;margin-right:3px">✎</button>
+        <button onclick="allocEliminaRecord('${r.id}')" style="background:var(--red-l)12;border:1px solid #fca5a540;border-radius:5px;color:var(--red);cursor:pointer;font-size:10px;padding:3px 7px">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div style="overflow-x:auto;margin-bottom:12px">
+      <table style="width:100%;border-collapse:collapse;font-family:inherit;min-width:680px">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="padding:8px;text-align:left;font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase">Voce</th>
+            <th style="padding:8px;font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase">Tipo / Scenario</th>
+            <th style="padding:8px;text-align:right;font-size:10px;color:var(--muted);font-weight:600">Importo</th>
+            <th style="padding:8px;text-align:right;font-size:10px;color:var(--green);font-weight:600">Liquidità</th>
+            <th style="padding:8px;text-align:right;font-size:10px;color:#a78bfa;font-weight:600">Spesa</th>
+            <th style="padding:8px;text-align:right;font-size:10px;color:#fb923c;font-weight:600">Jolly</th>
+            <th style="padding:8px;text-align:right;font-size:10px;color:#4f8ef7;font-weight:600">Raff.</th>
+            <th style="padding:8px;text-align:right;font-size:10px;color:#1e40af;font-weight:600">PAC ETF</th>
+            <th style="padding:8px;text-align:right;font-size:10px;color:#4f46e5;font-weight:600">Pensione</th>
+            <th style="padding:8px;font-size:10px;color:var(--muted);font-weight:600"></th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">
+      <button onclick="allocExportDati()" style="padding:9px;background:var(--green-light)15;border:1px solid #6ee7b740;border-radius:8px;color:var(--green);cursor:pointer;font-size:11px;font-weight:700">⬇ Esporta dati</button>
+      <button onclick="document.getElementById('alloc-import-input').click()" style="padding:9px;background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:8px;color:var(--blue);cursor:pointer;font-size:11px;font-weight:700">⬆ Importa dati</button>
+      <button onclick="if(confirm('Cancellare tutto lo storico?')){localStorage.removeItem('${ALLOC_LS_STORICO}');allocStoricoTab='overview';allocRenderStoricoModal();allocUpdateStoricoBadge();}" style="padding:9px;background:var(--red-l)12;border:1px solid #fca5a540;border-radius:8px;color:var(--red);cursor:pointer;font-size:11px;font-weight:700">🗑 Cancella storico</button>
+    </div>
+    <input type="file" id="import-input" accept=".json" style="display:none" onchange="allocImportDati(this)">`;
+}
+
+// ── TAB OVERVIEW ─────────────────────────────────────────────
+function allocRenderOverviewTab(list, container){
+  // Sort oldest first for cumulative chart
+  const sorted = [...list].reverse();
+
+  // Totale gestito fisso
+  const totaleGestito = list.reduce((a,r)=>a+r.amount,0);
+  const totaleCard = `
+    <div style="background:var(--green-light);border:1px solid #6ee7b7;border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:11px;color:var(--green);font-weight:600;letter-spacing:1px;text-transform:uppercase">Totale gestito</div>
+      <div style="font-size:24px;font-weight:800;color:var(--green)">€${totaleGestito.toLocaleString('it-IT')}</div>
+    </div>`;
+
+  // KPI selettore
+  const kpiSel = `
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:10px">💡 KPI — seleziona le metriche</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        ${ALLOC_ALL_KPI.map(k=>`
+          <button onclick="allocToggleKpi('${k.key}')" id="kpi-btn-${k.key}" style="
+            padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;
+            border:1px solid ${allocSelectedKpi.includes(k.key)?k.color+'60':'var(--border)'};
+            background:${allocSelectedKpi.includes(k.key)?k.color+'20':'var(--bg)'};
+            color:${allocSelectedKpi.includes(k.key)?k.color:'var(--dim)'}">
+            ${k.label}
+          </button>`).join('')}
+      </div>
+      <div id="kpi-results" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+    </div>`;
+
+  // Cumulative growth chart
+  const cumChart = `
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">Crescita cumulativa per bucket</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:10px">ogni punto = totale accumulato fino a quella entrata</div>
+      <div style="position:relative;height:220px"><canvas id="chart-cumulative"></canvas></div>
+    </div>`;
+
+  container.innerHTML = totaleCard + kpiSel + cumChart;
+  allocRenderKpiResults(list);
+  setTimeout(()=> allocDrawOverviewCharts(sorted), 50);
+}
+
+function allocDrawOverviewCharts(sorted){
+  const labels = sorted.map(r=>r.nome);
+  const scaleOpts = {
+    x:{ticks:{color:'var(--dim)',font:{size:10}},grid:{color:'var(--border)'}},
+    y:{ticks:{color:'var(--dim)',font:{size:10}},grid:{color:'var(--border)'}}
+  };
+
+  // Cumulative lines
+  const BUCKETS = [
+    {label:'PAC ETF',       color:'#60a5fa', fn: r=>r.alloc.pac},
+    {label:'Pensione',      color:'#818cf8', fn: r=>r.alloc.pensione},
+    {label:'FE',            color:'#e05c3a', fn: r=>r.alloc.fe},
+    {label:'Jolly',         color:'#fb923c', fn: r=>r.alloc.future+r.alloc.obiettivi},
+    {label:'Spesa',         color:'#a78bfa', fn: r=>r.alloc.spesa},
+    {label:'Liquidità',     color:'#34c78a', fn: r=>r.alloc.liq},
+  ];
+
+  const cumulativeDatasets = BUCKETS.map(b=>{
+    let cum = 0;
+    return {
+      label: b.label,
+      data: sorted.map(r=>{ cum += b.fn(r); return cum; }),
+      borderColor: b.color,
+      backgroundColor: b.color+'15',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 4,
+      pointBackgroundColor: b.color,
+      borderWidth: 2,
+    };
+  });
+
+  const el1 = document.getElementById('chart-cumulative');
+  if(el1){
+    if(el1._chart) el1._chart.destroy();
+    el1._chart = new Chart(el1,{
+      type:'line',
+      data:{ labels, datasets: cumulativeDatasets },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:true, position:'top', labels:{color:'var(--muted)',font:{size:10},padding:10,boxWidth:10} } },
+        scales: scaleOpts,
+      }
+    });
+  }
+
+}
+
+// ── TAB PER TIPO ENTRATA ─────────────────────────────────────
+function allocRenderEntryTab(list, entry, container){
+  const ec   = ALLOC_ENTRY_COLORS[entry]||'var(--muted)';
+  const voci = list.filter(r=>r.entry===entry).reverse(); // oldest first
+
+  if(voci.length === 0){
+    container.innerHTML = '<div style="text-align:center;color:var(--dim);font-size:12px;padding:30px">Nessuna voce per questo tipo.</div>';
+    return;
+  }
+
+  const labels = voci.map(r=>r.nome);
+
+  // Donut grid — una torta per ogni voce
+  const donutsHTML = `
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-weight:600">Distribuzione per voce</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+        ${voci.map((r,i)=>`
+          <div style="text-align:center">
+            <div style="font-size:10px;color:${ec};margin-bottom:6px;font-weight:700">${r.nome}</div>
+            <div style="position:relative;height:150px"><canvas id="donut-entry-${i}"></canvas></div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+  // Horizontal stacked bar — confronto bucket nel tempo
+  const stackedHTML = voci.length < 2 ? '' : `
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;font-weight:600">Confronto distribuzione nel tempo</div>
+      <div style="position:relative;height:${Math.max(120,voci.length*50)}px"><canvas id="chart-entry-stacked"></canvas></div>
+    </div>`;
+
+  // Line charts per bucket principale
+  const lineHTML = voci.length < 2 ? '' : `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      ${[
+        {label:'PAC ETF',  color:'#60a5fa', fn:r=>r.alloc.pac,     id:'line-pac'},
+        {label:'Pensione', color:'#818cf8', fn:r=>r.alloc.pensione, id:'line-pens'},
+        {label:'Raff. tot',color:'#4f8ef7', fn:r=>r.alloc.fe+r.alloc.pac+r.alloc.pensione, id:'line-raf'},
+        {label:'Jolly',    color:'#fb923c', fn:r=>r.alloc.future+r.alloc.obiettivi, id:'line-jolly'},
+      ].map(b=>`
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:11px;color:${b.color};margin-bottom:8px;font-weight:600">${b.label}</div>
+          <div style="position:relative;height:120px"><canvas id="${b.id}"></canvas></div>
+        </div>`).join('')}
+    </div>`;
+
+  container.innerHTML = donutsHTML + stackedHTML + lineHTML;
+
+  setTimeout(()=>{
+    // Draw donuts
+    voci.forEach((r,i)=>{
+      const raf   = r.alloc.fe+r.alloc.pac+r.alloc.pensione;
+      const jolly = r.alloc.future+r.alloc.obiettivi;
+      const el = document.getElementById('donut-entry-'+i);
+      if(!el) return;
+      if(el._chart) el._chart.destroy();
+      el._chart = new Chart(el,{
+        type:'doughnut',
+        data:{
+          labels:['Liquidità','Spesa','Jolly','Rafforzamento'],
+          datasets:[{
+            data:[r.alloc.liq, r.alloc.spesa, jolly, raf],
+            backgroundColor:['#34c78a','#a78bfa','#fb923c','#4f8ef7'],
+            borderColor:'var(--bg)', borderWidth:2,
+          }]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          plugins:{
+              legend:{ display:true, position:'bottom', labels:{color:'var(--muted)',font:{size:9},padding:6,boxWidth:8} },
+              tooltip:{ callbacks:{ label: ctx => {
+                const total = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
+                const pct = total>0?Math.round(ctx.raw/total*100):0;
+                return ' '+ctx.label+': €'+ctx.raw.toLocaleString('it-IT')+' ('+pct+'%)';
+              }}}
+            }
+        }
+      });
+    });
+
+    // Stacked horizontal bar
+    if(voci.length >= 2){
+      const ALLOC_FIELDS = [
+        {label:'Liquidità',    color:'#34c78a', fn:r=>r.alloc.liq},
+        {label:'Spesa',        color:'#a78bfa', fn:r=>r.alloc.spesa},
+        {label:'Jolly',        color:'#fb923c', fn:r=>r.alloc.future+r.alloc.obiettivi},
+        {label:'PAC',          color:'#60a5fa', fn:r=>r.alloc.pac},
+        {label:'Pensione',     color:'#818cf8', fn:r=>r.alloc.pensione},
+        {label:'FE',           color:'#e05c3a', fn:r=>r.alloc.fe},
+      ];
+      const el = document.getElementById('chart-entry-stacked');
+      if(el){
+        if(el._chart) el._chart.destroy();
+        el._chart = new Chart(el,{
+          type:'bar',
+          data:{
+            labels,
+            datasets: ALLOC_FIELDS.map(f=>({
+              label:f.label,
+              data: voci.map(r=>f.fn(r)),
+              backgroundColor:f.color+'cc',
+              borderWidth:0, borderRadius:2,
+            }))
+          },
+          options:{
+            indexAxis:'y',
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{ display:true, position:'top', labels:{color:'var(--muted)',font:{size:10},padding:8,boxWidth:10} } },
+            scales:{
+              x:{stacked:true,ticks:{color:'var(--dim)',font:{size:10}},grid:{color:'var(--border)'}},
+              y:{stacked:true,ticks:{color:'var(--muted)',font:{size:10}},grid:{display:false}}
+            }
+          }
+        });
+      }
+
+      // Line charts
+      [
+        {label:'PAC ETF',  color:'#60a5fa', fn:r=>r.alloc.pac,     id:'line-pac'},
+        {label:'Pensione', color:'#818cf8', fn:r=>r.alloc.pensione, id:'line-pens'},
+        {label:'Raff. tot',color:'#4f8ef7', fn:r=>r.alloc.fe+r.alloc.pac+r.alloc.pensione, id:'line-raf'},
+        {label:'Jolly',    color:'#fb923c', fn:r=>r.alloc.future+r.alloc.obiettivi, id:'line-jolly'},
+      ].forEach(b=>{
+        const el = document.getElementById(b.id);
+        if(!el) return;
+        if(el._chart) el._chart.destroy();
+        el._chart = new Chart(el,{
+          type:'line',
+          data:{
+            labels,
+            datasets:[{
+              data: voci.map(r=>b.fn(r)),
+              borderColor:b.color, backgroundColor:b.color+'20',
+              fill:true, tension:0.3, pointRadius:4, pointBackgroundColor:b.color, borderWidth:2,
+            }]
+          },
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{legend:{display:false}},
+            scales:{
+              x:{ticks:{color:'var(--dim)',font:{size:9}},grid:{color:'var(--border)'}},
+              y:{ticks:{color:'var(--dim)',font:{size:9}},grid:{color:'var(--border)'},beginAtZero:true}
+            }
+          }
+        });
+      });
+    }
+  }, 50);
+}
+
+// ── KPI helpers ──────────────────────────────────────────────
+function allocToggleKpi(key){
+  if(allocSelectedKpi.includes(key)){
+    if(allocSelectedKpi.length > 1) allocSelectedKpi = allocSelectedKpi.filter(k=>k!==key);
+  } else {
+    allocSelectedKpi.push(key);
+  }
+  ALLOC_ALL_KPI.forEach(k=>{
+    const btn = document.getElementById('kpi-btn-'+k.key);
+    if(!btn) return;
+    const on = allocSelectedKpi.includes(k.key);
+    btn.style.border     = `1px solid ${on?k.color+'60':'var(--border)'}`;
+    btn.style.background = on?k.color+'20':'var(--bg)';
+    btn.style.color      = on?k.color:'var(--dim)';
+  });
+  allocRenderKpiResults(allocGetStorico());
+}
+
+function allocRenderKpiResults(list){
+  const el = document.getElementById('kpi-results');
+  if(!el) return;
+  el.innerHTML = ALLOC_ALL_KPI.filter(k=>allocSelectedKpi.includes(k.key)).map(k=>{
+    const val = k.fn(list);
+    return `
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+        <div style="font-size:10px;color:${k.color};margin-bottom:4px">${k.label}</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);">${k.isPercent?val+'%':'€'+val.toLocaleString('it-IT')}</div>
+      </div>`;
+  }).join('');
+}
+
+function allocSwitchStoricoTab(tab){
+  allocStoricoTab = tab;
+  allocRenderStoricoModal();
+}
+
+
+
+// ═══════════════════════════════════════════════════════════
+// EXPORT / IMPORT
+// ═══════════════════════════════════════════════════════════
+function allocExportDati(){
+  const payload = {
+    version: 'fa_v4',
+    exportedAt: new Date().toISOString(),
+    storico: JSON.parse(localStorage.getItem(ALLOC_LS_STORICO)||'[]'),
+    appState: localStorage.getItem(ALLOC_LS_STATE)||null,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'allocatore-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function allocImportDati(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const payload = JSON.parse(e.target.result);
+      if(!payload.version || !payload.version.startsWith('fa_v')){
+        alert('File non valido o non compatibile.');
+        return;
+      }
+      if(!confirm('Importare i dati? Lo storico attuale verrà sovrascritto.')) return;
+
+      if(payload.storico){
+        localStorage.setItem(ALLOC_LS_STORICO, JSON.stringify(payload.storico));
+      }
+      if(payload.appState){
+        localStorage.setItem(ALLOC_LS_STATE, payload.appState);
+        allocLoadState();
+        allocRender();
+      }
+      allocUpdateStoricoBadge();
+      allocRenderStoricoModal();
+      alert('✓ Importazione completata — '+payload.storico.length+' voci caricate.');
+    } catch(err){
+      alert("Errore durante l'importazione: "+err.message);
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT allocatore — carica solo lo stato, NON renderizza
+// (il render avviene in openAllocatore() quando la pagina è visibile)
+// ═══════════════════════════════════════════════════════════
+allocLoadState();
+
+// Preload storico se vuoto
+(function(){
+  try {
+    const existing = JSON.parse(localStorage.getItem('fa_storico_v4')||'[]');
+    if(existing.length === 0){
+      const preload = [{"id": "2025-12-15T00:00:00.000Z", "nome": "Tredicesima_2025", "date": "2025-12-15T00:00:00.000Z", "entry": "tredicesima", "scenario": "B", "amount": 1600, "liqCur": 0, "feCur": 0, "alloc": {"liq": 300, "spesa": 150, "future": 100, "obiettivi": 0, "fe": 650, "pac": 174, "pensione": 225}}, {"id": "2025-07-15T00:00:00.000Z", "nome": "Rimborso730_2025", "date": "2025-07-15T00:00:00.000Z", "entry": "rimborso", "scenario": "A", "amount": 3500, "liqCur": 0, "feCur": 0, "alloc": {"liq": 1000, "spesa": 0, "future": 0, "obiettivi": 1065, "fe": 1335, "pac": 100, "pensione": 0}}];
+      localStorage.setItem('fa_storico_v4', JSON.stringify(preload));
+    }
+  } catch(e){}
+})();
+// allocRender() e allocUpdateStoricoBadge() chiamati da openAllocatore()
 </script>
 
 <!-- ══════════ ALLOCATORE ══════════ -->
