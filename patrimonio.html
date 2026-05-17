@@ -580,7 +580,15 @@ async function loadFromCloud(){
     .maybeSingle();
   if(error || !data) return;
   if(data.dati) D={...D,...data.dati};
-  if(data.cfg)  C={...C,...data.cfg,mix:{...C.mix,...(data.cfg.mix||{})},pac:{...C.pac,...(data.cfg.pac||{})},liqSub:{...C.liqSub,...(data.cfg.liqSub||{})}};
+  if(data.cfg){
+    C={...C,...data.cfg,
+      mix:{...DEF.mix,...(data.cfg.mix||{})},
+      pac:{...DEF.pac,...(data.cfg.pac||{})},
+      liqSub:{...DEF.liqSub,...(data.cfg.liqSub||{})}
+    };
+    // Garantisce che mix.liq esista sempre
+    if(!C.mix.liq) C.mix.liq = DEF.mix.liq;
+  }
   if(data.storico) localStorage.setItem('patrimonio_storico',JSON.stringify(data.storico));
 }
 
@@ -1178,7 +1186,6 @@ function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
 // ── RENDER ALL ───────────────────────────────────────────────
-// ── RENDER ALL ───────────────────────────────────────────────
 function el(id){return document.getElementById(id);}
 function set(id,val){const e=el(id);if(e)e.textContent=val;}
 function setH(id,val){const e=el(id);if(e)e.innerHTML=val;}
@@ -1233,6 +1240,9 @@ function renderAll(){
 
   } catch(err){
     console.error('renderAll error:', err);
+    // mostra l errore visivamente per debug
+    const dbg=document.getElementById('homeAlerts');
+    if(dbg) dbg.innerHTML=`<div class="alert a-warn"><div class="adot"></div><div>Errore rendering: ${err.message}</div></div>`;
   }
 }
 
