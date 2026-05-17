@@ -621,7 +621,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 async function loadFromCloud(){
   if(!currentUser) return;
   const {data,error} = await sb.from('patrimonio')
-    .select('dati,cfg,storico')
+    .select('dati,cfg,storico,storico_allocazioni')
     .eq('user_id', currentUser.id)
     .maybeSingle();
   if(error || !data) return;
@@ -636,6 +636,7 @@ async function loadFromCloud(){
     if(!C.mix.liq) C.mix.liq = DEF.mix.liq;
   }
   if(data.storico) localStorage.setItem('patrimonio_storico',JSON.stringify(data.storico));
+  if(data.storico_allocazioni) localStorage.setItem('fa_storico_v4',JSON.stringify(data.storico_allocazioni));
 }
 
 async function saveToCloud(){
@@ -645,8 +646,9 @@ async function saveToCloud(){
     else { console.warn('saveToCloud: nessun utente loggato'); toast('⚠ Sessione scaduta, riaccedi'); return false; }
   }
   const storico = getStor();
+  const storico_allocazioni = (()=>{try{const v=JSON.parse(localStorage.getItem('fa_storico_v4')||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}})();
   const {error} = await sb.from('patrimonio')
-    .upsert({user_id:currentUser.id, dati:D, cfg:C, storico, updated_at:new Date().toISOString()},
+    .upsert({user_id:currentUser.id, dati:D, cfg:C, storico, storico_allocazioni, updated_at:new Date().toISOString()},
             {onConflict:'user_id'});
   if(error){ console.error('Cloud save error:',error); toast('⚠ Errore: '+error.message); return false; }
   return true;
