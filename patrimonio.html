@@ -224,6 +224,40 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-12px);background:var(--green);color:#fff;padding:10px 22px;border-radius:24px;font-size:13px;font-weight:700;opacity:0;transition:opacity .25s,transform .25s;z-index:1000;white-space:nowrap;box-shadow:0 4px 20px rgba(0,102,54,.35);pointer-events:none;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
+/* ── STRATEGIA NUOVA ── */
+.strat-new-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.strat-new-badge{display:inline-flex;align-items:center;gap:6px;background:#fffbeb;border:1.5px solid #f59e0b;border-radius:20px;padding:5px 12px;font-size:11px;font-weight:800;color:#92400e;letter-spacing:.04em;text-transform:uppercase;}
+.strat-new-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:14px;}
+.strat-sim-box{background:#fffdf0;border:1.5px solid #fde68a;border-radius:var(--r);padding:14px 16px;margin-bottom:14px;}
+.strat-sim-title{font-size:10px;font-weight:800;color:#92400e;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;}
+.strat-sim-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid #fde68a;}
+.strat-sim-row:last-child{border-bottom:none;}
+.strat-sim-lbl{font-size:13px;font-weight:700;color:#78350f;}
+.strat-sim-sub{font-size:11px;color:#a16207;margin-top:2px;}
+.strat-sim-r{text-align:right;flex-shrink:0;}
+.strat-sim-pct{font-size:14px;font-weight:900;color:#92400e;}
+.strat-sim-eur{font-size:11px;color:#a16207;margin-top:2px;}
+/* stato attuale */
+.stato-box{background:var(--white);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.stato-title{font-size:10px;font-weight:800;color:var(--dim);letter-spacing:.08em;text-transform:uppercase;padding:12px 16px 10px;border-bottom:1px solid var(--border);}
+.stato-row{border-bottom:1px solid var(--border);}
+.stato-row:last-child{border-bottom:none;}
+.stato-row-hdr{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;user-select:none;}
+.stato-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.stato-lbl{font-size:13px;font-weight:700;flex:1;}
+.stato-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.stato-badge{font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;white-space:nowrap;letter-spacing:.03em;}
+.stato-chev{color:var(--dim);transition:transform .25s;flex-shrink:0;}
+.stato-chev svg{width:16px;height:16px;}
+.stato-chev.open{transform:rotate(180deg);}
+.stato-body{max-height:0;overflow:hidden;transition:max-height .3s ease;}
+.stato-body.open{max-height:300px;}
+.stato-body-inner{padding:12px 16px 16px;}
+.stato-bar-lbl{display:flex;justify-content:space-between;font-size:11px;font-weight:600;margin-bottom:6px;}
+.stato-bar-track{height:8px;background:var(--bg2);border-radius:99px;overflow:hidden;margin-bottom:4px;}
+.stato-bar-fill{height:100%;border-radius:99px;transition:width .5s;}
+.stato-bar-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);font-weight:600;}
+
 /* ── MISC ── */
 .cfg-warn{font-size:12px;color:var(--red);font-weight:700;margin-top:6px;display:none;}
 .info-box{background:var(--blue-l);border-radius:var(--r-sm);padding:10px 14px;font-size:12px;color:var(--blue);margin-bottom:10px;}
@@ -341,7 +375,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
     <div class="card card-p"><div id="allocCard"></div></div>
 
     <div class="sec">La tua strategia</div>
-    <div class="strat-card" id="stratCard"></div>
+    <div id="stratCard"></div>
 
     <div class="sec">Prossime mosse</div>
     <div class="card card-p"><div id="homeSteps"></div></div>
@@ -645,45 +679,148 @@ function renderAlloc(c){
 }
 
 // ── STRATEGIA CARD ──────────────────────────────────────────
+let statoOpen = {liq: false, inv: false};
+function toggleStato(key){
+  statoOpen[key] = !statoOpen[key];
+  document.getElementById('stato-body-'+key).classList.toggle('open', statoOpen[key]);
+  document.getElementById('stato-chev-'+key).classList.toggle('open', statoOpen[key]);
+}
+
 function renderStrategia(){
-  const c=calc();
-  const rows=[
-    {lbl:'Azioni (VWCE)', pct:C.mix.az, eur:c.tAz, note:'Su Az+Obbl+Oro · Trade Republic', bar:Math.min(C.mix.az,100)},
-    {lbl:'Obbligazioni',  pct:C.mix.ob, eur:c.tOb, note:'Su Az+Obbl+Oro · BTP→VAGF',       bar:Math.min(C.mix.ob*3,100)},
-    {lbl:'Oro (SGLN)',    pct:C.mix.or, eur:c.tOr, note:'Su Az+Obbl+Oro · Trade Republic', bar:Math.min(C.mix.or*3,100)},
+  const c = calc();
+  const totale = c.totale;
+
+  // Valori ideali simulazione
+  const simRows = [
+    {lbl:'Azioni (VWCE)',   sub:'Su Az+Obbl+Oro · Trade Republic', pct:C.mix.az, eur:c.tAz},
+    {lbl:'Obbligazioni',    sub:'Su Az+Obbl+Oro · BTP→VAGF',       pct:C.mix.ob, eur:c.tOb},
+    {lbl:'Oro (SGLN)',      sub:'Su Az+Obbl+Oro · Trade Republic', pct:C.mix.or, eur:c.tOr},
+    {lbl:'Liquidità',       sub:`Soglia min ${fmt(C.soglia)} · ora ${fmt(D.liq)}`, pct:C.liqPct, eur:totale*(C.liqPct/100)},
+    {lbl:'Fondo emergenza', sub:`Max consigliato ${fmt(C.maxFE)}`,  pct:null, eur:C.maxFE},
   ];
-  const liqEur=c.totale*(C.liqPct/100);
-  const liqRow=`
-    <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.15);">
-      <div class="strat-row-top">
-        <span class="strat-lbl">Liquidità operativa</span>
-        <div style="text-align:right;">
-          <span class="strat-pct">${C.liqPct}%</span>
-          <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:1px;">${fmt(liqEur)} ideale · ora ${fmt(D.liq)}</div>
-        </div>
+
+  // Badge liquidità
+  const liqPct = D.liq / totale * 100;
+  const liqIdeal = totale * (C.liqPct / 100);
+  let liqBadge, liqBadgeBg, liqBadgeFg, liqDot;
+  if(D.liq > liqIdeal * 1.2){
+    liqBadge='Troppa'; liqBadgeBg='#fef2f2'; liqBadgeFg='#b91c1c'; liqDot='#ef4444';
+  } else if(D.liq < C.soglia){
+    liqBadge='Bassa'; liqBadgeBg='#fffbeb'; liqBadgeFg='#92400e'; liqDot='#f59e0b';
+  } else {
+    liqBadge='OK'; liqBadgeBg='#e8f5ee'; liqBadgeFg='#006636'; liqDot='#006636';
+  }
+
+  // Badge capitale investito
+  const totInvPct = c.totInv / totale * 100;
+  const maxDelta = Math.max(Math.abs(c.dAz), Math.abs(c.dOb), Math.abs(c.dOr));
+  let invBadge, invBadgeBg, invBadgeFg, invDot;
+  if(maxDelta > 1000){
+    invBadge='In corso'; invBadgeBg='#fffbeb'; invBadgeFg='#92400e'; invDot='#f59e0b';
+  } else {
+    invBadge='Bilanciato'; invBadgeBg='#e8f5ee'; invBadgeFg='#006636'; invDot='#006636';
+  }
+
+  // Barra liquidità
+  const liqBarPct = Math.min(D.liq / (liqIdeal * 1.5) * 100, 100);
+  const liqBarCol = liqDot;
+
+  // Barre capitale investito
+  const invBars = [
+    {lbl:'Azioni', attuale:D.az, ideale:c.tAz, col:'var(--col-az)'},
+    {lbl:'Obbl.',  attuale:D.ob, ideale:c.tOb, col:'var(--col-ob)'},
+    {lbl:'Oro',    attuale:D.or, ideale:c.tOr, col:'var(--col-or)'},
+  ].map(b => {
+    const pBar = Math.min(b.attuale / (b.ideale * 1.5 || 1) * 100, 100);
+    const delta = b.attuale - b.ideale;
+    const dc = Math.abs(delta)<50?'var(--dim)':delta>0?'var(--muted)':'var(--red)';
+    return `<div style="margin-bottom:12px;">
+      <div class="stato-bar-lbl">
+        <span style="font-weight:700;color:var(--text);">${b.lbl}</span>
+        <span>${fmt(b.attuale)} <span style="color:${dc};font-weight:700;">(${delta>=0?'+':''}${Math.round(delta).toLocaleString('it-IT')})</span></span>
       </div>
-      <div class="strat-note" style="margin-top:3px;">Sul totale patrimonio · attiva sopra ${fmt(C.soglia)}</div>
-      <div class="strat-track" style="margin-top:7px;"><div class="strat-fill" style="width:${C.liqPct}%;"></div></div>
+      <div class="stato-bar-track"><div class="stato-bar-fill" style="width:${pBar.toFixed(1)}%;background:${b.col};"></div></div>
+      <div class="stato-bar-meta"><span>${(b.attuale/c.totInv*100).toFixed(1)}% attuale</span><span>ideale ${fmt(b.ideale)} (${Math.round(b.ideale/c.totInv*100)}%)</span></div>
     </div>`;
-  document.getElementById('stratCard').innerHTML=`
-    <div class="strat-title">La tua strategia · mix ideale</div>
-    <div class="strat-bars">
-      ${rows.map(r=>`<div class="strat-row">
-        <div class="strat-row-top">
-          <span class="strat-lbl">${r.lbl}</span>
-          <div style="text-align:right;">
-            <span class="strat-pct">${r.pct}%</span>
-            <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:1px;">${fmt(r.eur)}</div>
+  }).join('');
+
+  document.getElementById('stratCard').innerHTML = `
+    <div class="strat-new-header">
+      <div class="strat-new-badge">☆ Portafoglio ideale · Obiettivo a regime</div>
+    </div>
+    <p class="strat-new-desc">Come dovrebbe essere distribuito il patrimonio a regime. Le percentuali sul capitale investito (esclusa liquidità) sono l'obiettivo di lungo periodo.</p>
+
+    <div class="strat-sim-box">
+      <div class="strat-sim-title">Simulazione su ${fmt(totale)}</div>
+      ${simRows.map(r=>`
+        <div class="strat-sim-row">
+          <div>
+            <div class="strat-sim-lbl">${r.lbl}</div>
+            <div class="strat-sim-sub">${r.sub}</div>
+          </div>
+          <div class="strat-sim-r">
+            ${r.pct!==null?`<div class="strat-sim-pct">${r.pct}%</div>`:''}
+            <div class="strat-sim-eur">${fmt(r.eur)}</div>
+          </div>
+        </div>`).join('')}
+    </div>
+
+    <div class="stato-box">
+      <div class="stato-title">Stato attuale</div>
+
+      <!-- LIQUIDITÀ -->
+      <div class="stato-row">
+        <div class="stato-row-hdr" onclick="toggleStato('liq')">
+          <div class="stato-dot" style="background:${liqDot};"></div>
+          <div style="flex:1;">
+            <div class="stato-lbl">Liquidità</div>
+            <div class="stato-sub">${fmt(D.liq)} su ${fmt(totale)} totali</div>
+          </div>
+          <span class="stato-badge" style="background:${liqBadgeBg};color:${liqBadgeFg};">${liqBadge}</span>
+          <div class="stato-chev" id="stato-chev-liq">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
           </div>
         </div>
-        <div class="strat-note" style="margin-top:2px;">${r.note}</div>
-        <div class="strat-track" style="margin-top:7px;"><div class="strat-fill" style="width:${r.bar}%;"></div></div>
-      </div>`).join('')}
-    </div>
-    ${liqRow}
-    <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.15);display:flex;justify-content:space-between;align-items:center;">
-      <span style="font-size:11px;color:rgba(255,255,255,.5);">Fondo emergenza (separato)</span>
-      <span style="font-size:12px;color:rgba(255,255,255,.65);font-weight:700;">${fmt(D.fe)} · max ${fmt(C.maxFE)}</span>
+        <div class="stato-body" id="stato-body-liq">
+          <div class="stato-body-inner">
+            <div class="stato-bar-lbl">
+              <span>Attuale: <strong>${fmt(D.liq)}</strong></span>
+              <span>Ideale: ${fmt(liqIdeal)} (${C.liqPct}%)</span>
+            </div>
+            <div class="stato-bar-track">
+              <div class="stato-bar-fill" style="width:${liqBarPct.toFixed(1)}%;background:${liqBarCol};"></div>
+            </div>
+            <div class="stato-bar-meta">
+              <span>${liqPct.toFixed(1)}% del patrimonio</span>
+              <span>Soglia min ${fmt(C.soglia)}</span>
+            </div>
+            <div style="margin-top:10px;font-size:12px;color:var(--muted);line-height:1.6;">
+              CC Principale <strong style="color:var(--text);">${fmt(C.liqSub.cc)}</strong> · TR <strong style="color:var(--text);">${fmt(C.liqSub.tr)}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CAPITALE INVESTITO -->
+      <div class="stato-row">
+        <div class="stato-row-hdr" onclick="toggleStato('inv')">
+          <div class="stato-dot" style="background:${invDot};"></div>
+          <div style="flex:1;">
+            <div class="stato-lbl">Capitale investito</div>
+            <div class="stato-sub">${fmt(c.totInv)} · ${totInvPct.toFixed(1)}% del patrimonio</div>
+          </div>
+          <span class="stato-badge" style="background:${invBadgeBg};color:${invBadgeFg};">${invBadge}</span>
+          <div class="stato-chev" id="stato-chev-inv">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+          </div>
+        </div>
+        <div class="stato-body" id="stato-body-inv">
+          <div class="stato-body-inner">
+            ${invBars}
+          </div>
+        </div>
+      </div>
+
     </div>`;
 }
 
