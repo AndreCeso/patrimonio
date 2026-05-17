@@ -2690,9 +2690,9 @@ allocLoadState();
         <div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:6px;">Tredicesima · Rimborso 730 · Bonus · Rafforzamento</div>
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0;margin-top:4px;">
-        <button id="alloc-btn-edit-pct" onclick="openModal('edit')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">✎ %</button>
-        <button id="alloc-btn-config" onclick="openModal('config')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">⚙ Config</button>
-        <button id="alloc-btn-storico" onclick="openModal('storico')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">📋 Storico</button>
+        <button id="alloc-btn-edit-pct" onclick="allocOpenModal('edit')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">✎ %</button>
+        <button id="alloc-btn-config" onclick="allocOpenModal('config')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">⚙ Config</button>
+        <button id="alloc-btn-storico" onclick="allocOpenModal('storico')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">📋 Storico</button>
       </div>
     </div>
   </div>
@@ -2710,7 +2710,7 @@ allocLoadState();
         <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:5px;">Liquidità c/c attuale</div>
         <div style="position:relative">
           <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--green);font-size:13px">€</span>
-          <input id="alloc-inp-liq" type="text" placeholder="0" oninput="onInputChange()" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:9px 10px 9px 26px;color:var(--text);font-size:14px"/>
+          <input id="alloc-inp-liq" type="text" placeholder="0" oninput="allocOnInputChange()" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:9px 10px 9px 26px;color:var(--text);font-size:14px"/>
         </div>
         <div style="font-size:10px;color:var(--dim);font-weight:600;margin-top:3px;" id="hint-liq-target">Target €${state.cfg.liqTarget.toLocaleString('it-IT')}</div>
       </div>
@@ -2718,7 +2718,7 @@ allocLoadState();
         <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:5px;">Fondo emergenza attuale</div>
         <div style="position:relative">
           <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--red);font-size:13px">€</span>
-          <input id="alloc-inp-fe" type="text" placeholder="0" oninput="onInputChange()" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:9px 10px 9px 26px;color:var(--text);font-size:14px"/>
+          <input id="alloc-inp-fe" type="text" placeholder="0" oninput="allocOnInputChange()" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:9px 10px 9px 26px;color:var(--text);font-size:14px"/>
         </div>
         <div style="font-size:10px;color:var(--dim);font-weight:600;margin-top:3px;" id="hint-fe-target">Target €${state.cfg.feTarget.toLocaleString('it-IT')}</div>
       </div>
@@ -2728,7 +2728,7 @@ allocLoadState();
       <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:5px;">Importo entrata</div>
       <div style="position:relative">
         <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--green);font-size:20px">€</span>
-        <input id="alloc-inp-amount" type="text" placeholder="0" oninput="onInputChange()" style="width:100%;background:var(--bg);border:2px solid var(--border);border-radius:var(--r-sm);padding:13px 14px 13px 38px;color:var(--text);font-size:22px;font-weight:800;"/>
+        <input id="alloc-inp-amount" type="text" placeholder="0" oninput="allocOnInputChange()" style="width:100%;background:var(--bg);border:2px solid var(--border);border-radius:var(--r-sm);padding:13px 14px 13px 38px;color:var(--text);font-size:22px;font-weight:800;"/>
       </div>
     </div>
 
@@ -2740,7 +2740,7 @@ allocLoadState();
   <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:18px 16px;margin-bottom:12px;box-shadow:var(--sh-sm);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
       <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);font-weight:700;">📍 Scenario</div>
-      <button id="alloc-btn-auto-back" onclick="setScenarioOverride(null)" style="display:none;font-size:10px;color:var(--green);background:var(--green-light);border:1px solid #6ee7b7;border-radius:6px;padding:3px 9px;cursor:pointer">← Torna ad Auto</button>
+      <button id="alloc-btn-auto-back" onclick="allocSetScenarioOverride(null)" style="display:none;font-size:10px;color:var(--green);background:var(--green-light);border:1px solid #6ee7b7;border-radius:6px;padding:3px 9px;cursor:pointer">← Torna ad Auto</button>
     </div>
     <div id="alloc-scenario-auto-badge" style="font-size:11px;color:var(--green);background:var(--green-light);border:1px solid #a7f3d0;border-radius:var(--r-sm);padding:7px 12px;margin-bottom:10px;"></div>
     <div id="alloc-scenario-btns" style="display:flex;flex-direction:column;gap:7px"></div>
@@ -2763,7 +2763,7 @@ allocLoadState();
       <span style="font-size:12px;color:var(--muted);font-weight:600;">Totale allocato</span>
       <span id="alloc-total-display" style="font-size:20px;font-weight:800;color:var(--green)"></span>
     </div>
-    <button onclick="saveToStorico()" style="margin-top:12px;width:100%;padding:10px;background:var(--green-light);border:1px solid #6ee7b7;border-radius:var(--r-sm);color:var(--green);cursor:pointer;font-size:12px;font-weight:700;">
+    <button onclick="allocSaveToStorico()" style="margin-top:12px;width:100%;padding:10px;background:var(--green-light);border:1px solid #6ee7b7;border-radius:var(--r-sm);color:var(--green);cursor:pointer;font-size:12px;font-weight:700;">
       ＋ Salva in Storico
     </button>
   </div>
@@ -2785,7 +2785,7 @@ allocLoadState();
   <div id="alloc-modal-box">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
       <span id="alloc-modal-title" style="font-size:14px;font-weight:700;color:var(--text);"></span>
-      <button onclick="closeModal()" style="background:none;border:none;color:var(--dim);font-size:22px;cursor:pointer;line-height:1;">✕</button>
+      <button onclick="allocCloseModal()" style="background:none;border:none;color:var(--dim);font-size:22px;cursor:pointer;line-height:1;">✕</button>
     </div>
     <div id="alloc-modal-body"></div>
   </div>
@@ -3203,7 +3203,7 @@ function renderEditModal(){
       <span style="font-size:11px;color:${mod?'#f59e0b':'var(--muted)'};flex:1;min-width:140px">${label}</span>
       <input type="range" min="0" max="100" value="${Math.round(val)}"
         style="flex:2;accent-color:${color};cursor:pointer"
-        oninput="updateModelPct('${editModalEntry}','${editModalScenario}','${group}','${key}',this.value)"/>
+        oninput="updateModelPct('${allocEditModalEntry}','${allocEditModalScenario}','${group}','${key}',this.value)"/>
       <div style="width:44px;text-align:center;font-size:12px;font-weight:700;
         color:${mod?'#f59e0b':color};background:${mod?'#f59e0b15':'var(--bg)'};
         border:1px solid ${mod?'#f59e0b40':'var(--border)'};border-radius:6px;padding:3px 0" id="pct-${group}-${key}">
@@ -3269,10 +3269,10 @@ function renderEditModal(){
       ${pctRow('🏛️ Fondo Pensione','fin','pensione','#818cf8')}
     </div>
 
-    <button onclick="resetEntryScenario()" style="width:100%;padding:9px;background:var(--amber-l)12;border:1px solid #fde68a40;border-radius:8px;color:var(--amber);cursor:pointer;font-size:12px;font-weight:700;margin-bottom:8px">
-      ↺ Reset default per ${ENTRY_TYPES.find(e=>e.key===editModalEntry)?.label} · Scenario ${editModalScenario}
+    <button onclick="allocResetEntryScenario()" style="width:100%;padding:9px;background:var(--amber-l)12;border:1px solid #fde68a40;border-radius:8px;color:var(--amber);cursor:pointer;font-size:12px;font-weight:700;margin-bottom:8px">
+      ↺ Reset default per ${ENTRY_TYPES.find(e=>e.key===editModalEntry)?.label} · Scenario ${allocEditModalScenario}
     </button>
-    <button onclick="resetAllModel()" style="width:100%;padding:9px;background:var(--red-l)12;border:1px solid #fca5a540;border-radius:8px;color:var(--red);cursor:pointer;font-size:12px;font-weight:700">
+    <button onclick="allocResetAllModel()" style="width:100%;padding:9px;background:var(--red-l)12;border:1px solid #fca5a540;border-radius:8px;color:var(--red);cursor:pointer;font-size:12px;font-weight:700">
       ↺ Reset TUTTE le percentuali ai valori default
     </button>
   `;
@@ -3354,7 +3354,7 @@ function renderConfigModal(){
       ${selectRow('PAC sotto soglia →','skipPac')}
       ${selectRow('Fondo Pensione sotto soglia →','skipPensione')}
     </div>
-    <button onclick="resetCfg()" style="width:100%;padding:9px;background:var(--amber-l)12;border:1px solid #fde68a40;border-radius:8px;color:var(--amber);cursor:pointer;font-size:12px;font-weight:700">
+    <button onclick="allocResetCfg()" style="width:100%;padding:9px;background:var(--amber-l)12;border:1px solid #fde68a40;border-radius:8px;color:var(--amber);cursor:pointer;font-size:12px;font-weight:700">
       ↺ Reset configurazione di default
     </button>
   `;
@@ -3654,9 +3654,9 @@ function renderListaTab(list, container){
       </table>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">
-      <button onclick="exportDati()" style="padding:9px;background:var(--green-light)15;border:1px solid #6ee7b740;border-radius:8px;color:var(--green);cursor:pointer;font-size:11px;font-weight:700">⬇ Esporta dati</button>
+      <button onclick="allocExportDati()" style="padding:9px;background:var(--green-light)15;border:1px solid #6ee7b740;border-radius:8px;color:var(--green);cursor:pointer;font-size:11px;font-weight:700">⬇ Esporta dati</button>
       <button onclick="document.getElementById('import-input').click()" style="padding:9px;background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:8px;color:var(--blue);cursor:pointer;font-size:11px;font-weight:700">⬆ Importa dati</button>
-      <button onclick="if(confirm('Cancellare tutto lo storico?')){localStorage.removeItem('${LS_STORICO}');storicoTab='overview';renderStoricoModal();updateStoricoBadge();}" style="padding:9px;background:var(--red-l)12;border:1px solid #fca5a540;border-radius:8px;color:var(--red);cursor:pointer;font-size:11px;font-weight:700">🗑 Cancella storico</button>
+      <button onclick="if(confirm('Cancellare tutto lo storico?')){localStorage.removeItem('fa_storico_v4');allocStoricoTab='overview';allocRenderStoricoModal();allocUpdateStoricoBadge();}" style="padding:9px;background:var(--red-l)12;border:1px solid #fca5a540;border-radius:8px;color:var(--red);cursor:pointer;font-size:11px;font-weight:700">🗑 Cancella storico</button>
     </div>
     <input type="file" id="import-input" accept=".json" style="display:none" onchange="importDati(this)">`;
 }
