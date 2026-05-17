@@ -416,7 +416,8 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 <div class="page active" id="page-home">
   <div class="hdr">
     <div class="hdr-top">
-      <div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button onclick="goToHub()" style="background:rgba(255,255,255,.2);border:none;border-radius:8px;padding:5px 12px;color:rgba(255,255,255,.85);font-size:12px;font-weight:700;cursor:pointer;align-self:flex-start;">← Hub</button>
         <div class="hdr-greeting">Benvenuto</div>
         <div class="hdr-name">Andrea</div>
       </div>
@@ -1420,6 +1421,11 @@ function closeAllocatore(){
 }
 
 // ── HUB ──────────────────────────────────────────────────────
+function goToHub(){
+  // Torna alla home tab prima di mostrare la hub
+  goTab('home');
+  document.getElementById('hubScreen').classList.remove('hidden');
+}
 function showHub(){
   document.getElementById('hubDate').textContent =
     new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
