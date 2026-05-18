@@ -4234,7 +4234,7 @@ updateStoricoBadge();
         <div class="hdr-greeting">Buongiorno,</div>
         <div class="hdr-name" id="bgt-hdr-name">Andrea</div>
       </div>
-      <button class="hdr-cfg" onclick="goTab('cfg')">
+      <button class="hdr-cfg" onclick="bGoTab('cfg')">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
         Config
       </button>
@@ -4248,10 +4248,10 @@ updateStoricoBadge();
       <div class="form-row" style="margin-bottom:10px;">
         <div class="form-lbl">Tipo</div>
         <div class="tipo-grid">
-          <button class="tipo-btn sel-INCOME" id="bgt-tipo-INCOME" onclick="selTipo('INCOME')">💰 Reddito</button>
-          <button class="tipo-btn" id="bgt-tipo-EXPENSES" onclick="selTipo('EXPENSES')">🏠 Spese</button>
-          <button class="tipo-btn" id="bgt-tipo-SAVINGS" onclick="selTipo('SAVINGS')">🐷 Risparmi</button>
-          <button class="tipo-btn" id="bgt-tipo-TEMPO LIBERO" onclick="selTipo('TEMPO LIBERO')">🎉 Tempo Libero</button>
+          <button class="tipo-btn sel-INCOME" id="bgt-tipo-INCOME" onclick="bSelTipo('INCOME')">💰 Reddito</button>
+          <button class="tipo-btn" id="bgt-tipo-EXPENSES" onclick="bSelTipo('EXPENSES')">🏠 Spese</button>
+          <button class="tipo-btn" id="bgt-tipo-SAVINGS" onclick="bSelTipo('SAVINGS')">🐷 Risparmi</button>
+          <button class="tipo-btn" id="bgt-tipo-TEMPO LIBERO" onclick="bSelTipo('TEMPO LIBERO')">🎉 Tempo Libero</button>
         </div>
       </div>
       <div class="form-row" style="margin-bottom:10px;">
@@ -4272,7 +4272,7 @@ updateStoricoBadge();
         <div class="form-lbl">Descrizione</div>
         <input type="text" class="form-input" id="bgt-add-desc" placeholder="es. Conad, Benzina, Netflix…">
       </div>
-      <button class="btn-p" onclick="addTransaction()">
+      <button class="btn-p" onclick="bAddTransaction()">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" width="18" height="18" style="margin-right:8px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
         Aggiungi transazione
       </button>
@@ -4280,7 +4280,7 @@ updateStoricoBadge();
 
     <!-- RICORSIVE RAPIDE -->
     <div class="hcard">
-      <div class="hcard-hdr" onclick="toggleCard('ricp')">
+      <div class="hcard-hdr" onclick="bToggleCard('ricp')">
         <div class="hcard-left">
           <div class="hcard-icon i-green">
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
@@ -4309,18 +4309,18 @@ updateStoricoBadge();
     <div style="text-align:center;margin-bottom:14px;">
       <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px;">
         <div style="color:rgba(255,255,255,.65);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;">Saldo generale</div>
-        <button id="bgt-dash-saldo-toggle" onclick="toggleSaldoView()" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:2px 8px;cursor:pointer;color:rgba(255,255,255,.8);font-size:10px;font-weight:700;font-family:Inter,sans-serif;line-height:1.6;">mostra</button>
+        <button id="bgt-dash-saldo-toggle" onclick="bToggleSaldoView()" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:2px 8px;cursor:pointer;color:rgba(255,255,255,.8);font-size:10px;font-weight:700;font-family:Inter,sans-serif;line-height:1.6;">mostra</button>
       </div>
       <div style="color:#fff;font-size:32px;font-weight:900;letter-spacing:-.03em;filter:blur(0);transition:filter .2s;" id="bgt-dash-saldo-generale">€ 0</div>
       <div style="color:rgba(255,255,255,.6);font-size:11px;font-weight:600;margin-top:3px;" id="bgt-dash-saldo-sub">somma reddito disponibile tutti i mesi</div>
     </div>
     <!-- Selettore mese -->
     <div class="month-sw" style="padding-top:0;">
-      <button class="month-sw-btn" onclick="changeMonth(-1)">
+      <button class="month-sw-btn" onclick="bChangeMonth(-1)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
       </button>
       <div class="month-sw-lbl" id="bgt-dash-month-lbl">Maggio 2026</div>
-      <button class="month-sw-btn" onclick="changeMonth(1)">
+      <button class="month-sw-btn" onclick="bChangeMonth(1)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
       </button>
     </div>
@@ -4337,11 +4337,11 @@ updateStoricoBadge();
       <div style="color:#fff;font-size:26px;font-weight:900;">Riepilogo Annuale</div>
     </div>
     <div class="month-sw" style="padding-top:0;">
-      <button class="month-sw-btn" onclick="changeStorYear(-1)">
+      <button class="month-sw-btn" onclick="bChangeStorYear(-1)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
       </button>
       <div class="month-sw-lbl" id="bgt-stor-year-lbl">2026</div>
-      <button class="month-sw-btn" onclick="changeStorYear(1)">
+      <button class="month-sw-btn" onclick="bChangeStorYear(1)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
       </button>
     </div>
@@ -4360,11 +4360,11 @@ updateStoricoBadge();
     <div class="card card-p">
       <div class="cfg-row">
         <div><div class="cfg-lbl">Nome</div></div>
-        <input type="text" class="cfg-input cfg-input-wide" id="bgt-cfg-nome" value="Andrea" oninput="saveCfg()">
+        <input type="text" class="cfg-input cfg-input-wide" id="bgt-cfg-nome" value="Andrea" oninput="bSaveCfg()">
       </div>
       <div class="cfg-row">
         <div><div class="cfg-lbl">Reddito base mensile (€)</div><div class="cfg-sub">Usato come default</div></div>
-        <input type="number" class="cfg-input" id="bgt-cfg-reddito" value="1850" oninput="saveCfg()">
+        <input type="number" class="cfg-input" id="bgt-cfg-reddito" value="1850" oninput="bSaveCfg()">
       </div>
     </div>
 
@@ -4376,10 +4376,10 @@ updateStoricoBadge();
       <div style="margin-top:14px;">
         <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;">Applica modello rapido al mese selezionato:</div>
         <div class="model-grid">
-          <button class="model-btn" onclick="applyModel(50,30,20)">Classico<br><span style="font-size:10px;color:var(--muted)">50 · 30 · 20</span></button>
-          <button class="model-btn" onclick="applyModel(50,22,28)">Evoluto<br><span style="font-size:10px;color:var(--muted)">50 · 22 · 28</span></button>
-          <button class="model-btn" onclick="applyModel(50,17,33)">Balance<br><span style="font-size:10px;color:var(--muted)">50 · 17 · 33</span></button>
-          <button class="model-btn" onclick="applyModel(50,12,38)">Boost<br><span style="font-size:10px;color:var(--muted)">50 · 12 · 38</span></button>
+          <button class="model-btn" onclick="bApplyModel(50,30,20)">Classico<br><span style="font-size:10px;color:var(--muted)">50 · 30 · 20</span></button>
+          <button class="model-btn" onclick="bApplyModel(50,22,28)">Evoluto<br><span style="font-size:10px;color:var(--muted)">50 · 22 · 28</span></button>
+          <button class="model-btn" onclick="bApplyModel(50,17,33)">Balance<br><span style="font-size:10px;color:var(--muted)">50 · 17 · 33</span></button>
+          <button class="model-btn" onclick="bApplyModel(50,12,38)">Boost<br><span style="font-size:10px;color:var(--muted)">50 · 12 · 38</span></button>
         </div>
       </div>
     </div>
@@ -4387,7 +4387,7 @@ updateStoricoBadge();
     <div class="sec">Spese ricorsive</div>
     <div class="card card-p">
       <div id="bgt-cfg-ricp-list"></div>
-      <button class="btn-p" onclick="openAddRicp()" style="margin-top:12px;">+ Nuova ricorsiva</button>
+      <button class="btn-p" onclick="bOpenAddRicp()" style="margin-top:12px;">+ Nuova ricorsiva</button>
     </div>
 
     <div class="sec">Categorie</div>
@@ -4397,17 +4397,17 @@ updateStoricoBadge();
     <div class="card" style="overflow:hidden;">
       <!-- sub-tab bar -->
       <div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg);overflow-x:auto;">
-        <button class="tx-subtab active" id="bgt-txst-ALL" onclick="setTxSubTab('ALL')" style="flex:1;min-width:44px;padding:10px 6px;font-size:10px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--green);border-bottom:2px solid var(--green);font-family:Inter,sans-serif;white-space:nowrap;">Tutte</button>
-        <button class="tx-subtab" id="bgt-txst-INCOME" onclick="setTxSubTab('INCOME')" style="flex:1;min-width:52px;padding:10px 6px;font-size:10px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent;font-family:Inter,sans-serif;white-space:nowrap;--tab-col:#00b365;">Reddito</button>
-        <button class="tx-subtab" id="bgt-txst-EXPENSES" onclick="setTxSubTab('EXPENSES')" style="flex:1;min-width:44px;padding:10px 6px;font-size:10px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent;font-family:Inter,sans-serif;white-space:nowrap;--tab-col:#e91e8c;">Spese</button>
-        <button class="tx-subtab" id="bgt-txst-SAVINGS" onclick="setTxSubTab('SAVINGS')" style="flex:1;min-width:52px;padding:10px 6px;font-size:10px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent;font-family:Inter,sans-serif;white-space:nowrap;--tab-col:#f0a500;">Risparmi</button>
-        <button class="tx-subtab" id="bgt-txst-TEMPO LIBERO" onclick="setTxSubTab('TEMPO LIBERO')" style="flex:1;min-width:60px;padding:10px 6px;font-size:10px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent;font-family:Inter,sans-serif;white-space:nowrap;--tab-col:#7c3aed;">T.Libero</button>
+        <button class="tx-subtab active" id="bgt-txst-ALL" onclick="bSetTxSubTab('ALL')" style="flex:1;min-width:44px;padding:10px 6px;font-size:10px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--green);border-bottom:2px solid var(--green);font-family:Inter,sans-serif;white-space:nowrap;">Tutte</button>
+        <button class="tx-subtab" id="bgt-txst-INCOME" onclick="bSetTxSubTab('INCOME')" style="flex:1;min-width:52px;padding:10px 6px;font-size:10px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent;font-family:Inter,sans-serif;white-space:nowrap;--tab-col:#00b365;">Reddito</button>
+        <button class="tx-subtab" id="bgt-txst-EXPENSES" onclick="bSetTxSubTab('EXPENSES')" style="flex:1;min-width:44px;padding:10px 6px;font-size:10px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent;font-family:Inter,sans-serif;white-space:nowrap;--tab-col:#e91e8c;">Spese</button>
+        <button class="tx-subtab" id="bgt-txst-SAVINGS" onclick="bSetTxSubTab('SAVINGS')" style="flex:1;min-width:52px;padding:10px 6px;font-size:10px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent;font-family:Inter,sans-serif;white-space:nowrap;--tab-col:#f0a500;">Risparmi</button>
+        <button class="tx-subtab" id="bgt-txst-TEMPO LIBERO" onclick="bSetTxSubTab('TEMPO LIBERO')" style="flex:1;min-width:60px;padding:10px 6px;font-size:10px;font-weight:700;border:none;background:none;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent;font-family:Inter,sans-serif;white-space:nowrap;--tab-col:#7c3aed;">T.Libero</button>
       </div>
       <!-- month selector -->
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);">
-        <button onclick="changeCfgTxMonth(-1)" style="background:var(--bg2);border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:14px;">‹</button>
+        <button onclick="bChangeCfgTxMonth(-1)" style="background:var(--bg2);border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:14px;">‹</button>
         <span id="bgt-cfg-tx-month-lbl" style="font-size:13px;font-weight:700;color:var(--text);"></span>
-        <button onclick="changeCfgTxMonth(1)" style="background:var(--bg2);border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:14px;">›</button>
+        <button onclick="bChangeCfgTxMonth(1)" style="background:var(--bg2);border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:14px;">›</button>
       </div>
       <!-- list -->
       <div id="bgt-cfg-tx-list" style="max-height:420px;overflow-y:auto;"></div>
@@ -4417,11 +4417,11 @@ updateStoricoBadge();
     <div class="card card-p">
       <div class="cfg-row">
         <div><div class="cfg-lbl">Esporta backup</div></div>
-        <button class="btn-sm" onclick="exportData()">💾 JSON</button>
+        <button class="btn-sm" onclick="bExportData()">💾 JSON</button>
       </div>
       <div class="cfg-row" style="border:none;">
         <div><div class="cfg-lbl" style="color:var(--red)">Reset mese corrente</div></div>
-        <button class="btn-sm" onclick="resetMonth()" style="color:var(--red)">🗑 Reset</button>
+        <button class="btn-sm" onclick="bResetMonth()" style="color:var(--red)">🗑 Reset</button>
       </div>
     </div>
   </div>
@@ -4437,10 +4437,10 @@ updateStoricoBadge();
     <div class="form-row">
       <div class="form-lbl">Tipo</div>
       <div class="tipo-grid">
-        <button class="tipo-btn" id="bgt-etipo-INCOME" onclick="selEditTipo('INCOME')">💰 Reddito</button>
-        <button class="tipo-btn" id="bgt-etipo-EXPENSES" onclick="selEditTipo('EXPENSES')">🏠 Spese</button>
-        <button class="tipo-btn" id="bgt-etipo-SAVINGS" onclick="selEditTipo('SAVINGS')">🐷 Risparmi</button>
-        <button class="tipo-btn" id="bgt-etipo-TEMPO LIBERO" onclick="selEditTipo('TEMPO LIBERO')">🎉 T.Libero</button>
+        <button class="tipo-btn" id="bgt-etipo-INCOME" onclick="bSelEditTipo('INCOME')">💰 Reddito</button>
+        <button class="tipo-btn" id="bgt-etipo-EXPENSES" onclick="bSelEditTipo('EXPENSES')">🏠 Spese</button>
+        <button class="tipo-btn" id="bgt-etipo-SAVINGS" onclick="bSelEditTipo('SAVINGS')">🐷 Risparmi</button>
+        <button class="tipo-btn" id="bgt-etipo-TEMPO LIBERO" onclick="bSelEditTipo('TEMPO LIBERO')">🎉 T.Libero</button>
       </div>
     </div>
     <div class="form-row">
@@ -4461,26 +4461,26 @@ updateStoricoBadge();
       <div class="form-lbl">Descrizione</div>
       <input type="text" class="form-input" id="bgt-edit-desc">
     </div>
-    <button class="btn-p" onclick="saveEditTx()">💾 Salva modifiche</button>
-    <button style="width:100%;margin-top:8px;background:var(--red-l);color:var(--red);border:none;border-radius:var(--r-sm);padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;" onclick="deleteEditTx()">🗑 Elimina</button>
+    <button class="btn-p" onclick="bSaveEditTx()">💾 Salva modifiche</button>
+    <button style="width:100%;margin-top:8px;background:var(--red-l);color:var(--red);border:none;border-radius:var(--r-sm);padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;" onclick="bDeleteEditTx()">🗑 Elimina</button>
   </div>
 </div>
 
 <!-- TABBAR -->
 <nav class="bgt-tabbar" id="bgt-tabbar-el" style="display:none;">
-  <button class="bgt-tab-btn active" id="bgt-tab-home" onclick="goTab('home')">
+  <button class="bgt-tab-btn active" id="bgt-tab-home" onclick="bGoTab('home')">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
     Inserisci
   </button>
-  <button class="bgt-tab-btn" id="bgt-tab-dash" onclick="goTab('dash')">
+  <button class="bgt-tab-btn" id="bgt-tab-dash" onclick="bGoTab('dash')">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg>
     Dashboard
   </button>
-  <button class="bgt-tab-btn" id="bgt-tab-storico" onclick="goTab('storico')">
+  <button class="bgt-tab-btn" id="bgt-tab-storico" onclick="bGoTab('storico')">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>
     Storico
   </button>
-  <button class="bgt-tab-btn" id="bgt-tab-cfg" onclick="goTab('cfg')">
+  <button class="bgt-tab-btn" id="bgt-tab-cfg" onclick="bGoTab('cfg')">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
     Config
   </button>
@@ -4507,10 +4507,10 @@ updateStoricoBadge();
     <div class="form-row">
       <div class="form-lbl">Tipo</div>
       <div class="tipo-grid">
-        <button class="tipo-btn" id="bgt-rtipo-INCOME" onclick="selRicp('INCOME')">💰 Reddito</button>
-        <button class="tipo-btn sel-EXPENSES" id="bgt-rtipo-EXPENSES" onclick="selRicp('EXPENSES')">🏠 Spese</button>
-        <button class="tipo-btn" id="bgt-rtipo-SAVINGS" onclick="selRicp('SAVINGS')">🐷 Risparmi</button>
-        <button class="tipo-btn" id="bgt-rtipo-TEMPO LIBERO" onclick="selRicp('TEMPO LIBERO')">🎉 T. Libero</button>
+        <button class="tipo-btn" id="bgt-rtipo-INCOME" onclick="bSelRicp('INCOME')">💰 Reddito</button>
+        <button class="tipo-btn sel-EXPENSES" id="bgt-rtipo-EXPENSES" onclick="bSelRicp('EXPENSES')">🏠 Spese</button>
+        <button class="tipo-btn" id="bgt-rtipo-SAVINGS" onclick="bSelRicp('SAVINGS')">🐷 Risparmi</button>
+        <button class="tipo-btn" id="bgt-rtipo-TEMPO LIBERO" onclick="bSelRicp('TEMPO LIBERO')">🎉 T. Libero</button>
       </div>
     </div>
     <div class="form-row">
@@ -4525,7 +4525,7 @@ updateStoricoBadge();
       <div class="form-lbl">Importo €</div>
       <input type="number" class="form-input" id="bgt-ricp-amt" placeholder="0.00" step="0.01" min="0">
     </div>
-    <button class="btn-p" onclick="saveRicp()">Salva ricorsiva</button>
+    <button class="btn-p" onclick="bSaveRicp()">Salva ricorsiva</button>
   </div>
 </div>
 
@@ -5315,9 +5315,9 @@ function renderMpctEditor(){
     <table class="mpct-table">
       <thead><tr><th>Categoria</th><th>% budget</th><th>€ su ${fmt(CFG.reddito)}</th></tr></thead>
       <tbody>
-        <tr><td>🏠 Spese</td><td><input class="mpct-input" id="bgt-mp-spese" type="number" value="${pct.spese}" min="0" max="100" oninput="updateMpct()"></td><td style="color:#1e40af;font-weight:700;">${fmt(CFG.reddito*pct.spese/100)}</td></tr>
-        <tr><td>🎉 T. Libero</td><td><input class="mpct-input" id="bgt-mp-tl" type="number" value="${pct.tl}" min="0" max="100" oninput="updateMpct()"></td><td style="color:#7c3aed;font-weight:700;">${fmt(CFG.reddito*pct.tl/100)}</td></tr>
-        <tr><td>🐷 Risparmi</td><td><input class="mpct-input" id="bgt-mp-risp" type="number" value="${pct.risp}" min="0" max="100" oninput="updateMpct()"></td><td style="color:#f0a500;font-weight:700;">${fmt(CFG.reddito*pct.risp/100)}</td></tr>
+        <tr><td>🏠 Spese</td><td><input class="mpct-input" id="bgt-mp-spese" type="number" value="${pct.spese}" min="0" max="100" oninput="bUpdateMpct()"></td><td style="color:#1e40af;font-weight:700;">${fmt(CFG.reddito*pct.spese/100)}</td></tr>
+        <tr><td>🎉 T. Libero</td><td><input class="mpct-input" id="bgt-mp-tl" type="number" value="${pct.tl}" min="0" max="100" oninput="bUpdateMpct()"></td><td style="color:#7c3aed;font-weight:700;">${fmt(CFG.reddito*pct.tl/100)}</td></tr>
+        <tr><td>🐷 Risparmi</td><td><input class="mpct-input" id="bgt-mp-risp" type="number" value="${pct.risp}" min="0" max="100" oninput="bUpdateMpct()"></td><td style="color:#f0a500;font-weight:700;">${fmt(CFG.reddito*pct.risp/100)}</td></tr>
       </tbody>
     </table>
     <div id="bgt-mp-warn" style="font-size:11px;color:${sum===100?'var(--green)':'var(--red)'};font-weight:700;margin-top:8px;">Totale: ${sum}%${sum!==100?' ⚠️ deve essere 100%':' ✅'}</div>`;
