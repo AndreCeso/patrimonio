@@ -409,7 +409,26 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       </div>
     </div>
 
+    <div class="hub-card" onclick="openBudget()">
+      <div class="hub-card-icon" style="background:#eff6ff;">📒</div>
+      <div class="hub-card-title" style="color:var(--text);">Budget Mensile</div>
+      <div class="hub-card-desc">Traccia entrate, spese, risparmi e tempo libero. Dashboard mensile, storico annuale e analisi per categoria.</div>
+      <div class="hub-card-meta">
+        <span class="hub-badge" style="background:#eff6ff;color:#1e40af;">Apri</span>
+        <span class="hub-arrow">→</span>
+      </div>
+    </div>
+
   </div>
+</div>
+
+<!-- ══════════ BUDGET IFRAME OVERLAY ══════════ -->
+<div id="budget-overlay" style="display:none;position:fixed;inset:0;z-index:999;background:#fff;">
+  <iframe id="budget-frame"
+    src="budget_mensile_v2.html"
+    style="width:100%;height:100%;border:none;"
+    allow="same-origin">
+  </iframe>
 </div>
 
 <!-- ══════════ HOME ══════════ -->
@@ -1416,6 +1435,18 @@ function openAllocatore(){
 }
 function closeAllocatore(){
   document.getElementById('page-allocatore').classList.remove('active');
+  document.getElementById('hubScreen').classList.remove('hidden');
+}
+
+// ── BUDGET ───────────────────────────────────────────────────
+function openBudget(){
+  document.getElementById('hubScreen').classList.add('hidden');
+  document.querySelector('.tabbar').style.display = 'none';
+  document.getElementById('budget-overlay').style.display = 'block';
+}
+function closeBudget(){
+  document.getElementById('budget-overlay').style.display = 'none';
+  document.querySelector('.tabbar').style.display = 'flex';
   document.getElementById('hubScreen').classList.remove('hidden');
 }
 
