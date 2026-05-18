@@ -870,6 +870,7 @@ function renderDash(){
   ];
 
   let gridHtml='<div class="kpi-cards-grid">';
+  html += topFlopHtml;
   macros.forEach(function(macro){
     const normVal=macro.norm!==undefined?macro.norm:macro.val;
     const pct=macro.bud?clamp(Math.round(normVal/macro.bud*100),0,999):0;
@@ -1186,6 +1187,53 @@ function renderStorico(){
     + storKpiBox('🎉','Tempo Libero',totTl,totBTl,nMesi,'#7c3aed','#f5f3ff',false)
     + '</div>'
     + '</div>';
+
+  // ── TOP & FLOP ──
+  var topFlopHtml = (function(){
+    var bestSaldo  = attivi.reduce(function(b,md){ return md.c.saldo > b.c.saldo ? md : b; }, attivi[0]);
+    var worstSaldo = attivi.reduce(function(b,md){ return md.c.saldo < b.c.saldo ? md : b; }, attivi[0]);
+    var mostSpese  = attivi.reduce(function(b,md){ return md.c.spese > b.c.spese ? md : b; }, attivi[0]);
+    var leastSpese = attivi.reduce(function(b,md){ return md.c.spese < b.c.spese ? md : b; }, attivi[0]);
+    var mostTl     = attivi.reduce(function(b,md){ return md.c.tl > b.c.tl ? md : b; }, attivi[0]);
+    var leastTl    = attivi.reduce(function(b,md){ return md.c.tl < b.c.tl ? md : b; }, attivi[0]);
+    var mostRisp   = attivi.reduce(function(b,md){ return md.c.risp > b.c.risp ? md : b; }, attivi[0]);
+
+    function tfRow(emoji, lbl, topM, topV, topC, flopM, flopV){
+      var s = '<div style="display:flex;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">'
+        + '<div style="width:24px;font-size:14px;flex-shrink:0;">'+emoji+'</div>'
+        + '<div style="flex:1;font-size:12px;font-weight:600;color:var(--muted);">'+lbl+'</div>'
+        + '<div style="text-align:right;margin-right:14px;">'
+        + '<div style="font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;">Top</div>'
+        + '<div style="font-size:13px;font-weight:900;color:'+topC+';">'+MESI[topM-1].substring(0,3)+'</div>'
+        + '<div style="font-size:10px;color:var(--dim);">'+fmt(topV)+'</div>'
+        + '</div>';
+      if(flopM){
+        s += '<div style="text-align:right;">'
+          + '<div style="font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;">Flop</div>'
+          + '<div style="font-size:13px;font-weight:900;color:var(--red);">'+MESI[flopM-1].substring(0,3)+'</div>'
+          + '<div style="font-size:10px;color:var(--dim);">'+fmt(flopV)+'</div>'
+          + '</div>';
+      }
+      s += '</div>';
+      return s;
+    }
+
+    var h = '<div class="card card-p" style="margin-bottom:0;">'
+      + '<div style="font-size:13px;font-weight:800;margin-bottom:12px;">🏆 Top &amp; Flop '+storYear+'</div>'
+      + tfRow('💵','Reddito disponibile', bestSaldo.m, bestSaldo.c.saldo, 'var(--green)', worstSaldo.m, worstSaldo.c.saldo)
+      + tfRow('🏠','Spese', mostSpese.m, mostSpese.c.spese, '#e91e8c', leastSpese.m, leastSpese.c.spese)
+      + tfRow('🎉','Tempo Libero', mostTl.m, mostTl.c.tl, '#7c3aed', leastTl.m, leastTl.c.tl)
+      + '<div style="display:flex;align-items:center;padding:9px 0;">'
+      + '<div style="width:24px;font-size:14px;flex-shrink:0;">🐷</div>'
+      + '<div style="flex:1;font-size:12px;font-weight:600;color:var(--muted);">Risparmio</div>'
+      + '<div style="text-align:right;">'
+      + '<div style="font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;">Top</div>'
+      + '<div style="font-size:13px;font-weight:900;color:#f0a500;">'+MESI[mostRisp.m-1].substring(0,3)+'</div>'
+      + '<div style="font-size:10px;color:var(--dim);">'+fmt(mostRisp.c.risp)+'</div>'
+      + '</div></div>'
+      + '</div>';
+    return h;
+  })();
 
   // ── Macro categorie espandibili con sottocategorie ──
   var macros = [
