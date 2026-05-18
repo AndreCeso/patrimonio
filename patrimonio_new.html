@@ -1445,6 +1445,9 @@ function enterApp(){
 
 // ── INIT ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
+  // Mostra subito auth screen — verrà nascosto se sessione valida
+  document.getElementById('authScreen').classList.remove('hidden');
+
   // ascolta cambi di stato auth
   sb.auth.onAuthStateChange(async (event, session)=>{
     if(session?.user){
@@ -1457,11 +1460,14 @@ document.addEventListener('DOMContentLoaded',()=>{
       document.getElementById('authScreen').classList.remove('hidden');
     }
   });
-  // controlla sessione esistente
-  sb.auth.getSession().then(({data:{session}})=>{
-    if(!session) {
-      // nessuna sessione, mostra login
-      document.getElementById('authScreen').classList.remove('hidden');
+
+  // controlla sessione esistente — se già loggato salta il login
+  sb.auth.getSession().then(async ({data:{session}})=>{
+    if(session?.user){
+      currentUser = session.user;
+      document.getElementById('authScreen').classList.add('hidden');
+      await loadFromCloud();
+      showHub();
     }
   });
 });
