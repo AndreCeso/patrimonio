@@ -885,6 +885,7 @@ function renderDash(){
       +'<div class="kpi-card-body">'
       +'<div>'
       +'<div class="kpi-card-val" style="color:'+macro.color+';">'+fmt(macro.val)+'</div>'
+      +(macro.extra>0?'<div style="font-size:10px;font-weight:700;color:var(--muted);margin-top:3px;">+ '+fmt(macro.extra)+' fonte esterna</div>':'')
       +'<div class="kpi-card-delta" style="color:'+deltaColor+';">'+deltaTxt+'</div>'
       +'</div>'
       +donutSvg
