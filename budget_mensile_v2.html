@@ -910,7 +910,6 @@ function renderDash(){
       +'<div class="kpi-card-body">'
       +'<div>'
       +'<div class="kpi-card-val" style="color:'+macro.color+';">'+fmt(macro.val)+'</div>'+(macro.extra>0?'<div style="font-size:10px;font-weight:600;color:var(--muted);margin-top:2px;">+ '+fmt(macro.extra)+' non da reddito</div>':'')
-      +(macro.extra>0?'<div style="font-size:10px;font-weight:700;color:var(--muted);margin-top:3px;">+ '+fmt(macro.extra)+' non da reddito</div>':'')
       +'<div class="kpi-card-delta" style="color:'+deltaColor+';">'+deltaTxt+'</div>'
       +'</div>'
       +donutSvg
@@ -1004,7 +1003,24 @@ function changeStorYear(d){
   renderStorico();
 }
 
+function renderTrendChartCollapsible(){
+  return '<div class="card card-p" style="margin-bottom:0;">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" id="trend-header">'
+    + '<div style="font-size:13px;font-weight:800;">📈 Trend mensile — confronto anni</div>'
+    + '<button id="trend-toggle-btn" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;font-weight:700;font-family:Inter,sans-serif;">▶ Mostra grafico</button>'
+    + '</div>'
+    + '<div id="trend-body" style="display:none;margin-top:14px;">'
+    + renderTrendChartInner()
+    + '</div>'
+    + '</div>';
+}
+
 function renderTrendChart(){
+  // kept for compat — returns inner content
+  return renderTrendChartInner();
+}
+
+function renderTrendChartInner(){
   // Get available years from TXN keys
   var allYears = [...new Set(Object.keys(TXN).map(function(k){ return parseInt(k.split('-')[0]); }))].sort();
   if(allYears.length < 1) return '';
@@ -1117,8 +1133,8 @@ function renderStorico(){
     return;
   }
 
-  // ── Trend chart (inject first, update after DOM is ready) ──
-  var trendHtml = renderTrendChart();
+  // ── Trend chart (collapsible) ──
+  var trendHtml = renderTrendChartCollapsible();
 
   // ── Totali anno ──
   var totReddito=0, totSpese=0, totTl=0, totRisp=0;
@@ -1250,8 +1266,17 @@ function renderStorico(){
   });
 
   cont.innerHTML = trendHtml + html;
-  // Draw chart after DOM is ready
-  setTimeout(updateTrendChart, 50);
+  // Attach collapse toggle
+  var trendBtn = document.getElementById('trend-toggle-btn');
+  var trendBody = document.getElementById('trend-body');
+  if(trendBtn && trendBody){
+    trendBtn.addEventListener('click', function(){
+      var open = trendBody.style.display !== 'none';
+      trendBody.style.display = open ? 'none' : 'block';
+      trendBtn.textContent = open ? '▶ Mostra grafico' : '▼ Nascondi grafico';
+      if(!open) setTimeout(updateTrendChart, 50);
+    });
+  }
 
   // Attach click listeners for expand/collapse
   cont.querySelectorAll('.hcard').forEach(function(el){
