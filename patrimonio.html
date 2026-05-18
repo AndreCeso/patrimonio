@@ -409,6 +409,16 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       </div>
     </div>
 
+    <div class="hub-card-disabled" style="opacity:.65;cursor:default;">
+      <div class="hub-card-icon" style="background:#eff6ff;">📒</div>
+      <div class="hub-card-title" style="color:var(--text);">Budget Mensile</div>
+      <div class="hub-card-desc">Traccia entrate, spese, risparmi e tempo libero. Dashboard mensile, storico annuale e analisi per categoria.</div>
+      <div class="hub-card-meta">
+        <span class="hub-badge" style="background:var(--bg2);color:var(--muted);">In arrivo</span>
+        <span class="hub-arrow" style="color:var(--dim);">→</span>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -416,8 +426,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 <div class="page active" id="page-home">
   <div class="hdr">
     <div class="hdr-top">
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <button onclick="goToHub()" style="background:rgba(255,255,255,.2);border:none;border-radius:8px;padding:5px 12px;color:rgba(255,255,255,.85);font-size:12px;font-weight:700;cursor:pointer;align-self:flex-start;">← Hub</button>
+      <div>
         <div class="hdr-greeting">Benvenuto</div>
         <div class="hdr-name">Andrea</div>
       </div>
@@ -1421,11 +1430,6 @@ function closeAllocatore(){
 }
 
 // ── HUB ──────────────────────────────────────────────────────
-function goToHub(){
-  // Torna alla home tab prima di mostrare la hub
-  goTab('home');
-  document.getElementById('hubScreen').classList.remove('hidden');
-}
 function showHub(){
   document.getElementById('hubDate').textContent =
     new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
