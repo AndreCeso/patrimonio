@@ -223,6 +223,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </head>
 <body>
 
@@ -953,10 +954,108 @@ function buildAlerts(c){
 // STORICO ANNUALE
 // ═══════════════════════════════════════════════════════
 var storYear = 2026;
+var trendYearA = 2025;
+var trendYearB = 2026;
+var trendChart = null;
 
 function changeStorYear(d){
   storYear += d;
   renderStorico();
+}
+
+function renderTrendChart(){
+  // Get available years from TXN keys
+  var allYears = [...new Set(Object.keys(TXN).map(function(k){ return parseInt(k.split('-')[0]); }))].sort();
+  if(allYears.length < 1) return '';
+
+  var MESI_SHORT = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+
+  // Build selectors
+  var yearOpts = function(sel){
+    return allYears.map(function(y){
+      return '<option value="'+y+'"'+(y===sel?' selected':'')+'>'+y+'</option>';
+    }).join('');
+  };
+
+  var html = '<div class="card card-p" style="margin-bottom:0;">'
+    + '<div style="font-size:13px;font-weight:800;margin-bottom:14px;">📈 Trend mensile — confronto anni</div>'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">'
+    + '<div style="display:flex;align-items:center;gap:6px;">'
+    + '<span style="width:24px;height:3px;background:#e91e8c;display:inline-block;border-radius:2px;"></span>'
+    + '<span style="width:24px;height:3px;background:#7c3aed;display:inline-block;border-radius:2px;"></span>'
+    + '<span style="width:24px;height:3px;background:#f0a500;display:inline-block;border-radius:2px;"></span>'
+    + '<select id="trend-year-a" onchange="trendYearA=parseInt(this.value);renderTrendChart();updateTrendChart();" style="border:1.5px solid var(--border);border-radius:8px;padding:5px 10px;font-size:13px;font-weight:700;font-family:Inter,sans-serif;background:var(--bg);cursor:pointer;">'+yearOpts(trendYearA)+'</select>'
+    + '</div>'
+    + '<span style="color:var(--dim);font-size:12px;font-weight:600;">vs</span>'
+    + '<div style="display:flex;align-items:center;gap:6px;">'
+    + '<span style="width:24px;height:3px;background:#e91e8c;display:inline-block;border-radius:2px;border-top:2px dashed #e91e8c;height:0;"></span>'
+    + '<span style="width:24px;height:0;border-top:2px dashed #7c3aed;display:inline-block;"></span>'
+    + '<span style="width:24px;height:0;border-top:2px dashed #f0a500;display:inline-block;"></span>'
+    + '<select id="trend-year-b" onchange="trendYearB=parseInt(this.value);renderTrendChart();updateTrendChart();" style="border:1.5px solid var(--border);border-radius:8px;padding:5px 10px;font-size:13px;font-weight:700;font-family:Inter,sans-serif;background:var(--bg);cursor:pointer;">'+yearOpts(trendYearB)+'</select>'
+    + '</div>'
+    + '</div>'
+    + '<div style="position:relative;height:220px;">'
+    + '<canvas id="trend-chart-canvas"></canvas>'
+    + '</div>'
+    + '</div>';
+
+  return html;
+}
+
+function updateTrendChart(){
+  var canvas = document.getElementById('trend-chart-canvas');
+  if(!canvas) return;
+
+  var MESI_SHORT = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+
+  // Build data for both years
+  function getMonthlyData(year, tipo){
+    var result = [];
+    for(var m=1; m<=12; m++){
+      var mc = calcMonth(year, m);
+      var val = tipo==='EXPENSES'? mc.spese : tipo==='TEMPO LIBERO'? mc.tl : mc.risp;
+      result.push(val || null);
+    }
+    return result;
+  }
+
+  var datasets = [
+    // Year A — solid lines
+    { label:'Spese '+trendYearA,      data:getMonthlyData(trendYearA,'EXPENSES'),     borderColor:'#e91e8c', backgroundColor:'rgba(233,30,140,.06)', borderWidth:2.5, borderDash:[], pointRadius:3, tension:.4, fill:false },
+    { label:'T.Libero '+trendYearA,   data:getMonthlyData(trendYearA,'TEMPO LIBERO'), borderColor:'#7c3aed', backgroundColor:'rgba(124,58,237,.05)', borderWidth:2.5, borderDash:[], pointRadius:3, tension:.4, fill:false },
+    { label:'Risparmi '+trendYearA,   data:getMonthlyData(trendYearA,'SAVINGS'),      borderColor:'#f0a500', backgroundColor:'rgba(240,165,0,.05)',   borderWidth:2.5, borderDash:[], pointRadius:3, tension:.4, fill:false },
+    // Year B — dashed lines
+    { label:'Spese '+trendYearB,      data:getMonthlyData(trendYearB,'EXPENSES'),     borderColor:'#e91e8c', backgroundColor:'transparent', borderWidth:2, borderDash:[5,4], pointRadius:3, tension:.4, fill:false },
+    { label:'T.Libero '+trendYearB,   data:getMonthlyData(trendYearB,'TEMPO LIBERO'), borderColor:'#7c3aed', backgroundColor:'transparent', borderWidth:2, borderDash:[5,4], pointRadius:3, tension:.4, fill:false },
+    { label:'Risparmi '+trendYearB,   data:getMonthlyData(trendYearB,'SAVINGS'),      borderColor:'#f0a500', backgroundColor:'transparent', borderWidth:2, borderDash:[5,4], pointRadius:3, tension:.4, fill:false },
+  ];
+
+  if(trendChart){ trendChart.destroy(); trendChart=null; }
+  trendChart = new Chart(canvas, {
+    type: 'line',
+    data: { labels: MESI_SHORT, datasets: datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: {
+          labels: { color:'#5a6b62', boxWidth:24, boxHeight:2, font:{ size:11, weight:'700' } }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx){
+              return ctx.dataset.label + ': ' + (ctx.raw ? '€'+Math.round(ctx.raw).toLocaleString('it-IT') : '—');
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks:{ color:'#9aaa9f', font:{size:10} }, grid:{ color:'rgba(0,0,0,.04)' } },
+        y: { ticks:{ color:'#5a6b62', callback:function(v){ return '€'+Math.round(v).toLocaleString('it-IT'); }, font:{size:10} }, grid:{ color:'rgba(0,0,0,.04)' } }
+      }
+    }
+  });
 }
 
 function renderStorico(){
@@ -976,6 +1075,9 @@ function renderStorico(){
     cont.innerHTML = '<div class="card card-p"><div class="empty">Nessun dato per il ' + storYear + '</div></div>';
     return;
   }
+
+  // ── Trend chart (inject first, update after DOM is ready) ──
+  var trendHtml = renderTrendChart();
 
   // ── Totali anno ──
   var totReddito=0, totSpese=0, totTl=0, totRisp=0;
@@ -1106,7 +1208,9 @@ function renderStorico(){
     html += '</div></div></div>';
   });
 
-  cont.innerHTML = html;
+  cont.innerHTML = trendHtml + html;
+  // Draw chart after DOM is ready
+  setTimeout(updateTrendChart, 50);
 
   // Attach click listeners for expand/collapse
   cont.querySelectorAll('.hcard').forEach(function(el){
