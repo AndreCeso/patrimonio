@@ -870,7 +870,6 @@ function renderDash(){
   ];
 
   let gridHtml='<div class="kpi-cards-grid">';
-  html += topFlopHtml;
   macros.forEach(function(macro){
     const normVal=macro.norm!==undefined?macro.norm:macro.val;
     const pct=macro.bud?clamp(Math.round(normVal/macro.bud*100),0,999):0;
@@ -1190,50 +1189,81 @@ function renderStorico(){
 
   // ── TOP & FLOP ──
   var topFlopHtml = (function(){
-    var bestSaldo  = attivi.reduce(function(b,md){ return md.c.saldo > b.c.saldo ? md : b; }, attivi[0]);
-    var worstSaldo = attivi.reduce(function(b,md){ return md.c.saldo < b.c.saldo ? md : b; }, attivi[0]);
-    var mostSpese  = attivi.reduce(function(b,md){ return md.c.spese > b.c.spese ? md : b; }, attivi[0]);
-    var leastSpese = attivi.reduce(function(b,md){ return md.c.spese < b.c.spese ? md : b; }, attivi[0]);
-    var mostTl     = attivi.reduce(function(b,md){ return md.c.tl > b.c.tl ? md : b; }, attivi[0]);
-    var leastTl    = attivi.reduce(function(b,md){ return md.c.tl < b.c.tl ? md : b; }, attivi[0]);
-    var mostRisp   = attivi.reduce(function(b,md){ return md.c.risp > b.c.risp ? md : b; }, attivi[0]);
+    var bestSaldo  = mesiConDati.reduce(function(b,md){ return md.c.saldo > b.c.saldo ? md : b; }, mesiConDati[0]);
+    var worstSaldo = mesiConDati.reduce(function(b,md){ return md.c.saldo < b.c.saldo ? md : b; }, mesiConDati[0]);
+    var mostSpese  = mesiConDati.reduce(function(b,md){ return md.c.spese > b.c.spese ? md : b; }, mesiConDati[0]);
+    var leastSpese = mesiConDati.reduce(function(b,md){ return md.c.spese < b.c.spese ? md : b; }, mesiConDati[0]);
+    var mostTl     = mesiConDati.reduce(function(b,md){ return md.c.tl > b.c.tl ? md : b; }, mesiConDati[0]);
+    var leastTl    = mesiConDati.reduce(function(b,md){ return md.c.tl < b.c.tl ? md : b; }, mesiConDati[0]);
+    var mostRisp   = mesiConDati.reduce(function(b,md){ return md.c.risp > b.c.risp ? md : b; }, mesiConDati[0]);
+    var leastRisp  = mesiConDati.reduce(function(b,md){ return md.c.risp < b.c.risp ? md : b; }, mesiConDati[0]);
 
-    function tfRow(emoji, lbl, topM, topV, topC, flopM, flopV){
-      var s = '<div style="display:flex;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">'
-        + '<div style="width:24px;font-size:14px;flex-shrink:0;">'+emoji+'</div>'
+    // Uniform row: label | TOP col | FLOP col (or empty placeholder)
+    function tfRow(emoji, lbl, topM, topV, topC, flopM, flopV, last){
+      var border = last ? '' : 'border-bottom:1px solid var(--border);';
+      return '<div style="display:flex;align-items:center;padding:10px 0;'+border+'">'
+        + '<div style="width:26px;font-size:15px;flex-shrink:0;">'+emoji+'</div>'
         + '<div style="flex:1;font-size:12px;font-weight:600;color:var(--muted);">'+lbl+'</div>'
-        + '<div style="text-align:right;margin-right:14px;">'
-        + '<div style="font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;">Top</div>'
-        + '<div style="font-size:13px;font-weight:900;color:'+topC+';">'+MESI[topM-1].substring(0,3)+'</div>'
+        // TOP column
+        + '<div style="width:64px;text-align:center;">'
+        + '<div style="font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">Top</div>'
+        + '<div style="font-size:14px;font-weight:900;color:'+topC+';">'+MESI[topM-1].substring(0,3)+'</div>'
         + '<div style="font-size:10px;color:var(--dim);">'+fmt(topV)+'</div>'
+        + '</div>'
+        // FLOP column
+        + '<div style="width:64px;text-align:center;">'
+        + (flopM
+          ? '<div style="font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">Flop</div>'
+            + '<div style="font-size:14px;font-weight:900;color:var(--red);">'+MESI[flopM-1].substring(0,3)+'</div>'
+            + '<div style="font-size:10px;color:var(--dim);">'+fmt(flopV)+'</div>'
+          : '<div style="font-size:9px;font-weight:700;color:transparent;margin-bottom:2px;">-</div>'
+            + '<div style="font-size:14px;font-weight:900;color:transparent;">-</div>'
+            + '<div style="font-size:10px;color:transparent;">-</div>'
+        )
+        + '</div>'
         + '</div>';
-      if(flopM){
-        s += '<div style="text-align:right;">'
-          + '<div style="font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;">Flop</div>'
-          + '<div style="font-size:13px;font-weight:900;color:var(--red);">'+MESI[flopM-1].substring(0,3)+'</div>'
-          + '<div style="font-size:10px;color:var(--dim);">'+fmt(flopV)+'</div>'
-          + '</div>';
-      }
-      s += '</div>';
-      return s;
     }
 
-    var h = '<div class="card card-p" style="margin-bottom:0;">'
-      + '<div style="font-size:13px;font-weight:800;margin-bottom:12px;">🏆 Top &amp; Flop '+storYear+'</div>'
-      + tfRow('💵','Reddito disponibile', bestSaldo.m, bestSaldo.c.saldo, 'var(--green)', worstSaldo.m, worstSaldo.c.saldo)
-      + tfRow('🏠','Spese', mostSpese.m, mostSpese.c.spese, '#e91e8c', leastSpese.m, leastSpese.c.spese)
-      + tfRow('🎉','Tempo Libero', mostTl.m, mostTl.c.tl, '#7c3aed', leastTl.m, leastTl.c.tl)
-      + '<div style="display:flex;align-items:center;padding:9px 0;">'
-      + '<div style="width:24px;font-size:14px;flex-shrink:0;">🐷</div>'
-      + '<div style="flex:1;font-size:12px;font-weight:600;color:var(--muted);">Risparmio</div>'
-      + '<div style="text-align:right;">'
-      + '<div style="font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;">Top</div>'
-      + '<div style="font-size:13px;font-weight:900;color:#f0a500;">'+MESI[mostRisp.m-1].substring(0,3)+'</div>'
-      + '<div style="font-size:10px;color:var(--dim);">'+fmt(mostRisp.c.risp)+'</div>'
-      + '</div></div>'
+    // Collapsible card with filter toggles
+    var rows = [
+      {id:'tf-saldo', emoji:'💵', lbl:'Reddito disponibile', topM:bestSaldo.m,  topV:bestSaldo.c.saldo,   topC:'var(--green)', flopM:worstSaldo.m, flopV:worstSaldo.c.saldo},
+      {id:'tf-spese', emoji:'🏠', lbl:'Spese',               topM:mostSpese.m,  topV:mostSpese.c.spese,   topC:'#e91e8c',      flopM:leastSpese.m, flopV:leastSpese.c.spese},
+      {id:'tf-tl',    emoji:'🎉', lbl:'Tempo Libero',         topM:mostTl.m,     topV:mostTl.c.tl,         topC:'#7c3aed',      flopM:leastTl.m,    flopV:leastTl.c.tl},
+      {id:'tf-risp',  emoji:'🐷', lbl:'Risparmio',            topM:mostRisp.m,   topV:mostRisp.c.risp,     topC:'#f0a500',      flopM:leastRisp.m,  flopV:leastRisp.c.risp},
+    ];
+
+    var filterBtns = rows.map(function(r){
+      return '<button data-tfid="'+r.id+'" class="tf-filter-btn" style="border:1.5px solid var(--border);background:var(--green-light);border-color:var(--green);color:var(--green);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">'+r.emoji+' '+r.lbl+'</button>';
+    }).join('');
+
+    var rowsHtml = rows.map(function(r, i){
+      return '<div id="'+r.id+'">'
+        + tfRow(r.emoji, r.lbl, r.topM, r.topV, r.topC, r.flopM, r.flopV, i===rows.length-1)
+        + '</div>';
+    }).join('');
+
+    var h = '<div class="card" style="overflow:hidden;margin-bottom:0;">'
+      // Header collapsible
+      + '<div id="tf-header" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;">'
+      + '<div style="font-size:13px;font-weight:800;">🏆 Top &amp; Flop '+storYear+'</div>'
+      + '<button id="tf-toggle" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;font-weight:700;font-family:Inter,sans-serif;">▲ Chiudi</button>'
+      + '</div>'
+      // Filter row
+      + '<div id="tf-body">'
+      + '<div style="padding:0 16px 10px;display:flex;gap:6px;flex-wrap:wrap;" id="tf-filters">'+filterBtns+'</div>'
+      // Column headers
+      + '<div style="display:flex;align-items:center;padding:0 16px 4px;border-bottom:1px solid var(--border);">'
+      + '<div style="flex:1;"></div>'
+      + '<div style="width:64px;text-align:center;font-size:9px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.05em;">🏆 Top</div>'
+      + '<div style="width:64px;text-align:center;font-size:9px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.05em;">📉 Flop</div>'
+      + '</div>'
+      + '<div style="padding:0 16px;" id="tf-rows">'+rowsHtml+'</div>'
+      + '</div>'
       + '</div>';
     return h;
   })();
+
+  html += topFlopHtml;
 
   // ── Macro categorie espandibili con sottocategorie ──
   var macros = [
@@ -1314,6 +1344,32 @@ function renderStorico(){
   });
 
   cont.innerHTML = trendHtml + html;
+  // ── Top & Flop interactions ──
+  var tfHeader = document.getElementById('tf-header');
+  var tfBody   = document.getElementById('tf-body');
+  var tfToggle = document.getElementById('tf-toggle');
+  if(tfHeader){
+    tfHeader.addEventListener('click', function(){
+      var open = tfBody.style.display !== 'none';
+      tfBody.style.display = open ? 'none' : 'block';
+      tfToggle.textContent  = open ? '▶ Apri' : '▲ Chiudi';
+    });
+  }
+  // Filter buttons
+  document.querySelectorAll('.tf-filter-btn').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var id  = btn.getAttribute('data-tfid');
+      var row = document.getElementById(id);
+      if(!row) return;
+      var visible = row.style.display !== 'none';
+      row.style.display = visible ? 'none' : 'block';
+      btn.style.background   = visible ? 'var(--bg2)' : 'var(--green-light)';
+      btn.style.borderColor  = visible ? 'var(--border)' : 'var(--green)';
+      btn.style.color        = visible ? 'var(--muted)' : 'var(--green)';
+    });
+  });
+
   // Attach collapse toggle
   var trendBtn = document.getElementById('trend-toggle-btn');
   var trendBody = document.getElementById('trend-body');
