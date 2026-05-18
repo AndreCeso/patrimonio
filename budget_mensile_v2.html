@@ -231,7 +231,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
   <div class="hdr">
     <div class="hdr-top">
       <div>
-        <button onclick="window.parent.closeBudget()" style="background:rgba(255,255,255,.15);border:none;border-radius:8px;padding:5px 12px;color:rgba(255,255,255,.85);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:8px;">← Hub</button>
+        <button onclick="window.parent.closeBudget()" style="background:rgba(255,255,255,.15);border:none;border-radius:8px;padding:5px 12px;color:rgba(255,255,255,.85);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:8px;">&#x2190; Hub</button>
         <div class="hdr-greeting">Buongiorno,</div>
         <div class="hdr-name" id="hdr-name">Andrea</div>
       </div>
@@ -305,7 +305,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 
 <!-- ══════════ DASHBOARD ══════════ -->
 <div class="page" id="page-dash">
-  <div style="position:sticky;top:0;z-index:100;background:var(--green);padding:8px 16px;display:flex;align-items:center;gap:12px;"><button onclick="window.parent.closeBudget()" style="background:rgba(255,255,255,.15);border:none;border-radius:8px;padding:5px 12px;color:rgba(255,255,255,.85);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">← Hub</button><span style="color:rgba(255,255,255,.6);font-size:12px;font-weight:600;">Dashboard</span></div>
+  <div style="position:sticky;top:0;z-index:100;background:var(--green);padding:8px 16px;display:flex;align-items:center;gap:12px;"><button onclick="window.parent.closeBudget()" style="background:rgba(255,255,255,.2);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">&#x2190; Hub</button><span style="color:rgba(255,255,255,.6);font-size:12px;font-weight:600;">Dashboard</span></div>
   <div class="hdr">
     <!-- Saldo generale centrato -->
     <div style="text-align:center;margin-bottom:14px;">
@@ -330,7 +330,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 
 <!-- ══════════ STORICO ANNUALE ══════════ -->
 <div class="page" id="page-storico">
-  <div style="position:sticky;top:0;z-index:100;background:var(--green);padding:8px 16px;display:flex;align-items:center;gap:12px;"><button onclick="window.parent.closeBudget()" style="background:rgba(255,255,255,.15);border:none;border-radius:8px;padding:5px 12px;color:rgba(255,255,255,.85);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">← Hub</button><span style="color:rgba(255,255,255,.6);font-size:12px;font-weight:600;">Storico annuale</span></div>
+  <div style="position:sticky;top:0;z-index:100;background:var(--green);padding:8px 16px;display:flex;align-items:center;gap:12px;"><button onclick="window.parent.closeBudget()" style="background:rgba(255,255,255,.2);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">&#x2190; Hub</button><span style="color:rgba(255,255,255,.6);font-size:12px;font-weight:600;">Storico annuale</span></div>
   <div class="hdr">
     <div style="text-align:center;margin-bottom:14px;">
       <div style="color:rgba(255,255,255,.65);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;">Storico</div>
@@ -351,7 +351,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 
 <!-- ══════════ CONFIG ══════════ -->
 <div class="page" id="page-cfg">
-  <div style="position:sticky;top:0;z-index:100;background:var(--green);padding:8px 16px;display:flex;align-items:center;gap:12px;"><button onclick="window.parent.closeBudget()" style="background:rgba(255,255,255,.15);border:none;border-radius:8px;padding:5px 12px;color:rgba(255,255,255,.85);font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">← Hub</button><span style="color:rgba(255,255,255,.6);font-size:12px;font-weight:600;">Impostazioni</span></div>
+  <div style="position:sticky;top:0;z-index:100;background:var(--green);padding:8px 16px;display:flex;align-items:center;gap:12px;"><button onclick="window.parent.closeBudget()" style="background:rgba(255,255,255,.2);border:none;border-radius:8px;padding:5px 12px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">&#x2190; Hub</button><span style="color:rgba(255,255,255,.6);font-size:12px;font-weight:600;">Impostazioni</span></div>
   <div class="hdr" style="padding-bottom:20px;">
     <div class="hdr-greeting">Personalizza</div>
     <div class="hdr-name">Impostazioni</div>
@@ -547,9 +547,6 @@ let CFG = {
   // per-month percentages: { "2026-5": {spese:50,tl:25,risp:25}, ... }
   mPct: {
     '2025-1':{spese:50,tl:30,risp:20},
-    '2025-10':{spese:55,tl:25,risp:20},
-    '2025-11':{spese:55,tl:25,risp:20},
-    '2025-12':{spese:50,tl:25,risp:25},
     '2025-2':{spese:50,tl:30,risp:20},
     '2025-3':{spese:50,tl:30,risp:20},
     '2025-4':{spese:50,tl:30,risp:20},
@@ -558,6 +555,9 @@ let CFG = {
     '2025-7':{spese:50,tl:20,risp:30},
     '2025-8':{spese:50,tl:20,risp:30},
     '2025-9':{spese:55,tl:13,risp:32},
+    '2025-10':{spese:55,tl:25,risp:20},
+    '2025-11':{spese:55,tl:25,risp:20},
+    '2025-12':{spese:50,tl:25,risp:25},
     '2026-1':{spese:50,tl:25,risp:25},
     '2026-2':{spese:50,tl:30,risp:20},
     '2026-3':{spese:50,tl:30,risp:20},
@@ -591,62 +591,38 @@ let curYear=2026, curMonth=5;
 let txYear=2026, txMonth=5;
 let txFilter='ALL';
 let cfgMonthSel = '2026-5';
+let cfgYear = 2026;
 
 // ═══════════════════════════════════════════════════════
 // PERSISTENCE
 // ═══════════════════════════════════════════════════════
-// ── SUPABASE ─────────────────────────────────────────────────
-const SUPA_URL = 'https://nmzgizjgpyyxyetqvccn.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5temdpempncHl5eHlldHF2Y2NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NDQ1NjQsImV4cCI6MjA5NDMyMDU2NH0.Ay9_ZR9eT6z0dore3huvsjKzWJ5sPGRfw37OsiWRB_k';
-const bSb = supabase.createClient(SUPA_URL, SUPA_KEY);
-
+const SUPA_URL='https://nmzgizjgpyyxyetqvccn.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5temdpempncHl5eHlldHF2Y2NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NDQ1NjQsImV4cCI6MjA5NDMyMDU2NH0.Ay9_ZR9eT6z0dore3huvsjKzWJ5sPGRfw37OsiWRB_k';
+const bSb=supabase.createClient(SUPA_URL,SUPA_KEY);
 async function getCurrentUserId(){
-  try{
-    const { data:{ session } } = await bSb.auth.getSession();
-    return session?.user?.id || null;
-  }catch(e){ return null; }
+  try{ const {data:{session}}=await bSb.auth.getSession(); return session?.user?.id||null; }catch(e){return null;}
 }
-
 async function saveAll(){
-  // localStorage fallback always
-  try{
-    localStorage.setItem('bgt_cfg2', JSON.stringify(CFG));
-    localStorage.setItem('bgt_txn2', JSON.stringify(TXN));
-  }catch(e){}
-  // Supabase cloud sync
-  const uid = await getCurrentUserId();
+  try{ localStorage.setItem('bgt_cfg2',JSON.stringify(CFG)); localStorage.setItem('bgt_txn2',JSON.stringify(TXN)); }catch(e){}
+  const uid=await getCurrentUserId();
   if(!uid) return;
-  try{
-    await bSb.from('patrimonio').upsert(
-      { user_id: uid, budget_txn: TXN, budget_cfg: CFG, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id' }
-    );
-  }catch(e){ console.warn('Budget cloud save error:', e.message); }
+  try{ await bSb.from('patrimonio').upsert({user_id:uid,budget_txn:TXN,budget_cfg:CFG,updated_at:new Date().toISOString()},{onConflict:'user_id'}); }catch(e){console.warn('Budget save err:',e.message);}
 }
-
 async function loadAll(){
-  // Try cloud first
-  const uid = await getCurrentUserId();
+  const uid=await getCurrentUserId();
   if(uid){
     try{
-      const { data } = await bSb.from('patrimonio')
-        .select('budget_txn,budget_cfg')
-        .eq('user_id', uid)
-        .maybeSingle();
-      if(data?.budget_cfg){
-        const p = data.budget_cfg;
-        CFG = {...CFG,...p, categorie:{...CFG.categorie,...(p.categorie||{})}, mPct:{...CFG.mPct,...(p.mPct||{})}};
-      }
-      if(data?.budget_txn) TXN = data.budget_txn;
-      return; // cloud loaded OK
-    }catch(e){ console.warn('Budget cloud load error:', e.message); }
+      const {data}=await bSb.from('patrimonio').select('budget_txn,budget_cfg').eq('user_id',uid).maybeSingle();
+      if(data?.budget_cfg){const p=data.budget_cfg;CFG={...CFG,...p,categorie:{...CFG.categorie,...(p.categorie||{})},mPct:{...CFG.mPct,...(p.mPct||{})}};}
+      if(data?.budget_txn) TXN=data.budget_txn;
+      return;
+    }catch(e){console.warn('Budget load err:',e.message);}
   }
-  // Fallback: localStorage
   try{
-    const c = localStorage.getItem('bgt_cfg2');
-    if(c){ const p=JSON.parse(c); CFG={...CFG,...p,categorie:{...CFG.categorie,...p.categorie},mPct:{...CFG.mPct,...p.mPct}}; }
-    const t = localStorage.getItem('bgt_txn2');
-    if(t) TXN = JSON.parse(t);
+    const c=localStorage.getItem('bgt_cfg2');
+    if(c){const p=JSON.parse(c);CFG={...CFG,...p,categorie:{...CFG.categorie,...p.categorie},mPct:{...CFG.mPct,...p.mPct}};}
+    const t=localStorage.getItem('bgt_txn2');
+    if(t) TXN=JSON.parse(t);
   }catch(e){}
 }
 
@@ -1341,15 +1317,34 @@ function renderCfg(){
 
 // ── Per-month PCT editor ──
 function renderMpctEditor(){
-  // Month pills
-  const months=[];
-  for(let m=1;m<=12;m++) months.push({y:2026,m});
-  document.getElementById('mpct-month-sel').innerHTML=months.map(({y,m})=>{
-    const k=mKey(y,m);
-    const hasCfg=!!CFG.mPct[k];
-    const active=k===cfgMonthSel;
-    return `<button onclick="setCfgMonth('${k}')" style="border:1.5px solid ${active?'var(--green)':'var(--border)'};background:${active?'var(--green-light)':'var(--white)'};color:${active?'var(--green)':'var(--text)'};border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">${MESI[m-1].substring(0,3)}${hasCfg&&!active?'<span style="color:var(--green);margin-left:2px;">·</span>':''}</button>`;
+  // ── Year selector ──
+  var years=[2025,2026];
+  // also detect years from mPct keys
+  Object.keys(CFG.mPct).forEach(function(k){ var y=parseInt(k.split('-')[0]); if(!years.includes(y)) years.push(y); });
+  years=years.sort();
+  var yearHtml=years.map(function(y){
+    var active=y===cfgYear;
+    return '<button onclick="setCfgYear('+y+')" style="border:1.5px solid '+(active?'var(--green)':'var(--border)')+';background:'+(active?'var(--green)':'var(--white)')+';color:'+(active?'#fff':'var(--text)')+';border-radius:20px;padding:5px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:Inter,sans-serif;margin-right:6px;">'+y+'</button>';
   }).join('');
+  document.getElementById('mpct-month-sel').innerHTML='<div style="margin-bottom:12px;">'+yearHtml+'</div>';
+  // ── Month pills ──
+  var pillsHtml='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">';
+  for(var mm=1;mm<=12;mm++){
+    var k=mKey(cfgYear,mm);
+    var hasCfg=!!CFG.mPct[k];
+    var active=k===cfgMonthSel;
+    var btnStyle='border:1.5px solid '+(active?'var(--green)':'var(--border)')+';background:'+(active?'var(--green-light)':'var(--white)')+';color:'+(active?'var(--green)':'var(--text)')+';border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;';
+    var dot=hasCfg&&!active?'<span style="color:var(--green);margin-left:2px;">·</span>':'';
+    pillsHtml+='<button data-k="'+k+'" style="'+btnStyle+'">'+MESI[mm-1].substring(0,3)+dot+'</button>';
+  }
+  pillsHtml+='</div>';
+  var mpctEl=document.getElementById('mpct-month-sel');
+  mpctEl.innerHTML+= pillsHtml;
+  // Attach click via delegation
+  mpctEl.querySelectorAll('[data-k]').forEach(function(btn){
+    btn.addEventListener('click',function(){ setCfgMonth(btn.getAttribute('data-k')); });
+  });
+  // ── Editor (rest of original logic follows) ──
   // Editor
   const parts=cfgMonthSel.split('-');
   const y=parseInt(parts[0]),m=parseInt(parts[1]);
@@ -1366,6 +1361,14 @@ function renderMpctEditor(){
       </tbody>
     </table>
     <div id="mp-warn" style="font-size:11px;color:${sum===100?'var(--green)':'var(--red)'};font-weight:700;margin-top:8px;">Totale: ${sum}%${sum!==100?' ⚠️ deve essere 100%':' ✅'}</div>`;
+
+}
+function setCfgYear(y){
+  cfgYear=y;
+  var firstKey=mKey(y,1);
+  for(var m=1;m<=12;m++){ if(CFG.mPct[mKey(y,m)]){firstKey=mKey(y,m);break;} }
+  cfgMonthSel=firstKey;
+  renderMpctEditor();
 }
 function setCfgMonth(k){ cfgMonthSel=k; renderMpctEditor(); }
 function updateMpct(){
@@ -1454,7 +1457,7 @@ function resetMonth(){ if(!confirm('Eliminare tutte le tx di '+MESI[curMonth-1]+
 // ═══════════════════════════════════════════════════════
 function seedData(){
   const rows=[
-    // ── 2025 ──
+    // 2025
     ['INCOME','Stipendio','',1790,'2025-01-01'],
     ['EXPENSES','Mutuo','',300,'2025-01-01'],
     ['EXPENSES','Assicurazione Casa','',50,'2025-01-01'],
@@ -1913,7 +1916,7 @@ function seedData(){
     ['TEMPO LIBERO','Cultura','Cinema s.stefano',26,'2025-12-26'],
     ['EXPENSES','Luce','',45,'2025-12-30'],
     ['EXPENSES','Gas','',147,'2025-12-31'],
-    // ── 2026 ──
+    // 2026
     ['INCOME','Stipendio','',1914,'2026-01-01'],
     ['SAVINGS','PAC','PAC ETF Mensile',200,'2026-01-01'],
     ['SAVINGS','Vacanze','',250,'2026-01-01'],
@@ -2078,14 +2081,13 @@ var SEED_VERSION = '2025-2026-v1';
 (async function(){
   await loadAll();
   if(!Object.keys(TXN).length || localStorage.getItem('bgt_seed_ver') !== SEED_VERSION){
-    TXN = {};
+    TXN={};
     seedData();
     await saveAll();
     localStorage.setItem('bgt_seed_ver', SEED_VERSION);
   }
-  // Set today's date
-  const dateEl = document.getElementById('add-date');
-  if(dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+  const dateEl=document.getElementById('add-date');
+  if(dateEl) dateEl.value=new Date().toISOString().split('T')[0];
   renderHome();
 })();
 // today's date default
