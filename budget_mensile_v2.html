@@ -278,8 +278,8 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       <div style="display:flex;align-items:flex-start;gap:12px;background:var(--bg);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:12px;cursor:pointer;" onclick="document.getElementById('add-extra').click();event.stopPropagation();">
         <input type="checkbox" id="add-extra" style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;margin-top:2px;" onclick="event.stopPropagation();">
         <div>
-          <div style="font-size:13px;font-weight:700;color:var(--text);">Fonte esterna</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4;">Il movimento viene registrato e il saldo si aggiorna, ma non incide sulle percentuali di budget perché non proviene dal tuo reddito ordinario.</div>
+          <div style="font-size:13px;font-weight:700;color:var(--text);">Risparmio da benefit</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4;">Il movimento viene registrato e il saldo si aggiorna, ma non incide sulle percentuali di budget perché è un risparmio ottenuto grazie a un benefit, non da reddito ordinario.</div>
         </div>
       </div>
       <button class="btn-p" onclick="addTransaction()">
@@ -851,7 +851,7 @@ function renderDash(){
     +'<div style="flex:1;">'
     +'<div class="rdis-lbl">\uD83D\uDCB5 Reddito disponibile del mese</div>'
     +'<div class="rdis-val" style="color:'+rdisColor+';">'+(c.saldo<0?'-':'')+fmt(Math.abs(c.saldo))+'</div>'
-    +'<div class="rdis-sub">Reddito '+fmt(c.reddito||CFG.reddito)+' \u2212 Uscite '+fmt(c.spese+c.tl+c.risp)+'</div>'+((c.extraSpese+c.extraTl+c.extraRisp)>0?'<div style="font-size:11px;color:var(--muted);margin-top:3px;">di cui '+fmt(c.extraSpese+c.extraTl+c.extraRisp)+' non da reddito</div>':'')
+    +'<div class="rdis-sub">Reddito '+fmt(c.reddito||CFG.reddito)+' \u2212 Uscite '+fmt(c.spese+c.tl+c.risp)+'</div>'+((c.extraSpese+c.extraTl+c.extraRisp)>0?'<div style="font-size:11px;color:var(--muted);margin-top:3px;">di cui '+fmt(c.extraSpese+c.extraTl+c.extraRisp)+' risparmio da benefit</div>':'')
     +'<div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;">'
     +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;"><span style="width:9px;height:9px;border-radius:2px;background:#e91e8c;display:inline-block;"></span>Spese '+fmt(c.spese)+'</div>'
     +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;"><span style="width:9px;height:9px;border-radius:2px;background:#7c3aed;display:inline-block;"></span>T.Libero '+fmt(c.tl)+'</div>'
@@ -909,7 +909,7 @@ function renderDash(){
       +'<div class="kpi-card-label" style="color:'+macro.color+';">'+macro.lbl+'</div>'
       +'<div class="kpi-card-body">'
       +'<div>'
-      +'<div class="kpi-card-val" style="color:'+macro.color+';">'+fmt(macro.val)+'</div>'+(macro.extra>0?'<div style="font-size:10px;font-weight:600;color:var(--muted);margin-top:2px;">+ '+fmt(macro.extra)+' non da reddito</div>':'')
+      +'<div class="kpi-card-val" style="color:'+macro.color+';">'+fmt(macro.val)+'</div>'+(macro.extra>0?'<div style="font-size:10px;font-weight:600;color:var(--muted);margin-top:2px;">+ '+fmt(macro.extra)+' risparmio da benefit</div>':'')
       +'<div class="kpi-card-delta" style="color:'+deltaColor+';">'+deltaTxt+'</div>'
       +'</div>'
       +donutSvg
@@ -1139,8 +1139,8 @@ function renderStorico(){
   // ── Totali anno ──
   var totReddito=0, totSpese=0, totTl=0, totRisp=0;
   var totBSpese=0, totBTl=0, totBRisp=0;
-  // by category accumulators
   var annByCat = { INCOME:{}, EXPENSES:{}, SAVINGS:{}, 'TEMPO LIBERO':{} };
+  var annExtraByTipo = { INCOME:0, EXPENSES:0, SAVINGS:0, 'TEMPO LIBERO':0 };
 
   mesiDati.forEach(function(md){
     totReddito += md.c.reddito;
@@ -1150,6 +1150,10 @@ function renderStorico(){
     totBSpese  += md.c.bSpese;
     totBTl     += md.c.bTl;
     totBRisp   += md.c.bRisp;
+    // accumulate extra
+    md.c.txns.filter(function(t){return t.extra;}).forEach(function(t){
+      if(annExtraByTipo[t.tipo]!==undefined) annExtraByTipo[t.tipo]+=t.amt;
+    });
     // accumulate by category
     Object.keys(annByCat).forEach(function(tipo){
       var cats = md.c.byCat[tipo] || {};
@@ -1267,10 +1271,10 @@ function renderStorico(){
 
   // ── Macro categorie espandibili con sottocategorie ──
   var macros = [
-    {tipo:'INCOME',       lbl:'Reddito',      tot:totReddito, bud:totReddito, color:'#00b365'},
-    {tipo:'EXPENSES',     lbl:'Spese',        tot:totSpese,   bud:totBSpese,  color:'#e91e8c'},
-    {tipo:'SAVINGS',      lbl:'Risparmi',     tot:totRisp,    bud:totBRisp,   color:'#f0a500'},
-    {tipo:'TEMPO LIBERO', lbl:'Tempo Libero', tot:totTl,      bud:totBTl,     color:'#7c3aed'},
+    {tipo:'INCOME',       lbl:'Reddito',      tot:totReddito, bud:totReddito, color:'#00b365', pctR:100,                                                     extraTot:annExtraByTipo['INCOME']},
+    {tipo:'EXPENSES',     lbl:'Spese',        tot:totSpese,   bud:totBSpese,  color:'#e91e8c', pctR:totReddito?Math.round(totSpese/totReddito*100):0,          extraTot:annExtraByTipo['EXPENSES']},
+    {tipo:'SAVINGS',      lbl:'Risparmi',     tot:totRisp,    bud:totBRisp,   color:'#f0a500', pctR:totReddito?Math.round(totRisp/totReddito*100):0,           extraTot:annExtraByTipo['SAVINGS']},
+    {tipo:'TEMPO LIBERO', lbl:'Tempo Libero', tot:totTl,      bud:totBTl,     color:'#7c3aed', pctR:totReddito?Math.round(totTl/totReddito*100):0,             extraTot:annExtraByTipo['TEMPO LIBERO']},
   ];
 
   macros.forEach(function(macro){
@@ -1291,6 +1295,7 @@ function renderStorico(){
       + '<div>'
       + '<div class="hcard-lbl">'+macro.lbl+'</div>'
       + '<div class="hcard-val" style="color:'+macro.color+';">'+fmt(macro.tot)+'</div>'
+      + (macro.extraTot>0 ? '<div style="display:inline-flex;align-items:center;gap:3px;background:'+macro.color+'18;border-radius:20px;padding:2px 8px;margin-top:3px;"><span style="font-size:10px;">ⓘ</span><span style="font-size:10px;font-weight:700;color:'+macro.color+';">'+fmt(macro.extraTot)+' benefit</span></div>' : '')
       + '</div>'
       + '</div>'
       + '<div style="text-align:right;">'
