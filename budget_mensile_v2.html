@@ -278,8 +278,8 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       <div style="display:flex;align-items:flex-start;gap:12px;background:var(--bg);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:12px;cursor:pointer;" onclick="document.getElementById('add-extra').click();event.stopPropagation();">
         <input type="checkbox" id="add-extra" style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;margin-top:2px;" onclick="event.stopPropagation();">
         <div>
-          <div style="font-size:13px;font-weight:700;color:var(--text);">Fonte esterna</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4;">Il movimento viene registrato e il saldo si aggiorna, ma l'importo è escluso dal calcolo delle percentuali di budget.</div>
+          <div style="font-size:13px;font-weight:700;color:var(--text);">Non da reddito</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4;">Il movimento viene registrato e il saldo si aggiorna, ma non incide sulle percentuali di budget perché non proviene dal tuo reddito ordinario.</div>
         </div>
       </div>
       <button class="btn-p" onclick="addTransaction()">
@@ -851,7 +851,7 @@ function renderDash(){
     +'<div style="flex:1;">'
     +'<div class="rdis-lbl">\uD83D\uDCB5 Reddito disponibile del mese</div>'
     +'<div class="rdis-val" style="color:'+rdisColor+';">'+(c.saldo<0?'-':'')+fmt(Math.abs(c.saldo))+'</div>'
-    +'<div class="rdis-sub">Reddito '+fmt(c.reddito||CFG.reddito)+' \u2212 Uscite '+fmt(c.spese+c.tl+c.risp)+'</div>'+((c.extraSpese+c.extraTl+c.extraRisp)>0?'<div style="font-size:11px;color:var(--muted);margin-top:3px;">di cui '+fmt(c.extraSpese+c.extraTl+c.extraRisp)+' da fonte esterna</div>':'')
+    +'<div class="rdis-sub">Reddito '+fmt(c.reddito||CFG.reddito)+' \u2212 Uscite '+fmt(c.spese+c.tl+c.risp)+'</div>'+((c.extraSpese+c.extraTl+c.extraRisp)>0?'<div style="font-size:11px;color:var(--muted);margin-top:3px;">di cui '+fmt(c.extraSpese+c.extraTl+c.extraRisp)+' da non da reddito</div>':'')
     +'<div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;">'
     +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;"><span style="width:9px;height:9px;border-radius:2px;background:#e91e8c;display:inline-block;"></span>Spese '+fmt(c.spese)+'</div>'
     +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;"><span style="width:9px;height:9px;border-radius:2px;background:#7c3aed;display:inline-block;"></span>T.Libero '+fmt(c.tl)+'</div>'
@@ -909,8 +909,8 @@ function renderDash(){
       +'<div class="kpi-card-label" style="color:'+macro.color+';">'+macro.lbl+'</div>'
       +'<div class="kpi-card-body">'
       +'<div>'
-      +'<div class="kpi-card-val" style="color:'+macro.color+';">'+fmt(macro.val)+'</div>'+(macro.extra>0?'<div style="font-size:10px;font-weight:600;color:var(--muted);margin-top:2px;">+ '+fmt(macro.extra)+' fonte esterna</div>':'')
-      +(macro.extra>0?'<div style="font-size:10px;font-weight:700;color:var(--muted);margin-top:3px;">+ '+fmt(macro.extra)+' fonte esterna</div>':'')
+      +'<div class="kpi-card-val" style="color:'+macro.color+';">'+fmt(macro.val)+'</div>'+(macro.extra>0?'<div style="font-size:10px;font-weight:600;color:var(--muted);margin-top:2px;">+ '+fmt(macro.extra)+' non da reddito</div>':'')
+      +(macro.extra>0?'<div style="font-size:10px;font-weight:700;color:var(--muted);margin-top:3px;">+ '+fmt(macro.extra)+' non da reddito</div>':'')
       +'<div class="kpi-card-delta" style="color:'+deltaColor+';">'+deltaTxt+'</div>'
       +'</div>'
       +donutSvg
