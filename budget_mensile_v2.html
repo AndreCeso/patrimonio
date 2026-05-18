@@ -310,8 +310,11 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
   <div class="hdr">
     <!-- Saldo generale centrato -->
     <div style="text-align:center;margin-bottom:14px;">
-      <div style="color:rgba(255,255,255,.65);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;">Saldo generale</div>
-      <div style="color:#fff;font-size:32px;font-weight:900;letter-spacing:-.03em;" id="dash-saldo-generale">€ 0</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px;">
+        <div style="color:rgba(255,255,255,.65);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;">Saldo generale</div>
+        <button id="saldo-toggle-btn" onclick="toggleSaldo()" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:2px 9px;cursor:pointer;color:rgba(255,255,255,.8);font-size:10px;font-weight:700;font-family:Inter,sans-serif;">mostra</button>
+      </div>
+      <div style="color:#fff;font-size:32px;font-weight:900;letter-spacing:-.03em;filter:blur(10px);transition:filter .25s;" id="dash-saldo-generale">€ 0</div>
       <div style="color:rgba(255,255,255,.6);font-size:11px;font-weight:600;margin-top:3px;" id="dash-saldo-sub">somma reddito disponibile tutti i mesi</div>
     </div>
     <!-- Selettore mese -->
@@ -630,6 +633,14 @@ async function loadAll(){
 // ═══════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════
+var saldoVisible = false;
+function toggleSaldo(){
+  saldoVisible = !saldoVisible;
+  var el  = document.getElementById('dash-saldo-generale');
+  var btn = document.getElementById('saldo-toggle-btn');
+  if(el)  el.style.filter  = saldoVisible ? 'blur(0)' : 'blur(10px)';
+  if(btn) btn.textContent  = saldoVisible ? 'nascondi' : 'mostra';
+}
 function fmt(n){ return '€'+Math.abs(n).toLocaleString('it-IT',{minimumFractionDigits:0,maximumFractionDigits:2}); }
 function fmtDate(dateStr){
   // Parse YYYY-MM-DD without timezone shift
@@ -762,6 +773,10 @@ function renderDash(){
     totaleDisp+=mc.saldo;
   });
   const sdEl=document.getElementById('dash-saldo-generale');
+  // Maintain blur state
+  if(sdEl) sdEl.style.filter = saldoVisible ? 'blur(0)' : 'blur(10px)';
+  const sBtn=document.getElementById('saldo-toggle-btn');
+  if(sBtn) sBtn.textContent = saldoVisible ? 'nascondi' : 'mostra';
   if(sdEl){
     const sign=totaleDisp<0?'-':'';
     sdEl.textContent=sign+'\u20ac '+Math.abs(totaleDisp).toLocaleString('it-IT',{minimumFractionDigits:0,maximumFractionDigits:2});
@@ -1404,19 +1419,81 @@ function saveCfg(){
   document.getElementById('hdr-name').textContent=CFG.nome;
   saveAll();
 }
+
+// ── CATEGORIE EDITOR ─────────────────────────────────────
+function renderCatEditor(){
+  var catEl=document.getElementById('cfg-cats');
+  if(!catEl) return;
+  var tipos=['INCOME','EXPENSES','SAVINGS','TEMPO LIBERO'];
+  var html='<div style="padding:14px 16px;">';
+  tipos.forEach(function(tipo){
+    var cats=CFG.categorie[tipo]||[];
+    var col=TIPO_COLOR[tipo];
+    var tipoId=tipo.replace(/ /g,'-');
+    html+='<div style="margin-bottom:18px;">';
+    html+='<div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">'+TIPO_EMOJI[tipo]+' '+TIPO_LABEL[tipo]+'</div>';
+    html+='<div id="catlist-'+tipoId+'" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">';
+    cats.forEach(function(c,i){
+      html+='<div style="display:inline-flex;align-items:center;gap:4px;background:'+col+'15;border-radius:20px;padding:3px 6px 3px 10px;">'
+        +'<span style="font-size:11px;font-weight:700;color:'+col+';">'+c+'</span>'
+        +'<button data-tipo="'+tipo+'" data-idx="'+i+'" class="rm-cat-btn" style="background:none;border:none;cursor:pointer;color:'+col+';font-size:14px;line-height:1;padding:0 2px;opacity:.7;">&times;</button>'
+        +'</div>';
+    });
+    html+='</div>';
+    html+='<div style="display:flex;gap:6px;align-items:center;">'
+      +'<input id="new-cat-'+tipoId+'" data-tipo="'+tipo+'" type="text" placeholder="Nuova categoria..." '
+      +'style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:7px 12px;font-size:12px;font-weight:600;font-family:Inter,sans-serif;outline:none;" class="add-cat-input">'
+      +'<button data-tipo="'+tipo+'" class="add-cat-btn" style="background:'+col+';color:#fff;border:none;border-radius:var(--r-sm);padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">+</button>'
+      +'</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  catEl.innerHTML=html;
+  // Attach events via delegation
+  catEl.querySelectorAll('.rm-cat-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      removeCat(btn.getAttribute('data-tipo'), parseInt(btn.getAttribute('data-idx')));
+    });
+  });
+  catEl.querySelectorAll('.add-cat-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){ addCat(btn.getAttribute('data-tipo')); });
+  });
+  catEl.querySelectorAll('.add-cat-input').forEach(function(inp){
+    inp.addEventListener('keydown',function(e){ if(e.key==='Enter') addCat(inp.getAttribute('data-tipo')); });
+  });
+}
+
+function addCat(tipo){
+  var inputId='new-cat-'+tipo.replace(/ /g,'-');
+  var input=document.getElementById(inputId);
+  if(!input) return;
+  var val=input.value.trim();
+  if(!val){ showToast('Scrivi il nome categoria'); return; }
+  if(!CFG.categorie[tipo]) CFG.categorie[tipo]=[];
+  if(CFG.categorie[tipo].includes(val)){ showToast('Categoria già presente'); return; }
+  CFG.categorie[tipo].push(val);
+  saveAll();
+  renderCatEditor();
+  showToast('Aggiunta: '+val);
+}
+
+function removeCat(tipo, idx){
+  if(!CFG.categorie[tipo]) return;
+  var cat=CFG.categorie[tipo][idx];
+  CFG.categorie[tipo].splice(idx,1);
+  saveAll();
+  renderCatEditor();
+  showToast('Rimossa: '+cat);
+}
+
 function renderCfg(){
   document.getElementById('cfg-nome').value=CFG.nome;
   document.getElementById('cfg-reddito').value=CFG.reddito;
   renderMpctEditor();
   renderRicpSettings();
   initCfgTx();
-  // Categorie
-  const catEl=document.getElementById('cfg-cats');
-  catEl.innerHTML=`<div style="padding:14px 16px;">`+Object.entries(CFG.categorie).map(([tipo,cats])=>`
-    <div style="margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">${TIPO_EMOJI[tipo]} ${TIPO_LABEL[tipo]}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;">${cats.map(c=>`<span style="background:${TIPO_COLOR[tipo]}15;color:${TIPO_COLOR[tipo]};border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">${c}</span>`).join('')}</div>
-    </div>`).join('')+'</div>';
+  // Categorie — editable
+  renderCatEditor();
 }
 
 // ── Per-month PCT editor ──
