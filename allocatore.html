@@ -339,14 +339,12 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 .alloc-bar-fill { transition: width 0.4s ease; }
 /* Schermata allocatore fullscreen */
 #page-allocatore {
-  position: fixed; inset: 0;
   background: var(--bg);
-  z-index: 500;
   overflow-y: auto;
   padding-bottom: 40px;
-  display: none;
+  display: block;
+  min-height: 100vh;
 }
-#page-allocatore.active { display: block; }
 
 /* ── MISC ── */
 .cfg-warn{font-size:12px;color:var(--red);font-weight:700;margin-top:6px;display:none;}
