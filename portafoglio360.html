@@ -537,6 +537,36 @@ function closeBudget(){
   document.getElementById('hubScreen').classList.remove('hidden');
 }
 
+function openAllocatore(){
+  document.getElementById('hubScreen').classList.add('hidden');
+  var tb=document.querySelector('.tabbar');if(tb)tb.style.display='none';
+  document.getElementById('alloc-overlay').style.display='block';
+}
+
+function closeAllocatore(){
+  document.getElementById('alloc-overlay').style.display='none';
+  var tb=document.querySelector('.tabbar');if(tb)tb.style.display='flex';
+  document.getElementById('hubScreen').classList.remove('hidden');
+}
+
+function openBudget(){
+  document.getElementById('hubScreen').classList.add('hidden');
+  var tb=document.querySelector('.tabbar');if(tb)tb.style.display='none';
+  document.getElementById('budget-overlay').style.display='block';
+}
+
+function closeBudget(){
+  document.getElementById('budget-overlay').style.display='none';
+  var tb=document.querySelector('.tabbar');if(tb)tb.style.display='flex';
+  document.getElementById('hubScreen').classList.remove('hidden');
+}
+
+function closeTracker(){
+  document.getElementById('tracker-overlay').style.display='none';
+  var tb=document.querySelector('.tabbar');if(tb)tb.style.display='flex';
+  document.getElementById('hubScreen').classList.remove('hidden');
+}
+
 function showHub(){
   document.getElementById('hubScreen').classList.remove('hidden');
   var tb=document.querySelector('.tabbar');if(tb)tb.style.display='flex';
@@ -601,4 +631,4 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 </body>
 </html>
-<!-- VERSION: portafoglio360-v5 -->
+<!-- VERSION: portafoglio360-v6 -->
