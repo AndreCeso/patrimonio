@@ -1,0 +1,25 @@
+{
+  "name": "Portafoglio 360",
+  "short_name": "P360",
+  "description": "Investi, risparmia, traccia. Tutto in un posto.",
+  "start_url": "/patrimonio/portafoglio360.html",
+  "scope": "/patrimonio/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#004d29",
+  "theme_color": "#006636",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
