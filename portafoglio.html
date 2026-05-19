@@ -590,6 +590,14 @@ let authMode = 'login'; // 'login' | 'register'
 
 // ── AUTH FUNCTIONS ───────────────────────────────────────────
 
+// ── DOM UTILITIES ──
+function el(id){return document.getElementById(id);}
+function set(id,val){const e=el(id);if(e)e.textContent=val;}
+function setH(id,val){const e=el(id);if(e)e.innerHTML=val;}
+function setS(id,prop,val){const e=el(id);if(e)e.style[prop]=val;}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
 async function loadFromCloud(){
   if(!currentUser) return;
   const {data,error} = await sb.from('patrimonio')
