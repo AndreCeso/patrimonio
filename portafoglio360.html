@@ -588,6 +588,43 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
 });
 
+// ── CLOUD (master reads/writes tracker data) ──
+async function loadFromCloud(){
+  if(!currentUser) return;
+  const {data,error} = await sb.from('patrimonio')
+    .select('dati,cfg,storico,storico_allocazioni')
+    .eq('user_id', currentUser.id)
+    .maybeSingle();
+  if(error || !data) return;
+  if(data.dati) D={...D,...data.dati};
+  if(data.cfg){
+    C={...C,...data.cfg,
+      mix:{...DEF.mix,...(data.cfg.mix||{})},
+      pac:{...DEF.pac,...(data.cfg.pac||{})},
+      liqSub:{...DEF.liqSub,...(data.cfg.liqSub||{})}
+    };
+    // Garantisce che mix.liq esista sempre
+    if(!C.mix.liq) C.mix.liq = DEF.mix.liq;
+  }
+  if(data.storico) localStorage.setItem('patrimonio_storico',JSON.stringify(data.storico));
+  if(data.storico_allocazioni) localStorage.setItem('fa_storico_v4',JSON.stringify(data.storico_allocazioni));
+}
+
+async function saveToCloud(){
+  if(!currentUser){
+    const {data:{session}} = await sb.auth.getSession();
+    if(session?.user) currentUser = session.user;
+    else { console.warn('saveToCloud: nessun utente loggato'); toast('⚠ Sessione scaduta, riaccedi'); return false; }
+  }
+  const storico = getStor();
+  const storico_allocazioni = (()=>{try{const v=JSON.parse(localStorage.getItem('fa_storico_v4')||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}})();
+  const {error} = await sb.from('patrimonio')
+    .upsert({user_id:currentUser.id, dati:D, cfg:C, storico, storico_allocazioni, updated_at:new Date().toISOString()},
+            {onConflict:'user_id'});
+  if(error){ console.error('Cloud save error:',error); toast('⚠ Errore: '+error.message); return false; }
+  return true;
+}
+
 // ── INIT ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('authPassword').addEventListener('keydown',e=>{
@@ -598,4 +635,4 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 </body>
 </html>
-<!-- VERSION: portafoglio360-v3 -->
+<!-- VERSION: portafoglio360-v4 -->
