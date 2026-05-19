@@ -330,6 +330,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       </div>
       <div style="color:#fff;font-size:32px;font-weight:900;letter-spacing:-.03em;filter:blur(10px);transition:filter .25s;" id="dash-saldo-generale">€ 0</div>
       <div style="color:rgba(255,255,255,.6);font-size:11px;font-weight:600;margin-top:3px;" id="dash-saldo-sub">somma reddito disponibile tutti i mesi</div>
+    <div id="dash-sched-note"></div>
     </div>
     <!-- Selettore mese -->
     <div class="month-sw" style="padding-top:0;">
@@ -656,6 +657,17 @@ function toggleSaldo(){
   if(btn) btn.textContent  = saldoVisible ? 'nascondi' : 'mostra';
 }
 function fmt(n){ return '€'+Math.abs(n).toLocaleString('it-IT',{minimumFractionDigits:0,maximumFractionDigits:2}); }
+// Returns true if transaction date is strictly in the future (not today)
+function isScheduled(dateStr){
+  var today = new Date(); today.setHours(0,0,0,0);
+  var p = dateStr.split('-');
+  var d = new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
+  return d > today;
+}
+function todayStr(){
+  return new Date().toISOString().split('T')[0];
+}
+
 function fmtDate(dateStr){
   // Parse YYYY-MM-DD without timezone shift
   var p=dateStr.split('-');
@@ -670,7 +682,10 @@ function getPct(y,m){
   return CFG.mPct[k]||CFG.defaultPct;
 }
 function calcMonth(y,m){
-  const txns=getTxn(y,m);
+  const allTxns=getTxn(y,m);
+  // Scheduled (future) transactions are excluded from calculations
+  const txns=allTxns.filter(t=>!isScheduled(t.date));
+  const scheduledTxns=allTxns.filter(t=>isScheduled(t.date));
   const normal=txns.filter(t=>!t.extra);
   const extraTxns=txns.filter(t=>t.extra);
   // Totals include ALL (saldo is real money)
@@ -696,9 +711,12 @@ function calcMonth(y,m){
   const saldo=reddito-spese-tl-risp;
   const byCat={};
   txns.forEach(t=>{ if(!byCat[t.tipo]) byCat[t.tipo]={}; if(!byCat[t.tipo][t.cat]) byCat[t.tipo][t.cat]=0; byCat[t.tipo][t.cat]+=t.amt; });
+  // Scheduled summary
+  const schedAmt = scheduledTxns.reduce(function(s,t){return s+t.amt;},0);
   return {reddito,spese,tl,risp,bSpese,bTl,bRisp,saldo,ref,pct,txns,byCat,
     speseNorm,tlNorm,rispNorm,redditoNorm,
-    extraSpese,extraTl,extraRisp,extraReddito};
+    extraSpese,extraTl,extraRisp,extraReddito,
+    scheduledTxns,schedAmt,allTxns};
 }
 
 // ═══════════════════════════════════════════════════════
@@ -949,7 +967,7 @@ function buildDetailContent(c,macro){
   const cats=c.byCat[macro.tipo]||{};
   const catEntries=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
   const catTotal=Object.values(cats).reduce((s,v)=>s+v,0);
-  const txns=c.txns.filter(t=>t.tipo===macro.tipo).sort((a,b)=>b.date.localeCompare(a.date));
+  const txns=c.allTxns.filter(t=>t.tipo===macro.tipo).sort((a,b)=>b.date.localeCompare(a.date));
   let html='';
   if(catEntries.length){
     html+=`<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Per categoria</div>`;
@@ -966,12 +984,15 @@ function buildDetailContent(c,macro){
     html+=txns.map(t=>{
       const sign=t.tipo==='INCOME'?'+':'-';
       const amtCls=t.tipo==='INCOME'?'pos':t.tipo==='SAVINGS'?'sav':t.tipo==='TEMPO LIBERO'?'tl':'neg';
-      const realIdx=c.txns.indexOf(t);
-      return `<div class="tx-item" onclick="event.stopPropagation();openTxDetail(${realIdx},${curYear},${curMonth})">
+      const realIdx=c.allTxns.indexOf(t);
+      const sched=isScheduled(t.date);
+      const schedStyle=sched?'opacity:.5;border:1.5px dashed var(--border);border-radius:10px;':'';
+      const schedBadge=sched?`<span style="background:#fef9c3;color:#a16207;font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;">📅 ${fmtDate(t.date)}</span>`:'';
+      return `<div class="tx-item" style="${schedStyle}" onclick="event.stopPropagation();openTxDetail(${realIdx},${curYear},${curMonth})">
         <div class="tx-icon-wrap" style="background:${macro.color}15;">${TIPO_EMOJI[t.tipo]}</div>
         <div class="tx-info">
           <div class="tx-desc">${t.cat}</div>
-          <div class="tx-cat">${t.desc ? t.desc+' · ' : ''}${fmtDate(t.date)}</div>
+          <div class="tx-cat">${t.desc ? t.desc+' · ' : ''}${sched?schedBadge:fmtDate(t.date)}</div>
         </div>
         <div class="tx-amt ${amtCls}">${sign}${fmt(t.amt)}</div>
       </div>`;
@@ -1484,10 +1505,23 @@ function renderCfgTxList(){
       + '</div>';
   });
   el.innerHTML = html;
+
+  // Update scheduled note in dashboard header
+  var schedNote = document.getElementById('dash-sched-note');
+  if(schedNote){
+    var c2 = calcMonth(curYear, curMonth);
+    if(c2.scheduledTxns && c2.scheduledTxns.length > 0){
+      schedNote.innerHTML = '<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border-radius:10px;padding:8px 14px;margin-top:8px;font-size:12px;font-weight:700;color:rgba(255,255,255,.85);">'
+        +'<span>⏳</span>'
+        +'<span>'+c2.scheduledTxns.length+' '+(c2.scheduledTxns.length===1?'spesa programmata':'spese programmate')+' &middot; '+fmt(c2.schedAmt)+' in arrivo</span>'
+        +'</div>';
+    } else {
+      schedNote.innerHTML = '';
+    }
+  }
 }
 
 function openEditTx(idx, y, m){
-  var t = getTxn(y, m)[idx];
   if(!t) return;
   editIdx = idx; editY = y; editM = m;
   selEditTipo(t.tipo);
