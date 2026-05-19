@@ -433,6 +433,12 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       <div id="cfg-tx-list" style="max-height:420px;overflow-y:auto;"></div>
     </div>
 
+    <div class="sec">Competenza per data</div>
+    <div class="card card-p" id="cfg-sched-card">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.5;">Le transazioni con data futura vengono escluse dai calcoli fino alla loro data.</div>
+      <div id="cfg-sched-toggles"></div>
+    </div>
+
     <div class="sec">Dati</div>
     <div class="card card-p">
       <div class="cfg-row">
@@ -584,6 +590,7 @@ let CFG = {
     '2026-5':{spese:50,tl:25,risp:25},
   },
   defaultPct: {spese:50,tl:25,risp:25},
+  scheduledTypes: {EXPENSES:true,'TEMPO LIBERO':true,SAVINGS:false,INCOME:false},
   categorie: {
     INCOME: ['Stipendio','Rimborso 730','Tredicesima','Entrate Extra'],
     EXPENSES: ['Mutuo','Assicurazione Casa','Internet/Telefono','Gas','Luce','Spesa','Benzina','Macchina','Casa','Sanità','Cibo Ufficio','Tasse'],
@@ -672,7 +679,12 @@ function updateSchedNote(){
   }
 }
 
-function isScheduled(dateStr){
+function isScheduled(dateStr, tipo){
+  // Check if this tipo has scheduled mode enabled
+  if(tipo !== undefined){
+    var st = CFG.scheduledTypes || {};
+    if(!st[tipo]) return false;
+  }
   var today = new Date(); today.setHours(0,0,0,0);
   var p = dateStr.split('-');
   var d = new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
@@ -698,8 +710,8 @@ function getPct(y,m){
 function calcMonth(y,m){
   const allTxns=getTxn(y,m);
   // Scheduled (future) transactions are excluded from calculations
-  const txns=allTxns.filter(t=>!isScheduled(t.date));
-  const scheduledTxns=allTxns.filter(t=>isScheduled(t.date));
+  const txns=allTxns.filter(t=>!isScheduled(t.date,t.tipo));
+  const scheduledTxns=allTxns.filter(t=>isScheduled(t.date,t.tipo));
   const normal=txns.filter(t=>!t.extra);
   const extraTxns=txns.filter(t=>t.extra);
   // Totals include ALL (saldo is real money)
@@ -1001,7 +1013,7 @@ function buildDetailContent(c,macro){
       const sign=t.tipo==='INCOME'?'+':'-';
       const amtCls=t.tipo==='INCOME'?'pos':t.tipo==='SAVINGS'?'sav':t.tipo==='TEMPO LIBERO'?'tl':'neg';
       const realIdx=c.allTxns.indexOf(t);
-      const sched=isScheduled(t.date);
+      const sched=isScheduled(t.date,t.tipo);
       const schedStyle=sched?'opacity:.5;border:1.5px dashed var(--border);border-radius:10px;':'';
       const schedBadge=sched?`<span style="background:#fef9c3;color:#a16207;font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;">📅 ${fmtDate(t.date)}</span>`:'';
       return `<div class="tx-item" style="${schedStyle}" onclick="event.stopPropagation();openTxDetail(${realIdx},${curYear},${curMonth})">
@@ -1703,6 +1715,42 @@ function removeCat(tipo, idx){
   showToast('Rimossa: '+cat);
 }
 
+
+function renderSchedToggles(){
+  var el = document.getElementById('cfg-sched-toggles');
+  if(!el) return;
+  var tipi = [
+    {key:'EXPENSES',    lbl:'Spese',        emoji:'🏠', color:'#e91e8c'},
+    {key:'TEMPO LIBERO',lbl:'Tempo Libero', emoji:'🎉', color:'#7c3aed'},
+    {key:'SAVINGS',     lbl:'Risparmi',     emoji:'🐷', color:'#f0a500'},
+    {key:'INCOME',      lbl:'Reddito',      emoji:'💰', color:'#006636'},
+  ];
+  var st = CFG.scheduledTypes || {};
+  el.innerHTML = tipi.map(function(t, i){
+    var active = st[t.key] !== false && st[t.key] !== undefined ? !!st[t.key] : (t.key==='EXPENSES'||t.key==='TEMPO LIBERO');
+    var border = i < tipi.length-1 ? 'border-bottom:1px solid var(--border);' : '';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;'+border+'">'
+      +'<div style="display:flex;align-items:center;gap:8px;">'
+      +'<span style="font-size:16px;">'+t.emoji+'</span>'
+      +'<span style="font-size:13px;font-weight:600;color:var(--text);">'+t.lbl+'</span>'
+      +'</div>'
+      +'<button data-sched-key="'+t.key+'" class="sched-toggle-btn" style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;background:'+(active?t.color:'var(--border)')+';position:relative;transition:background .2s;">'
+      +'<span style="width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:3px;'+(active?'right:3px':'left:3px')+';transition:all .2s;display:block;"></span>'
+      +'</button>'
+      +'</div>';
+  }).join('');
+  // Attach toggle events
+  el.querySelectorAll('.sched-toggle-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var key = btn.getAttribute('data-sched-key');
+      if(!CFG.scheduledTypes) CFG.scheduledTypes = {};
+      CFG.scheduledTypes[key] = !CFG.scheduledTypes[key];
+      saveAll();
+      renderSchedToggles();
+      toast(key+' '+(CFG.scheduledTypes[key]?'attivato':'disattivato'));
+    });
+  });
+}
 function renderCfg(){
   document.getElementById('cfg-nome').value=CFG.nome;
   document.getElementById('cfg-reddito').value=CFG.reddito;
@@ -1711,6 +1759,8 @@ function renderCfg(){
   initCfgTx();
   // Categorie — editable
   renderCatEditor();
+  // Competenza per data
+  renderSchedToggles();
 }
 
 // ── Per-month PCT editor ──
