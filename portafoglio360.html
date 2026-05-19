@@ -536,30 +536,27 @@ function closeBudget(){
   var tb=document.querySelector('.tabbar');if(tb)tb.style.display='flex';
   document.getElementById('hubScreen').classList.remove('hidden');
 }
-}
+
 function showHub(){
   document.getElementById('hubScreen').classList.remove('hidden');
   var tb=document.querySelector('.tabbar');if(tb)tb.style.display='flex';
   document.getElementById('tracker-overlay').style.display='none';
   document.getElementById('alloc-overlay').style.display='none';
   document.getElementById('budget-overlay').style.display='none';
-});
-  document.getElementById('hubScreen').classList.remove('hidden');
 }
 function enterApp(){
   document.getElementById('hubScreen').classList.add('hidden');
   var tb=document.querySelector('.tabbar');if(tb)tb.style.display='none';
-  var frame=document.getElementById('tracker-overlay');
-  frame.style.display='block';
-  // Send auth to tracker child
+  document.getElementById('tracker-overlay').style.display='block';
+  // Send auth to tracker child after iframe loads
   var iframe=document.getElementById('tracker-frame');
-  if(iframe && iframe.contentWindow && currentUser){
-    iframe.contentWindow.postMessage({type:'AUTH',userId:currentUser.id},'*');
+  function sendAuth(){
+    if(iframe && iframe.contentWindow && currentUser){
+      iframe.contentWindow.postMessage({type:'AUTH',userId:currentUser.id},'*');
+    }
   }
-  return; // original enterApp dead code below
-  function _enterApp_orig(){
-  document.getElementById('hubScreen').classList.add('hidden');
-  renderAll();
+  iframe.onload = sendAuth;
+  setTimeout(sendAuth, 500); // fallback
 }
 
 // ── INIT ─────────────────────────────────────────────────────
