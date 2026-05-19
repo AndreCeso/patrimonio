@@ -394,7 +394,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
           <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--green);font-size:13px">€</span>
           <input id="alloc-inp-liq" type="text" placeholder="0" oninput="allocOnInputChange()" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:9px 10px 9px 26px;color:var(--text);font-size:14px"/>
         </div>
-        <div style="font-size:10px;color:var(--dim);font-weight:600;margin-top:3px;" id="hint-liq-target">Target €${state.cfg.liqTarget.toLocaleString('it-IT')}</div>
+        <div style="font-size:10px;color:var(--dim);font-weight:600;margin-top:3px;" id="hint-liq-target"></div>
       </div>
       <div>
         <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:5px;">Fondo emergenza attuale</div>
@@ -402,7 +402,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
           <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--red);font-size:13px">€</span>
           <input id="alloc-inp-fe" type="text" placeholder="0" oninput="allocOnInputChange()" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:9px 10px 9px 26px;color:var(--text);font-size:14px"/>
         </div>
-        <div style="font-size:10px;color:var(--dim);font-weight:600;margin-top:3px;" id="hint-fe-target">Target €${state.cfg.feTarget.toLocaleString('it-IT')}</div>
+        <div style="font-size:10px;color:var(--dim);font-weight:600;margin-top:3px;" id="hint-fe-target"></div>
       </div>
     </div>
 
@@ -495,7 +495,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════
 const ALLOC_DEFAULT_CONFIG = {
-  feTarget: 6000, liqTarget: 15000,
+  feTarget: 4600, liqTarget: 15000,
   pacMin: 100, pensioneMin: 100, pensioneCap: 1200,
   overflowLiq: 'jolly_future', overflowFe: 'pac',
   overflowPensione: 'pac', skipPac: 'jolly_future', skipPensione: 'jolly_future'
@@ -708,6 +708,11 @@ function allocToggleSub(id){
 // ═══════════════════════════════════════════════════════════
 function allocRender(){
   const {amount,liqCur,feCur,entry,scenarioOverride,model,cfg} = allocState;
+  // Update hint labels
+  const hLiq = document.getElementById('hint-liq-target');
+  const hFe  = document.getElementById('hint-fe-target');
+  if(hLiq) hLiq.textContent = 'Target \u20ac' + cfg.liqTarget.toLocaleString('it-IT');
+  if(hFe)  hFe.textContent  = 'Target \u20ac' + cfg.feTarget.toLocaleString('it-IT');
   const autoSc = allocAutoScenario(liqCur,feCur);
   const scenario = scenarioOverride||autoSc;
 
@@ -1230,13 +1235,13 @@ const ALLOC_ALL_KPI = [
   {key:'totPensione', label:'Pensione',        color:'#818cf8', fn: list=>list.reduce((a,r)=>a+r.alloc.pensione,0)},
   {key:'totFe',       label:'FE versato',      color:'#e05c3a', fn: list=>list.reduce((a,r)=>a+r.alloc.fe,0)},
   {key:'totJolly',    label:'Jolly',           color:'#fb923c', fn: list=>list.reduce((a,r)=>a+r.alloc.future+r.alloc.obiettivi,0)},
-  {key:'totSpesa',    label:'Spesa',           color:'#a78bfa', fn: list=>list.reduce((a,r)=>a+r.alloc.spesa,0)},
+  {key:'totSpesa',    label:'Spesa Gratificazione', color:'#a78bfa', fn: list=>list.reduce((a,r)=>a+r.alloc.spesa,0)},
   {key:'totLiq',      label:'Liquidità',       color:'#34c78a', fn: list=>list.reduce((a,r)=>a+r.alloc.liq,0)},
   {key:'pctPac',      label:'% media PAC',     color:'#60a5fa', fn: list=>{const v=list.filter(r=>r.amount>0);return v.length?Math.round(v.reduce((a,r)=>a+r.alloc.pac/r.amount*100,0)/v.length):0;}, isPercent:true},
   {key:'pctRaf',      label:'% media Raff.',   color:'#4f8ef7', fn: list=>{const v=list.filter(r=>r.amount>0);return v.length?Math.round(v.reduce((a,r)=>a+(r.alloc.fe+r.alloc.pac+r.alloc.pensione)/r.amount*100,0)/v.length):0;}, isPercent:true},
 ];
 
-let allocSelectedKpi = ['totRaf','totPac','totPensione'];
+let allocSelectedKpi = ['totRaf','totJolly','totLiq','totSpesa'];
 
 const ALLOC_ENTRY_TYPES_ORDER = ['rafforzamento','tredicesima','rimborso','bonus'];
 const ALLOC_ENTRY_LABELS_FULL = {rafforzamento:'Rafforzamento', tredicesima:'Tredicesima', rimborso:'Rimborso 730', bonus:'Bonus / Extra'};
