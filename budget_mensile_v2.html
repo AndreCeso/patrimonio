@@ -658,6 +658,20 @@ function toggleSaldo(){
 }
 function fmt(n){ return '€'+Math.abs(n).toLocaleString('it-IT',{minimumFractionDigits:0,maximumFractionDigits:2}); }
 // Returns true if transaction date is strictly in the future (not today)
+function updateSchedNote(){
+  var schedNote = document.getElementById('dash-sched-note');
+  if(!schedNote) return;
+  var c = calcMonth(curYear, curMonth);
+  if(c.scheduledTxns && c.scheduledTxns.length > 0){
+    schedNote.innerHTML = '<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border-radius:10px;padding:8px 14px;margin-top:8px;font-size:12px;font-weight:700;color:rgba(255,255,255,.85);">'
+      +'<span>&#x23F3;</span>'
+      +'<span>'+c.scheduledTxns.length+' '+(c.scheduledTxns.length===1?'spesa programmata':'spese programmate')+' &middot; '+fmt(c.schedAmt)+' in arrivo</span>'
+      +'</div>';
+  } else {
+    schedNote.innerHTML = '';
+  }
+}
+
 function isScheduled(dateStr){
   var today = new Date(); today.setHours(0,0,0,0);
   var p = dateStr.split('-');
@@ -798,6 +812,7 @@ function addTransaction(){
   showToast('✅ Aggiunto: '+fmt(amt));
   document.getElementById('add-desc').value='';
   document.getElementById('add-amt').value='';
+  updateSchedNote();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -808,6 +823,7 @@ function changeMonth(d){
   if(curMonth>12){curMonth=1;curYear++;}
   if(curMonth<1){curMonth=12;curYear--;}
   renderDash();
+  updateSchedNote();
 }
 function renderDash(){
   const lbl=MESI[curMonth-1]+' '+curYear;
@@ -1522,6 +1538,7 @@ function renderCfgTxList(){
 }
 
 function openEditTx(idx, y, m){
+  var t = getTxn(y, m)[idx];
   if(!t) return;
   editIdx = idx; editY = y; editM = m;
   selEditTipo(t.tipo);
