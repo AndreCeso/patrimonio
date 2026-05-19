@@ -372,9 +372,11 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
         <div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:6px;">Tredicesima · Rimborso 730 · Bonus · Rafforzamento</div>
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0;margin-top:4px;">
-        <button id="alloc-btn-edit-pct" onclick="allocOpenModal('edit')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">✎ %</button>
-        <button id="alloc-btn-config" onclick="allocOpenModal('config')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">⚙ Config</button>
-        <button id="alloc-btn-storico" onclick="allocOpenModal('storico')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">📋 Storico</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <button id="alloc-btn-edit-pct" onclick="allocOpenModal('edit')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">✎ %</button>
+          <button id="alloc-btn-storico" onclick="allocOpenModal('storico')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">📋 Storico</button>
+          <button id="alloc-btn-config" onclick="allocOpenModal('config')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;grid-column:span 2;">⚙ Config</button>
+        </div>
       </div>
     </div>
   </div>
