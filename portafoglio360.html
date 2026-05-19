@@ -360,8 +360,8 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 <body>
 
 <div class="auth-screen" id="authScreen">
-  <div class="auth-logo">Patrimonio</div>
-  <div class="auth-sub">Il tuo tracker personale</div>
+  <div class="auth-logo">Portafoglio 360</div>
+  <div class="auth-sub">Investi, risparmia, traccia. Tutto in un posto.</div>
   <div class="auth-card">
     <div class="auth-title" id="authTitle">Accedi</div>
     <div class="auth-field">
@@ -392,7 +392,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 
     <div class="hub-card" onclick="enterApp()">
       <div class="hub-card-icon" style="background:var(--green-light);">📊</div>
-      <div class="hub-card-title">Patrimonio Tracker</div>
+      <div class="hub-card-title">Portafoglio Tracker</div>
       <div class="hub-card-desc">Monitora il portafoglio, ribilancia gli investimenti, gestisci liquidità e fondo emergenza.</div>
       <div class="hub-card-meta">
         <span class="hub-badge" style="background:var(--green-light);color:var(--green);">Attivo</span>
@@ -420,6 +420,9 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
         <span class="hub-arrow">→</span>
       </div>
     </div>
+  </div>
+  <div style="padding:0 16px 28px;max-width:480px;margin:0 auto;">
+    <button onclick="logout()" style="width:100%;background:none;border:1.5px solid var(--border);border-radius:10px;padding:12px;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">🚪 Esci dall'account</button>
   </div>
 </div>
 
@@ -631,4 +634,4 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 </body>
 </html>
-<!-- VERSION: portafoglio360-v6 -->
+<!-- VERSION: portafoglio360-v7 -->
