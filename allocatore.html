@@ -39,6 +39,8 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html{font-size:15px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{overflow-x:hidden;}
 body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;padding-bottom:calc(var(--tab-h)+20px);-webkit-font-smoothing:antialiased;}
 
 /* ── HEADER ── */
@@ -500,7 +502,8 @@ const ALLOC_DEFAULT_CONFIG = {
   feTarget: 4600, liqTarget: 15000,
   pacMin: 100, pensioneMin: 100, pensioneCap: 1200,
   overflowLiq: 'jolly_future', overflowFe: 'pac',
-  overflowPensione: 'pac', skipPac: 'jolly_future', skipPensione: 'jolly_future'
+  overflowPensione: 'pac', skipPac: 'jolly_future', skipPensione: 'jolly_future',
+  spesaMax: 450, overflowSpesa: 'pac'
 };
 
 // Override config per tipo di entrata — sovrascrive solo le chiavi specificate
@@ -545,7 +548,7 @@ const ALLOC_SCENARIOS = [
 const ALLOC_OVERFLOW_OPTS = [
   {key:'jolly_future',   label:'🔮 Spese Future'},
   {key:'jolly_obiettivi',label:'🏁 Obiettivi in Corso'},
-  {key:'spesa',          label:'🛒 Spesa & Gratif.'},
+  {key:'spesa',          label:'🎁 Gratificazione'},
   {key:'pac',            label:'📊 PAC ETF'},
   {key:'pensione',       label:'🏛️ Fondo Pensione'},
 ];
@@ -633,6 +636,14 @@ function allocCompute(amount, entryType, scenario, liqCur, feCur, model, cfg){
     const ov=leaves.pensione;
     notes.push({type:'skip',msg:`Fondo Pensione €${allocFmtN(ov)} sotto €${cfg.pensioneMin} → ${ALLOC_OVERFLOW_LABELS[cfg.skipPensione]}`});
     leaves.pensione=0; addTo(cfg.skipPensione,ov);
+  }
+
+  // ── Gratificazione cap ──
+  if(leaves.spesa > cfg.spesaMax){
+    const ov = leaves.spesa - cfg.spesaMax;
+    leaves.spesa = cfg.spesaMax;
+    addTo(cfg.overflowSpesa, ov);
+    if(ov > 0.01) notes.push({type:'cap', msg:`€${allocFmtN(ov)} Gratificazione eccedente €${cfg.spesaMax} → ${ALLOC_OVERFLOW_LABELS[cfg.overflowSpesa]}`});
   }
 
   const rounded={};
@@ -835,7 +846,7 @@ function allocRender(){
   // Summary chips
   const chips=[
     {label:'Liquidità',       val:R.liq,                color:ALLOC_MC.liq,   icon:'💧'},
-    {label:'Spesa & Gratif.', val:R.spesa,              color:ALLOC_MC.spesa, icon:'🛒'},
+    {label:'Gratificazione', val:R.spesa,              color:ALLOC_MC.spesa, icon:'🛒'},
     {label:'Jolly Strategico',val:R.future+R.obiettivi, color:ALLOC_MC.jolly, icon:'🎯'},
     {label:'Rafforzamento',   val:R.fe+R.pac+R.pensione,color:ALLOC_MC.fin,   icon:'💪'},
   ];
@@ -950,7 +961,7 @@ function allocRenderEditModal(){
         Macro ${sb(macroSum)}
       </div>
       ${pctRow('💧 Liquidità Comfort','macro','liq',ALLOC_MC.liq)}
-      ${pctRow('🛒 Spesa & Gratif.','macro','spesa',ALLOC_MC.spesa)}
+      ${pctRow('🛒 Gratificazione','macro','spesa',ALLOC_MC.spesa)}
       ${pctRow('🎯 Jolly Strategico','macro','jolly',ALLOC_MC.jolly)}
       ${pctRow('💪 Rafforzamento Fin.','macro','fin',ALLOC_MC.fin)}
     </div>
@@ -1047,12 +1058,14 @@ function allocRenderConfigModal(){
       ${numRow('PAC ETF — minimo per attivazione','pacMin')}
       ${numRow('Fondo Pensione — minimo','pensioneMin')}
       ${numRow('Fondo Pensione — cap annuale','pensioneCap')}
+      ${numRow('Gratificazione — soglia massima','spesaMax')}
     </div>
     <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
       <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">Reindirizzamento eccedenze</div>
       ${selectRow('Liquidità eccedente target →','overflowLiq')}
       ${selectRow('Fondo Emergenza eccedente →','overflowFe')}
       ${selectRow('Fondo Pensione oltre cap →','overflowPensione')}
+      ${selectRow('Gratificazione oltre soglia →','overflowSpesa')}
     </div>
     <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
       <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">Reindirizzamento skip soglia</div>
