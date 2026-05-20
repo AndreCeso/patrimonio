@@ -503,7 +503,8 @@ const ALLOC_DEFAULT_CONFIG = {
   pacMin: 100, pensioneMin: 100, pensioneCap: 1200,
   overflowLiq: 'jolly_future', overflowFe: 'pac',
   overflowPensione: 'pac', skipPac: 'jolly_future', skipPensione: 'jolly_future',
-  spesaMax: 450, overflowSpesa: 'pac'
+  spesaMax: 450, overflowSpesa: 'pac',
+  arrotonda: false, overflowArrotonda: 'pensione'
 };
 
 // Override config per tipo di entrata — sovrascrive solo le chiavi specificate
@@ -652,13 +653,29 @@ function allocCompute(amount, entryType, scenario, liqCur, feCur, model, cfg){
   const sumR=Object.values(rounded).reduce((a,b)=>a+b,0);
   rounded.spesa=Math.max(0,rounded.spesa+(t5-sumR));
 
+  // ── Arrotondamento per difetto a multipli di 5 ──
+  if(cfg.arrotonda){
+    let spicci = 0;
+    Object.keys(rounded).forEach(function(k){
+      const r5 = Math.floor(rounded[k]/5)*5;
+      spicci += rounded[k] - r5;
+      rounded[k] = r5;
+    });
+    if(spicci > 0){
+      const dest = allocResolveKey(cfg.overflowArrotonda);
+      if(dest in rounded) rounded[dest] += spicci;
+      else rounded.pensione += spicci;
+      if(spicci >= 1) notes.push({type:'info', msg:`€${allocFmtN(spicci)} spicci → ${ALLOC_OVERFLOW_LABELS[cfg.overflowArrotonda]}`});
+    }
+  }
+
   return {rounded,notes};
 }
 
 // ═══════════════════════════════════════════════════════════
 // RENDER HELPERS
 // ═══════════════════════════════════════════════════════════
-function allocMacroRowHTML(icon,label,amount,total,color,subsHTML,subId){
+function allocMacroRowHTML(icon,label,amount,total,color,subsHTML,subId,desc){
   const p=allocPct(amount,total);
   const hasS=!!subsHTML;
   const chevron=hasS?`<span id="chev-${subId}" style="color:var(--muted);font-size:11px;margin-left:2px">▲</span>`:'';
@@ -668,7 +685,8 @@ function allocMacroRowHTML(icon,label,amount,total,color,subsHTML,subId){
     <div ${onclick} style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:10px;background:${color}15;border:1.5px solid ${color}40">
       <span style="font-size:20px">${icon}</span>
       <div style="flex:1">
-        <div style="font-size:13px;font-weight:700;color:${color};margin-bottom:5px">${label}</div>
+        <div style="font-size:13px;font-weight:700;color:${color};margin-bottom:2px">${label}</div>
+        ${desc?`<div style="font-size:10px;color:var(--muted);margin-bottom:4px">${desc}</div>`:''}
         <div style="height:4px;background:var(--bg2);border-radius:2px;overflow:hidden">
           <div class="alloc-bar-fill" style="height:100%;width:${Math.min(p,100)}%;background:${color};border-radius:2px"></div>
         </div>
@@ -683,7 +701,7 @@ function allocMacroRowHTML(icon,label,amount,total,color,subsHTML,subId){
   </div>`;
 }
 
-function allocSubRowHTML(icon,label,amount,macroAmt,color,badge){
+function allocSubRowHTML(icon,label,amount,macroAmt,color,badge,desc){
   const p=allocPct(amount,macroAmt);
   const badgeHTML=badge?`<span style="font-size:9px;background:${badge.bg};color:${badge.fg};border-radius:4px;padding:1px 6px;font-weight:700;letter-spacing:1px;margin-left:6px">${badge.text}</span>`:'';
   return `
@@ -691,7 +709,8 @@ function allocSubRowHTML(icon,label,amount,macroAmt,color,badge){
     <span style="font-size:14px">${icon}</span>
     <div style="flex:1">
       <div style="display:flex;align-items:center;margin-bottom:4px">
-        <span style="font-size:12px;color:var(--text)">${label}</span>${badgeHTML}
+        <div><span style="font-size:12px;color:var(--text)">${label}</span>${badgeHTML}</div>
+      ${desc?`<div style="font-size:10px;color:var(--muted);margin-top:1px">${desc}</div>`:''}
       </div>
       <div style="height:2px;background:var(--bg2);border-radius:1px;overflow:hidden">
         <div class="alloc-bar-fill" style="height:100%;width:${Math.min(p,100)}%;background:${color};border-radius:1px"></div>
@@ -819,26 +838,26 @@ function allocRender(){
 
   // Macro rows
   document.getElementById('alloc-macro-liq').innerHTML=
-    allocMacroRowHTML('💧','Liquidità di Comfort',R.liq,allocR5(amount),ALLOC_MC.liq,null,'');
+    allocMacroRowHTML('💧','Liquidità di Comfort',R.liq,allocR5(amount),ALLOC_MC.liq,null,'','Liquidità di sicurezza sul c/c');
   document.getElementById('alloc-macro-spesa').innerHTML=
-    allocMacroRowHTML('🛒','Spesa & Gratificazione',R.spesa,allocR5(amount),ALLOC_MC.spesa,null,'');
+    allocMacroRowHTML('🎁','Gratificazione',R.spesa,allocR5(amount),ALLOC_MC.spesa,null,'','Piaceri e acquisti discrezionali');
 
   const jollySubs=
     allocSubRowHTML('🔮','Spese Future',      R.future,   R.future+R.obiettivi,'#fdba74',null)+
-    allocSubRowHTML('🏁','Obiettivi in Corso',R.obiettivi,R.future+R.obiettivi,'#fbbf24',null);
+    allocSubRowHTML('🏁','Obiettivi in Corso',R.obiettivi,R.future+R.obiettivi,'#fbbf24',null,'Riserva per spese pianificate','Obiettivi finanziari attivi');
   document.getElementById('alloc-macro-jolly').innerHTML=
-    allocMacroRowHTML('🎯','Jolly Strategico',R.future+R.obiettivi,allocR5(amount),ALLOC_MC.jolly,jollySubs,'jolly');
+    allocMacroRowHTML('🎯','Jolly Strategico',R.future+R.obiettivi,allocR5(amount),ALLOC_MC.jolly,jollySubs,'jolly','Fondo flessibile multi-scopo');
 
   const finTotal=R.fe+R.pac+R.pensione;
   const finSubs=
     allocSubRowHTML('📊','PAC ETF',        R.pac,     finTotal,'#60a5fa',
-      R.pac===0?{text:'SKIP',bg:'#e05c3a20',fg:'#e05c3a'}:null)+
+      R.pac===0?{text:'SKIP',bg:'#e05c3a20',fg:'#e05c3a'}:null,'Piano di accumulo mensile')+
     allocSubRowHTML('🏛️','Fondo Pensione', R.pensione,finTotal,'#818cf8',
-      R.pensione>=cfg.pensioneCap?{text:`CAP €${cfg.pensioneCap}`,bg:'#f59e0b20',fg:'#f59e0b'}:null)+
+      R.pensione>=cfg.pensioneCap?{text:`CAP €${cfg.pensioneCap}`,bg:'#f59e0b20',fg:'#f59e0b'}:null,'Pensione integrativa')+
     allocSubRowHTML('🛡️','Fondo Emergenza',R.fe,      finTotal,'#e05c3a',
-      feCur>=allocState.cfg.feTarget?{text:'SATURO',bg:'#34c78a20',fg:'#34c78a'}:null);
+      feCur>=allocState.cfg.feTarget?{text:'SATURO',bg:'#34c78a20',fg:'#34c78a'}:null,'Cuscinetto per imprevisti');
   document.getElementById('alloc-macro-fin').innerHTML=
-    allocMacroRowHTML('💪','Rafforzamento Finanziario',finTotal,allocR5(amount),ALLOC_MC.fin,finSubs,'fin');
+    allocMacroRowHTML('💪','Rafforzamento Finanziario',finTotal,allocR5(amount),ALLOC_MC.fin,finSubs,'fin','Investimenti e obiettivi di lungo termine');
 
   document.getElementById('alloc-total-display').textContent=`€${allocFmtN(amount)}`;
   resultsCard.style.display='block';
@@ -1072,6 +1091,19 @@ function allocRenderConfigModal(){
       ${selectRow('PAC sotto soglia →','skipPac')}
       ${selectRow('Fondo Pensione sotto soglia →','skipPensione')}
     </div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">Arrotondamento</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text);">Multipli di 5</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Cifre tonde per difetto, spicci → destinazione</div>
+        </div>
+        <button id="arrotonda-toggle" onclick="allocToggleArrotonda()" style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;background:${cfg.arrotonda?'var(--green)':'var(--border)'};position:relative;transition:background .2s;">
+          <span style="width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:3px;${cfg.arrotonda?'right:3px':'left:3px'};transition:all .2s;display:block;"></span>
+        </button>
+      </div>
+      ${cfg.arrotonda ? selectRow('Spicci →','overflowArrotonda') : ''}
+    </div>
     <button onclick="allocResetCfg()" style="width:100%;padding:9px;background:var(--amber-l)12;border:1px solid #fde68a40;border-radius:8px;color:var(--amber);cursor:pointer;font-size:12px;font-weight:700">
       ↺ Reset configurazione di default
     </button>
@@ -1080,6 +1112,13 @@ function allocRenderConfigModal(){
 
 function allocUpdateCfgNum(key,val){ allocState.cfg[key]=Number(val); allocRender(); allocRenderConfigModal(); }
 function allocUpdateCfgSelect(key,val){ allocState.cfg[key]=val; allocRender(); allocRenderConfigModal(); }
+function allocToggleArrotonda(){
+  allocState.cfg.arrotonda = !allocState.cfg.arrotonda;
+  allocSaveState();
+  allocRenderConfigModal();
+  allocRender();
+}
+
 function allocResetCfg(){ allocState.cfg={...ALLOC_DEFAULT_CONFIG}; allocRender(); allocRenderConfigModal(); }
 
 // ═══════════════════════════════════════════════════════════
