@@ -654,6 +654,7 @@ function allocCompute(amount, entryType, scenario, liqCur, feCur, model, cfg){
   rounded.spesa=Math.max(0,rounded.spesa+(t5-sumR));
 
   // ── Arrotondamento per difetto a multipli di 5 ──
+  allocState._spicci = 0;
   if(cfg.arrotonda){
     let spicci = 0;
     Object.keys(rounded).forEach(function(k){
@@ -665,6 +666,7 @@ function allocCompute(amount, entryType, scenario, liqCur, feCur, model, cfg){
       const dest = allocResolveKey(cfg.overflowArrotonda);
       if(dest in rounded) rounded[dest] += spicci;
       else rounded.pensione += spicci;
+      allocState._spicci = spicci;
       if(spicci >= 1) notes.push({type:'info', msg:`€${allocFmtN(spicci)} spicci → ${ALLOC_OVERFLOW_LABELS[cfg.overflowArrotonda]}`});
     }
   }
@@ -678,7 +680,7 @@ function allocCompute(amount, entryType, scenario, liqCur, feCur, model, cfg){
 function allocMacroRowHTML(icon,label,amount,total,color,subsHTML,subId,desc){
   const p=allocPct(amount,total);
   const hasS=!!subsHTML;
-  const chevron=hasS?`<span id="chev-${subId}" style="color:var(--muted);font-size:11px;margin-left:2px">▲</span>`:'';
+  const chevron=hasS?`<span id="chev-${subId}" style="color:var(--muted);font-size:11px;margin-left:2px">▼</span>`:'';
   const onclick=hasS?`onclick="allocToggleSub('${subId}')" style="cursor:pointer"`:`style="cursor:default"`;
   return `
   <div style="margin-bottom:10px">
@@ -697,7 +699,7 @@ function allocMacroRowHTML(icon,label,amount,total,color,subsHTML,subId,desc){
       </div>
       ${chevron}
     </div>
-    ${hasS?`<div id="sub-${subId}" class="sub-list">${subsHTML}</div>`:''}
+    ${hasS?`<div id="sub-${subId}" class="alloc-sub-list hidden">${subsHTML}</div>`:''}
   </div>`;
 }
 
@@ -843,8 +845,8 @@ function allocRender(){
     allocMacroRowHTML('🎁','Gratificazione',R.spesa,allocR5(amount),ALLOC_MC.spesa,null,'','Piaceri e acquisti discrezionali');
 
   const jollySubs=
-    allocSubRowHTML('🔮','Spese Future',      R.future,   R.future+R.obiettivi,'#fdba74',null)+
-    allocSubRowHTML('🏁','Obiettivi in Corso',R.obiettivi,R.future+R.obiettivi,'#fbbf24',null,'Riserva per spese pianificate','Obiettivi finanziari attivi');
+    allocSubRowHTML('🔮','Spese Future',      R.future,   R.future+R.obiettivi,'#fdba74',null,'Riserva per spese pianificate')+
+    allocSubRowHTML('🏁','Obiettivi in Corso',R.obiettivi,R.future+R.obiettivi,'#fbbf24',null,'Obiettivi finanziari attivi');
   document.getElementById('alloc-macro-jolly').innerHTML=
     allocMacroRowHTML('🎯','Jolly Strategico',R.future+R.obiettivi,allocR5(amount),ALLOC_MC.jolly,jollySubs,'jolly','Fondo flessibile multi-scopo');
 
@@ -853,7 +855,8 @@ function allocRender(){
     allocSubRowHTML('📊','PAC ETF',        R.pac,     finTotal,'#60a5fa',
       R.pac===0?{text:'SKIP',bg:'#e05c3a20',fg:'#e05c3a'}:null,'Piano di accumulo mensile')+
     allocSubRowHTML('🏛️','Fondo Pensione', R.pensione,finTotal,'#818cf8',
-      R.pensione>=cfg.pensioneCap?{text:`CAP €${cfg.pensioneCap}`,bg:'#f59e0b20',fg:'#f59e0b'}:null,'Pensione integrativa')+
+      R.pensione>=cfg.pensioneCap?{text:`CAP €${cfg.pensioneCap}`,bg:'#f59e0b20',fg:'#f59e0b'}:null,
+      (function(){ var base='Pensione integrativa'; if(cfg.arrotonda&&allocState._spicci>0&&cfg.overflowArrotonda==='pensione') base+=' · 💰 +€'+allocFmtN(allocState._spicci)+' da arrotondamento'; return base; })())+
     allocSubRowHTML('🛡️','Fondo Emergenza',R.fe,      finTotal,'#e05c3a',
       feCur>=allocState.cfg.feTarget?{text:'SATURO',bg:'#34c78a20',fg:'#34c78a'}:null,'Cuscinetto per imprevisti');
   document.getElementById('alloc-macro-fin').innerHTML=
