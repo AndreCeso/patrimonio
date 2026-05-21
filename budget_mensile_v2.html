@@ -973,7 +973,31 @@ function renderDash(){
       const x3=cx+ri*Math.cos(ea),y3=cy+ri*Math.sin(ea);
       const x4=cx+ri*Math.cos(sa),y4=cy+ri*Math.sin(sa);
       const lg=safeAngle>Math.PI?1:0;
-      arcPath='<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+' A'+R+','+R+' 0 '+lg+',1 '+x2.toFixed(1)+','+y2.toFixed(1)+' L'+x3.toFixed(1)+','+y3.toFixed(1)+' A'+ri+','+ri+' 0 '+lg+',0 '+x4.toFixed(1)+','+y4.toFixed(1)+' Z" fill="'+macro.color+'"/>';
+      if(macro.diff>0 && macro.val>0){
+        // Split arc: violet (now) + yellow (differito)
+        const pctNow = macro.diffNow/macro.val;
+        const angleNow = safeAngle * pctNow;
+        const angleDiff = safeAngle - angleNow;
+        const eaNow = sa + angleNow;
+        if(angleNow > 0.01){
+          const xn2=cx+R*Math.cos(eaNow),yn2=cy+R*Math.sin(eaNow);
+          const xn3=cx+ri*Math.cos(eaNow),yn3=cy+ri*Math.sin(eaNow);
+          const xn4=cx+ri*Math.cos(sa),yn4=cy+ri*Math.sin(sa);
+          const lgN=angleNow>Math.PI?1:0;
+          arcPath+='<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+' A'+R+','+R+' 0 '+lgN+',1 '+xn2.toFixed(1)+','+yn2.toFixed(1)+' L'+xn3.toFixed(1)+','+yn3.toFixed(1)+' A'+ri+','+ri+' 0 '+lgN+',0 '+xn4.toFixed(1)+','+yn4.toFixed(1)+' Z" fill="'+macro.color+'"/>';
+        }
+        if(angleDiff > 0.01){
+          const eaD = eaNow + angleDiff;
+          const xd1=cx+R*Math.cos(eaNow),yd1=cy+R*Math.sin(eaNow);
+          const xd2=cx+R*Math.cos(eaD),yd2=cy+R*Math.sin(eaD);
+          const xd3=cx+ri*Math.cos(eaD),yd3=cy+ri*Math.sin(eaD);
+          const xd4=cx+ri*Math.cos(eaNow),yd4=cy+ri*Math.sin(eaNow);
+          const lgD=angleDiff>Math.PI?1:0;
+          arcPath+='<path d="M'+xd1.toFixed(1)+','+yd1.toFixed(1)+' A'+R+','+R+' 0 '+lgD+',1 '+xd2.toFixed(1)+','+yd2.toFixed(1)+' L'+xd3.toFixed(1)+','+yd3.toFixed(1)+' A'+ri+','+ri+' 0 '+lgD+',0 '+xd4.toFixed(1)+','+yd4.toFixed(1)+' Z" fill="#f59e0b"/>';
+        }
+      } else {
+        arcPath='<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+' A'+R+','+R+' 0 '+lg+',1 '+x2.toFixed(1)+','+y2.toFixed(1)+' L'+x3.toFixed(1)+','+y3.toFixed(1)+' A'+ri+','+ri+' 0 '+lg+',0 '+x4.toFixed(1)+','+y4.toFixed(1)+' Z" fill="'+macro.color+'"/>';
+      }
     }
     const donutSvg='<svg viewBox="0 0 70 70" width="70" height="70" style="flex-shrink:0;">'
       +'<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="'+macro.bg+'"/>'
