@@ -504,6 +504,7 @@ const ALLOC_DEFAULT_CONFIG = {
   overflowLiq: 'jolly_future', overflowFe: 'pac',
   overflowPensione: 'pac', skipPac: 'jolly_future', skipPensione: 'jolly_future',
   spesaMax: 450, overflowSpesa: 'pac',
+  pctMomenti: 65, pctPiggy: 35,
   arrotonda: false, overflowArrotonda: 'pensione'
 };
 
@@ -741,6 +742,9 @@ function allocToggleSub(id){
 // ═══════════════════════════════════════════════════════════
 function allocRender(){
   const {amount,liqCur,feCur,entry,scenarioOverride,model,cfg} = allocState;
+  // Reset suddivisione on each render
+  const suddEl = document.getElementById('alloc-spesa-sudd');
+  if(suddEl) suddEl.style.display='none';
   // Update hint labels
   const hLiq = document.getElementById('hint-liq-target');
   const hFe  = document.getElementById('hint-fe-target');
@@ -840,8 +844,28 @@ function allocRender(){
   // Macro rows
   document.getElementById('alloc-macro-liq').innerHTML=
     allocMacroRowHTML('💧','Liquidità di Comfort',R.liq,Math.round(amount),ALLOC_MC.liq,null,'','Liquidità di sicurezza sul c/c');
+  // Gratificazione suddivisione (informativa)
+  const momenti = Math.round(R.spesa * cfg.pctMomenti / 100);
+  const piggy   = Math.round(R.spesa * cfg.pctPiggy   / 100);
+  const suddHTML = R.spesa > 0 ? `
+    <div id="alloc-spesa-sudd" style="display:none;margin-top:8px;padding:10px 14px;background:#f5f0ff;border-radius:8px;border:1px solid #e9d5ff;">
+      <div style="font-size:10px;color:#7c3aed;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Suddivisione suggerita</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #e9d5ff;">
+        <span style="font-size:12px;font-weight:600;">🌟 Momenti Speciali</span>
+        <span style="font-size:13px;font-weight:800;color:#7c3aed;">€${allocFmtN(momenti)} <span style="font-size:10px;color:var(--muted);">(${cfg.pctMomenti}%)</span></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">
+        <span style="font-size:12px;font-weight:600;">🐷 Piggy Bank</span>
+        <span style="font-size:13px;font-weight:800;color:#7c3aed;">€${allocFmtN(piggy)} <span style="font-size:10px;color:var(--muted);">(${cfg.pctPiggy}%)</span></span>
+      </div>
+    </div>` : '';
   document.getElementById('alloc-macro-spesa').innerHTML=
-    allocMacroRowHTML('🎁','Gratificazione',R.spesa,Math.round(amount),ALLOC_MC.spesa,null,'','Piaceri e acquisti discrezionali');
+    allocMacroRowHTML('🎁','Gratificazione',R.spesa,Math.round(amount),ALLOC_MC.spesa,null,'','Piaceri e acquisti discrezionali')
+    + (R.spesa>0 ? `<div style="text-align:right;margin-top:-8px;margin-bottom:4px;">
+        <button onclick="var el=document.getElementById('alloc-spesa-sudd');el.style.display=el.style.display==='none'?'block':'none';" 
+          style="background:none;border:none;cursor:pointer;font-size:18px;" title="Mostra suddivisione suggerita">💡</button>
+      </div>` : '')
+    + suddHTML;
 
   const jollySubs=
     allocSubRowHTML('🔮','Spese Future',      R.future,   R.future+R.obiettivi,'#fdba74',null,'Riserva per spese pianificate')+
@@ -1080,6 +1104,8 @@ function allocRenderConfigModal(){
       ${numRow('Fondo Pensione — minimo','pensioneMin')}
       ${numRow('Fondo Pensione — cap annuale','pensioneCap')}
       ${numRow('Gratificazione — soglia massima','spesaMax')}
+      ${numRow('Gratificazione → Momenti Speciali %','pctMomenti')}
+      ${numRow('Gratificazione → Piggy Bank %','pctPiggy')}
     </div>
     <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
       <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">Reindirizzamento eccedenze</div>
