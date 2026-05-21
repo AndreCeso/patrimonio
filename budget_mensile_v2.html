@@ -1797,7 +1797,7 @@ function renderSchedToggles(){
   ];
   var st = CFG.scheduledTypes || {};
   el.innerHTML = tipi.map(function(t, i){
-    var active = st[t.key] !== false && st[t.key] !== undefined ? !!st[t.key] : (t.key==='EXPENSES'||t.key==='TEMPO LIBERO');
+    var active = (t.key in st) ? !!st[t.key] : (t.key==='EXPENSES'||t.key==='TEMPO LIBERO');
     var border = i < tipi.length-1 ? 'border-bottom:1px solid var(--border);' : '';
     var btnStyle = 'width:44px;height:24px;border-radius:12px;border:none;'
       +(t.locked ? 'cursor:not-allowed;opacity:.6;' : 'cursor:pointer;')
