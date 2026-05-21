@@ -1766,34 +1766,41 @@ function renderSchedToggles(){
   var el = document.getElementById('cfg-sched-toggles');
   if(!el) return;
   var tipi = [
-    {key:'EXPENSES',    lbl:'Spese',        emoji:'🏠', color:'#e91e8c'},
-    {key:'TEMPO LIBERO',lbl:'Tempo Libero', emoji:'🎉', color:'#7c3aed'},
-    {key:'SAVINGS',     lbl:'Risparmi',     emoji:'🐷', color:'#f0a500'},
-    {key:'INCOME',      lbl:'Reddito',      emoji:'💰', color:'#006636'},
+    {key:'EXPENSES',    lbl:'Spese',        emoji:'🏠', color:'#e91e8c', locked:true},
+    {key:'TEMPO LIBERO',lbl:'Tempo Libero', emoji:'🎉', color:'#7c3aed', locked:true},
+    {key:'SAVINGS',     lbl:'Risparmi',     emoji:'🐷', color:'#f0a500', locked:false},
+    {key:'INCOME',      lbl:'Reddito',      emoji:'💰', color:'#006636', locked:false},
   ];
   var st = CFG.scheduledTypes || {};
   el.innerHTML = tipi.map(function(t, i){
     var active = st[t.key] !== false && st[t.key] !== undefined ? !!st[t.key] : (t.key==='EXPENSES'||t.key==='TEMPO LIBERO');
     var border = i < tipi.length-1 ? 'border-bottom:1px solid var(--border);' : '';
+    var btnStyle = 'width:44px;height:24px;border-radius:12px;border:none;'
+      +(t.locked ? 'cursor:not-allowed;opacity:.6;' : 'cursor:pointer;')
+      +'background:'+(active?t.color:'var(--border)')+';position:relative;transition:background .2s;';
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;'+border+'">'
       +'<div style="display:flex;align-items:center;gap:8px;">'
       +'<span style="font-size:16px;">'+t.emoji+'</span>'
+      +'<div>'
       +'<span style="font-size:13px;font-weight:600;color:var(--text);">'+t.lbl+'</span>'
+      +(t.locked?'<span style="font-size:10px;color:var(--muted);margin-left:6px;">sempre attivo</span>':'')
       +'</div>'
-      +'<button data-sched-key="'+t.key+'" class="sched-toggle-btn" style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;background:'+(active?t.color:'var(--border)')+';position:relative;transition:background .2s;">'
+      +'</div>'
+      +'<button data-sched-key="'+t.key+'" data-locked="'+t.locked+'" class="sched-toggle-btn" style="'+btnStyle+'">'
       +'<span style="width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:3px;'+(active?'right:3px':'left:3px')+';transition:all .2s;display:block;"></span>'
       +'</button>'
       +'</div>';
   }).join('');
-  // Attach toggle events
+  // Attach toggle events — skip locked
   el.querySelectorAll('.sched-toggle-btn').forEach(function(btn){
     btn.addEventListener('click', function(){
+      if(btn.getAttribute('data-locked')==='true') return;
       var key = btn.getAttribute('data-sched-key');
       if(!CFG.scheduledTypes) CFG.scheduledTypes = {};
       CFG.scheduledTypes[key] = !CFG.scheduledTypes[key];
       saveAll();
       renderSchedToggles();
-      toast(key+' '+(CFG.scheduledTypes[key]?'attivato':'disattivato'));
+      showToast((CFG.scheduledTypes[key]?'Attivato':'Disattivato')+': '+key);
     });
   });
 }
