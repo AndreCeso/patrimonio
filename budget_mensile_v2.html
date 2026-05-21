@@ -844,7 +844,8 @@ function addTransaction(){
   const k=mKey(y,m);
   if(!TXN[k]) TXN[k]=[];
   const extra=document.getElementById('add-extra')?.checked||false;
-  TXN[k].push({tipo:addTipo,cat,desc,amt,date,extra});
+  const differito=addTipo==='TEMPO LIBERO'&&(document.getElementById('add-differito')?.checked||false);
+  TXN[k].push({tipo:addTipo,cat,desc,amt,date,extra,differito});
   if(document.getElementById('add-extra')) document.getElementById('add-extra').checked=false;
   saveAll();
   showToast('✅ Aggiunto: '+fmt(amt));
