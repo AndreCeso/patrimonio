@@ -1320,12 +1320,15 @@ function renderStorico(){
   var topFlopHtml = (function(){
     var bestSaldo  = mesiConDati.reduce(function(b,md){ return md.c.saldo > b.c.saldo ? md : b; }, mesiConDati[0]);
     var worstSaldo = mesiConDati.reduce(function(b,md){ return md.c.saldo < b.c.saldo ? md : b; }, mesiConDati[0]);
-    var mostSpese  = mesiConDati.reduce(function(b,md){ return md.c.spese > b.c.spese ? md : b; }, mesiConDati[0]);
-    var leastSpese = mesiConDati.reduce(function(b,md){ return md.c.spese < b.c.spese ? md : b; }, mesiConDati[0]);
-    var mostTl     = mesiConDati.reduce(function(b,md){ return md.c.tl > b.c.tl ? md : b; }, mesiConDati[0]);
-    var leastTl    = mesiConDati.reduce(function(b,md){ return md.c.tl < b.c.tl ? md : b; }, mesiConDati[0]);
-    var mostRisp   = mesiConDati.reduce(function(b,md){ return md.c.risp > b.c.risp ? md : b; }, mesiConDati[0]);
-    var leastRisp  = mesiConDati.reduce(function(b,md){ return md.c.risp < b.c.risp ? md : b; }, mesiConDati[0]);
+    // Spese: TOP = mese con MENO spese (virtuoso), FLOP = mese con PIÙ spese
+    var topSpese   = mesiConDati.reduce(function(b,md){ return md.c.spese < b.c.spese ? md : b; }, mesiConDati[0]);
+    var flopSpese  = mesiConDati.reduce(function(b,md){ return md.c.spese > b.c.spese ? md : b; }, mesiConDati[0]);
+    // Tempo Libero: TOP = mese con MENO TL, FLOP = mese con PIÙ TL
+    var topTl      = mesiConDati.reduce(function(b,md){ return md.c.tl < b.c.tl ? md : b; }, mesiConDati[0]);
+    var flopTl     = mesiConDati.reduce(function(b,md){ return md.c.tl > b.c.tl ? md : b; }, mesiConDati[0]);
+    // Risparmi: TOP = mese con PIÙ risparmi, FLOP = mese con MENO risparmi
+    var topRisp    = mesiConDati.reduce(function(b,md){ return md.c.risp > b.c.risp ? md : b; }, mesiConDati[0]);
+    var flopRisp   = mesiConDati.reduce(function(b,md){ return md.c.risp < b.c.risp ? md : b; }, mesiConDati[0]);
 
     // Uniform row: label | TOP col | FLOP col (or empty placeholder)
     function tfRow(emoji, lbl, topM, topV, topC, flopM, flopV, last){
@@ -1356,9 +1359,9 @@ function renderStorico(){
     // Collapsible card with filter toggles
     var rows = [
       {id:'tf-saldo', emoji:'💵', lbl:'Reddito disponibile', topM:bestSaldo.m,  topV:bestSaldo.c.saldo,   topC:'var(--green)', flopM:worstSaldo.m, flopV:worstSaldo.c.saldo},
-      {id:'tf-spese', emoji:'🏠', lbl:'Spese',               topM:mostSpese.m,  topV:mostSpese.c.spese,   topC:'#e91e8c',      flopM:leastSpese.m, flopV:leastSpese.c.spese},
-      {id:'tf-tl',    emoji:'🎉', lbl:'Tempo Libero',         topM:mostTl.m,     topV:mostTl.c.tl,         topC:'#7c3aed',      flopM:leastTl.m,    flopV:leastTl.c.tl},
-      {id:'tf-risp',  emoji:'🐷', lbl:'Risparmio',            topM:mostRisp.m,   topV:mostRisp.c.risp,     topC:'#f0a500',      flopM:leastRisp.m,  flopV:leastRisp.c.risp},
+      {id:'tf-spese', emoji:'🏠', lbl:'Spese',               topM:topSpese.m,   topV:topSpese.c.spese,    topC:'var(--green)', flopM:flopSpese.m,  flopV:flopSpese.c.spese},
+      {id:'tf-tl',    emoji:'🎉', lbl:'Tempo Libero',         topM:topTl.m,      topV:topTl.c.tl,          topC:'var(--green)', flopM:flopTl.m,     flopV:flopTl.c.tl},
+      {id:'tf-risp',  emoji:'🐷', lbl:'Risparmio',            topM:topRisp.m,    topV:topRisp.c.risp,      topC:'var(--green)', flopM:flopRisp.m,   flopV:flopRisp.c.risp},
     ];
 
     var filterBtns = rows.map(function(r){
