@@ -1168,6 +1168,13 @@ function allocSaveState(){
 
 function allocLoadState(){
   try {
+    // Seed storico on first load
+    const seedKey = 'fa_seed_version';
+    if(localStorage.getItem(seedKey) !== ALLOC_SEED_VERSION){
+      localStorage.setItem(ALLOC_LS_STORICO, JSON.stringify(ALLOC_SEED_STORICO));
+      localStorage.setItem(ALLOC_LS_STATE,   ALLOC_SEED_STATE);
+      localStorage.setItem(seedKey,           ALLOC_SEED_VERSION);
+    }
     const raw = localStorage.getItem(ALLOC_LS_STATE);
     if(!raw) return;
     const s = JSON.parse(raw);
@@ -1317,6 +1324,8 @@ const ALLOC_ALL_KPI = [
   {key:'totPensione', label:'Pensione',        color:'#818cf8', fn: list=>list.reduce((a,r)=>a+r.alloc.pensione,0)},
   {key:'totFe',       label:'FE versato',      color:'#e05c3a', fn: list=>list.reduce((a,r)=>a+r.alloc.fe,0)},
   {key:'totJolly',    label:'Jolly',           color:'#fb923c', fn: list=>list.reduce((a,r)=>a+r.alloc.future+r.alloc.obiettivi,0)},
+  {key:'totFuture',   label:'Spese Future',    color:'#fdba74', fn: list=>list.reduce((a,r)=>a+r.alloc.future,0)},
+  {key:'totObiettivi',label:'Obiettivi',       color:'#fbbf24', fn: list=>list.reduce((a,r)=>a+r.alloc.obiettivi,0)},
   {key:'totSpesa',    label:'Spesa Gratificazione', color:'#a78bfa', fn: list=>list.reduce((a,r)=>a+r.alloc.spesa,0)},
   {key:'totLiq',      label:'Liquidità',       color:'#34c78a', fn: list=>list.reduce((a,r)=>a+r.alloc.liq,0)},
   {key:'pctPac',      label:'% media PAC',     color:'#60a5fa', fn: list=>{const v=list.filter(r=>r.amount>0);return v.length?Math.round(v.reduce((a,r)=>a+r.alloc.pac/r.amount*100,0)/v.length):0;}, isPercent:true},
@@ -1368,6 +1377,14 @@ function allocRenderStoricoModal(){
 
 // ── TAB LISTA ────────────────────────────────────────────────
 function allocRenderListaTab(list, container){
+  // Helper for sub-cell (indented, smaller)
+  function subCell(val, pct, color){
+    return `<div style="font-size:10px;color:${color};white-space:nowrap;padding-left:8px;border-left:2px solid ${color}30;">€${val.toLocaleString('it-IT')} <span style="color:var(--dim);font-size:9px;">${pct}</span></div>`;
+  }
+  function macroCell(val, pct, color){
+    return `<div style="font-size:12px;font-weight:800;color:${color};white-space:nowrap;">€${val.toLocaleString('it-IT')}</div><div style="font-size:9px;color:var(--dim);">${pct}</div>`;
+  }
+
   const tableRows = list.map(r => {
     const d    = new Date(r.date);
     const ds   = d.toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'2-digit'});
@@ -1376,8 +1393,8 @@ function allocRenderListaTab(list, container){
     const sl   = ALLOC_SC_LABELS[r.scenario]||r.scenario;
     const raf  = r.alloc.fe + r.alloc.pac + r.alloc.pensione;
     const jolly= r.alloc.future + r.alloc.obiettivi;
-    const pct  = v => r.amount>0 ? Math.round(v/r.amount*100)+'%' : '0%';
-    return `<tr style="border-bottom:1px solid var(--border)">
+    const p    = v => r.amount>0 ? Math.round(v/r.amount*100)+'%' : '0%';
+    return `<tr style="border-bottom:1px solid var(--border);vertical-align:top;">
       <td style="padding:10px 8px;white-space:nowrap">
         <div style="font-size:12px;font-weight:700;color:var(--text)">${r.nome}</div>
         <div style="font-size:10px;color:var(--muted);margin-top:1px">${ds}</div>
@@ -1387,31 +1404,28 @@ function allocRenderListaTab(list, container){
         <span style="font-size:11px;margin-left:4px;background:${sc}20;color:${sc};border:1px solid ${sc}40;border-radius:4px;padding:2px 6px">${sl}</span>
       </td>
       <td style="padding:10px 8px;text-align:right;font-size:13px;font-weight:700;color:var(--blue);white-space:nowrap">€${r.amount.toLocaleString('it-IT')}</td>
+      <!-- Liquidità -->
+      <td style="padding:10px 8px;text-align:right">${macroCell(r.alloc.liq, p(r.alloc.liq), 'var(--green)')}</td>
+      <!-- Spesa -->
+      <td style="padding:10px 8px;text-align:right">${macroCell(r.alloc.spesa, p(r.alloc.spesa), '#a78bfa')}</td>
+      <!-- Jolly (macro + subs) -->
       <td style="padding:10px 8px;text-align:right">
-        <div style="font-size:12px;color:var(--green);white-space:nowrap">€${r.alloc.liq.toLocaleString('it-IT')}</div>
-        <div style="font-size:9px;color:var(--dim)">${allocPct(r.alloc.liq)}</div>
+        ${macroCell(jolly, p(jolly), '#fb923c')}
+        <div style="margin-top:4px;display:flex;flex-direction:column;gap:2px;align-items:flex-end;">
+          ${subCell(r.alloc.future, p(r.alloc.future), '#fdba74')}
+          ${subCell(r.alloc.obiettivi, p(r.alloc.obiettivi), '#fbbf24')}
+        </div>
       </td>
+      <!-- Rafforzamento (macro + subs) -->
       <td style="padding:10px 8px;text-align:right">
-        <div style="font-size:12px;color:#a78bfa;white-space:nowrap">€${r.alloc.spesa.toLocaleString('it-IT')}</div>
-        <div style="font-size:9px;color:var(--dim)">${allocPct(r.alloc.spesa)}</div>
+        ${macroCell(raf, p(raf), '#4f8ef7')}
+        <div style="margin-top:4px;display:flex;flex-direction:column;gap:2px;align-items:flex-end;">
+          ${subCell(r.alloc.fe, p(r.alloc.fe), '#e05c3a')}
+          ${subCell(r.alloc.pac, p(r.alloc.pac), '#60a5fa')}
+          ${subCell(r.alloc.pensione, p(r.alloc.pensione), '#818cf8')}
+        </div>
       </td>
-      <td style="padding:10px 8px;text-align:right">
-        <div style="font-size:12px;color:#fb923c;white-space:nowrap">€${jolly.toLocaleString('it-IT')}</div>
-        <div style="font-size:9px;color:var(--dim)">${allocPct(jolly)}</div>
-      </td>
-      <td style="padding:10px 8px;text-align:right">
-        <div style="font-size:12px;color:#4f8ef7;white-space:nowrap">€${raf.toLocaleString('it-IT')}</div>
-        <div style="font-size:9px;color:var(--dim)">${allocPct(raf)}</div>
-      </td>
-      <td style="padding:10px 8px;text-align:right">
-        <div style="font-size:12px;color:#1e40af;white-space:nowrap">€${r.alloc.pac.toLocaleString('it-IT')}</div>
-        <div style="font-size:9px;color:var(--dim)">${allocPct(r.alloc.pac)}</div>
-      </td>
-      <td style="padding:10px 8px;text-align:right">
-        <div style="font-size:12px;color:#4f46e5;white-space:nowrap">€${r.alloc.pensione.toLocaleString('it-IT')}</div>
-        <div style="font-size:9px;color:var(--dim)">${allocPct(r.alloc.pensione)}</div>
-      </td>
-      <td style="padding:10px 8px;text-align:center;white-space:nowrap">
+      <td style="padding:10px 8px;text-align:center;white-space:nowrap;vertical-align:middle;">
         <button onclick="allocRinominaRecord('${r.id}')" style="background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:5px;color:var(--blue);cursor:pointer;font-size:10px;padding:3px 7px;margin-right:3px">✎</button>
         <button onclick="allocEliminaRecord('${r.id}')" style="background:var(--red-l)12;border:1px solid #fca5a540;border-radius:5px;color:var(--red);cursor:pointer;font-size:10px;padding:3px 7px">🗑</button>
       </td>
@@ -1420,18 +1434,22 @@ function allocRenderListaTab(list, container){
 
   container.innerHTML = `
     <div style="overflow-x:auto;margin-bottom:12px">
-      <table style="width:100%;border-collapse:collapse;font-family:inherit;min-width:680px">
+      <table style="width:100%;border-collapse:collapse;font-family:inherit;min-width:600px">
         <thead>
-          <tr style="border-bottom:1px solid var(--border)">
+          <tr style="border-bottom:2px solid var(--border);background:var(--bg);">
             <th style="padding:8px;text-align:left;font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase">Voce</th>
-            <th style="padding:8px;font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase">Tipo / Scenario</th>
+            <th style="padding:8px;font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase">Tipo / Sc.</th>
             <th style="padding:8px;text-align:right;font-size:10px;color:var(--muted);font-weight:600">Importo</th>
             <th style="padding:8px;text-align:right;font-size:10px;color:var(--green);font-weight:600">Liquidità</th>
             <th style="padding:8px;text-align:right;font-size:10px;color:#a78bfa;font-weight:600">Spesa</th>
-            <th style="padding:8px;text-align:right;font-size:10px;color:#fb923c;font-weight:600">Jolly</th>
-            <th style="padding:8px;text-align:right;font-size:10px;color:#4f8ef7;font-weight:600">Raff.</th>
-            <th style="padding:8px;text-align:right;font-size:10px;color:#1e40af;font-weight:600">PAC ETF</th>
-            <th style="padding:8px;text-align:right;font-size:10px;color:#4f46e5;font-weight:600">Pensione</th>
+            <th style="padding:8px;text-align:right;font-size:10px;font-weight:600;">
+              <span style="color:#fb923c">Jolly</span>
+              <div style="color:var(--dim);font-weight:400;font-size:9px;">Future · Ob.</div>
+            </th>
+            <th style="padding:8px;text-align:right;font-size:10px;font-weight:600;">
+              <span style="color:#4f8ef7">Raff.</span>
+              <div style="color:var(--dim);font-weight:400;font-size:9px;">FE · PAC · Pens.</div>
+            </th>
             <th style="padding:8px;font-size:10px;color:var(--muted);font-weight:600"></th>
           </tr>
         </thead>
@@ -1443,7 +1461,7 @@ function allocRenderListaTab(list, container){
       <button onclick="document.getElementById('alloc-import-input').click()" style="padding:9px;background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:8px;color:var(--blue);cursor:pointer;font-size:11px;font-weight:700">⬆ Importa dati</button>
       <button onclick="if(confirm('Cancellare tutto lo storico?')){localStorage.removeItem('${ALLOC_LS_STORICO}');allocStoricoTab='overview';allocRenderStoricoModal();allocUpdateStoricoBadge();}" style="padding:9px;background:var(--red-l)12;border:1px solid #fca5a540;border-radius:8px;color:var(--red);cursor:pointer;font-size:11px;font-weight:700">🗑 Cancella storico</button>
     </div>
-    <input type="file" id="import-input" accept=".json" style="display:none" onchange="allocImportDati(this)">`;
+    <input type="file" id="alloc-import-input" accept=".json" style="display:none" onchange="allocImportDati(this)">`;
 }
 
 // ── TAB OVERVIEW ─────────────────────────────────────────────
@@ -1502,6 +1520,8 @@ function allocDrawOverviewCharts(sorted){
     {label:'Pensione',      color:'#818cf8', fn: r=>r.alloc.pensione},
     {label:'FE',            color:'#e05c3a', fn: r=>r.alloc.fe},
     {label:'Jolly',         color:'#fb923c', fn: r=>r.alloc.future+r.alloc.obiettivi},
+    {label:'Spese Future',  color:'#fdba74', fn: r=>r.alloc.future},
+    {label:'Obiettivi',     color:'#fbbf24', fn: r=>r.alloc.obiettivi},
     {label:'Spesa',         color:'#a78bfa', fn: r=>r.alloc.spesa},
     {label:'Liquidità',     color:'#34c78a', fn: r=>r.alloc.liq},
   ];
@@ -1776,6 +1796,13 @@ function allocImportDati(input){
   };
   reader.readAsText(file);
 }
+
+// ═══════════════════════════════════════════════════════════
+// SEED DATA
+// ═══════════════════════════════════════════════════════════
+const ALLOC_SEED_STORICO = [{"id": "2025-12-15T00:00:00.000Z", "date": "2025-12-15T00:00:00.000Z", "nome": "Tredicesima_2025", "alloc": {"fe": 650, "liq": 300, "pac": 174, "spesa": 150, "future": 100, "pensione": 225, "obiettivi": 0}, "entry": "tredicesima", "feCur": 0, "amount": 1600, "liqCur": 0, "scenario": "B"}, {"id": "2025-07-15T00:00:00.000Z", "date": "2025-07-15T00:00:00.000Z", "nome": "Rimborso730_2025", "alloc": {"fe": 1335, "liq": 1000, "pac": 100, "spesa": 0, "future": 0, "pensione": 0, "obiettivi": 1065}, "entry": "rimborso", "feCur": 0, "amount": 3500, "liqCur": 0, "scenario": "A"}];
+const ALLOC_SEED_STATE   = "{\"amount\":1600,\"liqCur\":14000,\"feCur\":4600,\"entry\":\"tredicesima\",\"scenarioOverride\":null,\"model\":{\"rafforzamento\":{\"A\":{\"macro\":{\"liq\":5,\"spesa\":10,\"jolly\":10,\"fin\":75},\"jolly\":{\"future\":50,\"obiettivi\":50},\"fin\":{\"fe\":70,\"pac\":20,\"pensione\":10}},\"B\":{\"macro\":{\"liq\":15,\"spesa\":10,\"jolly\":10,\"fin\":65},\"jolly\":{\"future\":40,\"obiettivi\":60},\"fin\":{\"fe\":0,\"pac\":65,\"pensione\":35}},\"C\":{\"macro\":{\"liq\":0,\"spesa\":10,\"jolly\":20,\"fin\":70},\"jolly\":{\"future\":40,\"obiettivi\":60},\"fin\":{\"fe\":0,\"pac\":70,\"pensione\":30}}},\"tredicesima\":{\"A\":{\"macro\":{\"liq\":10,\"spesa\":25,\"jolly\":15,\"fin\":50},\"jolly\":{\"future\":60,\"obiettivi\":40},\"fin\":{\"fe\":60,\"pac\":24,\"pensione\":16}},\"B\":{\"macro\":{\"liq\":20,\"spesa\":25,\"jolly\":20,\"fin\":35},\"jolly\":{\"future\":55,\"obiettivi\":45},\"fin\":{\"fe\":0,\"pac\":65,\"pensione\":35}},\"C\":{\"macro\":{\"liq\":0,\"spesa\":30,\"jolly\":25,\"fin\":45},\"jolly\":{\"future\":55,\"obiettivi\":45},\"fin\":{\"fe\":0,\"pac\":70,\"pensione\":30}}},\"rimborso\":{\"A\":{\"macro\":{\"liq\":5,\"spesa\":15,\"jolly\":10,\"fin\":70},\"jolly\":{\"future\":50,\"obiettivi\":50},\"fin\":{\"fe\":65,\"pac\":23,\"pensione\":12}},\"B\":{\"macro\":{\"liq\":30,\"spesa\":15,\"jolly\":15,\"fin\":40},\"jolly\":{\"future\":45,\"obiettivi\":55},\"fin\":{\"fe\":0,\"pac\":65,\"pensione\":35}},\"C\":{\"macro\":{\"liq\":0,\"spesa\":15,\"jolly\":20,\"fin\":65},\"jolly\":{\"future\":45,\"obiettivi\":55},\"fin\":{\"fe\":0,\"pac\":70,\"pensione\":30}}},\"bonus\":{\"A\":{\"macro\":{\"liq\":10,\"spesa\":20,\"jolly\":15,\"fin\":55},\"jolly\":{\"future\":50,\"obiettivi\":50},\"fin\":{\"fe\":60,\"pac\":24,\"pensione\":16}},\"B\":{\"macro\":{\"liq\":20,\"spesa\":25,\"jolly\":20,\"fin\":35},\"jolly\":{\"future\":50,\"obiettivi\":50},\"fin\":{\"fe\":0,\"pac\":65,\"pensione\":35}},\"C\":{\"macro\":{\"liq\":0,\"spesa\":35,\"jolly\":25,\"fin\":40},\"jolly\":{\"future\":50,\"obiettivi\":50},\"fin\":{\"fe\":0,\"pac\":70,\"pensione\":30}}}},\"cfg\":{\"feTarget\":4600,\"liqTarget\":15000,\"pacMin\":100,\"pensioneMin\":100,\"pensioneCap\":1200,\"overflowLiq\":\"jolly_future\",\"overflowFe\":\"pac\",\"overflowPensione\":\"pac\",\"skipPac\":\"jolly_future\",\"skipPensione\":\"jolly_future\",\"spesaMax\":450,\"overflowSpesa\":\"pac\",\"pctMomenti\":65,\"pctPiggy\":35,\"arrotonda\":false,\"overflowArrotonda\":\"pensione\"},\"openSubs\":{\"jolly\":true,\"fin\":true}}";
+const ALLOC_SEED_VERSION = 'v1-2026-05-22';
 
 // ═══════════════════════════════════════════════════════════
 // INIT allocatore
