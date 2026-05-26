@@ -724,9 +724,11 @@ function calcMonth(y,m){
   const extraTxns=txns.filter(t=>t.extra);
   // Totals include ALL (saldo is real money)
   const reddito=sumByTipo(txns,'INCOME');
-  const spese=sumByTipo(txns,'EXPENSES');
-  const tl=sumByTipo(txns,'TEMPO LIBERO');
-  const risp=sumByTipo(txns,'SAVINGS');
+  // Exclude benefit (extra) from category display totals
+  const normalTxns=txns.filter(t=>!t.extra);
+  const spese=sumByTipo(normalTxns,'EXPENSES');
+  const tl=sumByTipo(normalTxns,'TEMPO LIBERO');
+  const risp=sumByTipo(normalTxns,'SAVINGS');
   // Differito: TL accantonato per il futuro
   const tlDiff=txns.filter(t=>t.tipo==='TEMPO LIBERO'&&t.differito).reduce((s,t)=>s+t.amt,0);
   const tlNow=tl-tlDiff;
@@ -746,10 +748,11 @@ function calcMonth(y,m){
   const bSpese=ref*pct.spese/100;
   const bTl=ref*pct.tl/100;
   const bRisp=ref*pct.risp/100;
-  const saldo=reddito-spese-tl-risp;
+  const totBenefitForSaldo=txns.filter(t=>t.extra).reduce((s,t)=>s+t.amt,0);
+  const saldo=reddito-spese-tl-risp-totBenefitForSaldo;
   const byCat={};
   const byCatDiff={};  // differito amounts per category
-  txns.forEach(t=>{
+  normalTxns.forEach(t=>{
     if(!byCat[t.tipo]) byCat[t.tipo]={};
     if(!byCat[t.tipo][t.cat]) byCat[t.tipo][t.cat]=0;
     byCat[t.tipo][t.cat]+=t.amt;
@@ -1045,7 +1048,7 @@ function renderDash(){
       </div>`).join('');
     const benefitId='benefit-detail-m';
     const benefitChevId='benefit-chev-m';
-    benefitCard='<div class="card" style="margin-top:10px;cursor:pointer;" id="benefit-card-m">'
+    benefitCard='<div class="kpi-card-box" style="cursor:pointer;" id="benefit-card-m">'
       +'<div class="kpi-card-inner">'
       +'<div class="kpi-card-label" style="color:var(--green);">💰 Risparmio da benefit</div>'
       +'<div class="kpi-card-body">'
