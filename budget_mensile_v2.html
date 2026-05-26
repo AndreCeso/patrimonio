@@ -1045,7 +1045,7 @@ function renderDash(){
       </div>`).join('');
     const benefitId='benefit-detail-m';
     const benefitChevId='benefit-chev-m';
-    benefitCard='<div class="kpi-card-box" style="cursor:pointer;" id="benefit-card-m">'
+    benefitCard='<div class="card" style="margin-top:10px;cursor:pointer;" id="benefit-card-m">'
       +'<div class="kpi-card-inner">'
       +'<div class="kpi-card-label" style="color:var(--green);">💰 Risparmio da benefit</div>'
       +'<div class="kpi-card-body">'
@@ -1057,20 +1057,6 @@ function renderDash(){
       +'</div>'
       +'</div>'
       +'<div id="benefit-detail-m" style="display:none;padding:0 14px 12px;border-top:1px solid var(--border);">'
-      +benefitRows
-      +'</div>'
-      +'</div>'
-      +'<div class="kpi-card-inner">'
-      +'<div class="kpi-card-label" style="color:var(--green);">💰 Risparmio da benefit</div>'
-      +'<div class="kpi-card-body">'
-      +'<div>'
-      +'<div class="kpi-card-val" style="color:var(--green);">'+fmt(c.totBenefit)+'</div>'
-      +'<div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:1px;">non da reddito ordinario</div>'
-      +'</div>'
-      +'<span id="benefit-chev" style="color:var(--dim);font-size:14px;margin-left:auto;align-self:center;">▼</span>'
-      +'</div>'
-      +'</div>'
-      +'<div id="benefit-detail" style="display:none;padding:0 14px 12px;border-top:1px solid var(--border);">'
       +benefitRows
       +'</div>'
       +'</div>';
@@ -1107,7 +1093,7 @@ function buildDetailContent(c,macro){
   const cats=c.byCat[macro.tipo]||{};
   const catEntries=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
   const catTotal=Object.values(cats).reduce((s,v)=>s+v,0);
-  const txns=c.allTxns.filter(t=>t.tipo===macro.tipo).sort((a,b)=>b.date.localeCompare(a.date));
+  const txns=c.allTxns.filter(t=>t.tipo===macro.tipo&&!t.extra).sort((a,b)=>b.date.localeCompare(a.date));
   let html='';
   if(catEntries.length){
     html+=`<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Per categoria</div>`;
