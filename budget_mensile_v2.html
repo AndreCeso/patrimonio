@@ -735,6 +735,7 @@ function calcMonth(y,m){
   const extraTl=sumByTipo(extraTxns,'TEMPO LIBERO');
   const extraRisp=sumByTipo(extraTxns,'SAVINGS');
   const extraReddito=sumByTipo(extraTxns,'INCOME');
+  const totBenefit=extraTxns.reduce((s,t)=>s+t.amt,0);
   // % calculated on NORMAL only
   const redditoNorm=sumByTipo(normal,'INCOME');
   const speseNorm=sumByTipo(normal,'EXPENSES');
@@ -759,7 +760,7 @@ function calcMonth(y,m){
   });
   // Scheduled summary
   const schedAmt = scheduledTxns.reduce(function(s,t){return s+t.amt;},0);
-  return {reddito,spese,tl,risp,bSpese,bTl,bRisp,saldo,ref,pct,txns,byCat,byCatDiff,tlDiff,tlNow,
+  return {reddito,spese,tl,risp,bSpese,bTl,bRisp,saldo,ref,pct,txns,byCat,byCatDiff,tlDiff,tlNow,totBenefit,extraTxns,
     speseNorm,tlNorm,rispNorm,redditoNorm,
     extraSpese,extraTl,extraRisp,extraReddito,
     scheduledTxns,schedAmt,allTxns};
@@ -1030,8 +1031,36 @@ function renderDash(){
   });
   gridHtml+='</div>';
 
+  // ── Benefit card (only if > €1) ──
+  let benefitCard='';
+  if(c.totBenefit>=1){
+    const benefitRows = c.extraTxns
+      .sort((a,b)=>b.amt-a.amt)
+      .map(t=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);">${t.cat}</div>
+          <div style="font-size:11px;color:var(--muted);">${t.desc?t.desc+' · ':''}${fmtDate(t.date)}</div>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:var(--green);">-${fmt(t.amt)}</div>
+      </div>`).join('');
+    benefitCard='<div class="kpi-card-box" style="cursor:default">'
+      +'<div class="kpi-card-inner">'
+      +'<div class="kpi-card-label" style="color:var(--green);">💰 Benefit</div>'
+      +'<div class="kpi-card-body">'
+      +'<div>'
+      +'<div class="kpi-card-val" style="color:var(--green);">'+fmt(c.totBenefit)+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:1px;">risparmio da benefit</div>'
+      +'</div>'
+      +'</div>'
+      +'</div>'
+      +'<div style="padding:0 14px 12px;">'
+      +benefitRows
+      +'</div>'
+      +'</div>';
+  }
+
   const alertsHtml=buildAlerts(c);
-  cont.innerHTML=rdisCard+gridHtml+(alertsHtml?'<div>'+alertsHtml+'</div>':'');
+  cont.innerHTML=rdisCard+gridHtml+(alertsHtml?'<div>'+alertsHtml+'</div>':'')+benefitCard;
 
   // Attach click listeners via event delegation (avoids quote escaping)
   cont.querySelectorAll('.kpi-card-box').forEach(function(el){
@@ -1269,6 +1298,7 @@ function renderStorico(){
   var totBSpese=0, totBTl=0, totBRisp=0;
   var annByCat = { INCOME:{}, EXPENSES:{}, SAVINGS:{}, 'TEMPO LIBERO':{} };
   var annExtraByTipo = { INCOME:0, EXPENSES:0, SAVINGS:0, 'TEMPO LIBERO':0 };
+  var annExtraTxns = [];
 
   mesiDati.forEach(function(md){
     totReddito += md.c.reddito;
@@ -1281,6 +1311,7 @@ function renderStorico(){
     // accumulate extra
     md.c.txns.filter(function(t){return t.extra;}).forEach(function(t){
       if(annExtraByTipo[t.tipo]!==undefined) annExtraByTipo[t.tipo]+=t.amt;
+      annExtraTxns.push({...t, mese:md.m});
     });
     // accumulate by category
     Object.keys(annByCat).forEach(function(tipo){
@@ -1479,7 +1510,39 @@ function renderStorico(){
     html += '</div></div></div>';
   });
 
-  cont.innerHTML = trendHtml + html;
+  // ── Annual benefit card ──
+  var totAnnBenefit = annExtraTxns.reduce(function(s,t){return s+t.amt;},0);
+  if(totAnnBenefit >= 1){
+    var MESI_SHORT = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+    var benefitAnnRows = annExtraTxns
+      .sort(function(a,b){return b.amt-a.amt;})
+      .map(function(t){
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">'
+          +'<div>'
+          +'<div style="font-size:13px;font-weight:600;color:var(--text);">'+t.cat+'</div>'
+          +'<div style="font-size:11px;color:var(--muted);">'+(t.desc?t.desc+' · ':'')+MESI_SHORT[(t.mese||1)-1]+'</div>'
+          +'</div>'
+          +'<div style="font-size:13px;font-weight:700;color:var(--green);">-'+fmt(t.amt)+'</div>'
+          +'</div>';
+      }).join('');
+    var benefitAnnCard = '<div class="kpi-card-box" style="cursor:default;margin-top:10px;">'
+      +'<div class="kpi-card-inner">'
+      +'<div class="kpi-card-label" style="color:var(--green);">💰 Benefit '+storYear+'</div>'
+      +'<div class="kpi-card-body">'
+      +'<div>'
+      +'<div class="kpi-card-val" style="color:var(--green);">'+fmt(totAnnBenefit)+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:1px;">risparmio da benefit</div>'
+      +'</div>'
+      +'</div>'
+      +'</div>'
+      +'<div style="padding:0 14px 12px;">'
+      +benefitAnnRows
+      +'</div>'
+      +'</div>';
+    cont.innerHTML = trendHtml + html + benefitAnnCard;
+  } else {
+    cont.innerHTML = trendHtml + html;
+  }
   // ── Top & Flop interactions ──
   var tfHeader = document.getElementById('tf-header');
   var tfBody   = document.getElementById('tf-body');
