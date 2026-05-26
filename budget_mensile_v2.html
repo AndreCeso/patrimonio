@@ -1032,9 +1032,6 @@ function renderDash(){
       +buildDetailContent(c,macro)
       +'</div></div></div>';
   });
-  gridHtml+='</div>';
-
-  // ── Benefit card (only if > €1) ──
   let benefitCard='';
   if(c.totBenefit>=1){
     const benefitRows = c.extraTxns
@@ -1047,8 +1044,7 @@ function renderDash(){
         <div style="font-size:13px;font-weight:700;color:var(--green);">-${fmt(t.amt)}</div>
       </div>`).join('');
     const benefitId='benefit-detail-m';
-    const benefitChevId='benefit-chev-m';
-    benefitCard='<div class="kpi-card-box" style="cursor:pointer;" id="benefit-card-m">'
+    benefitCard='<div style="grid-column:span 2;margin-top:4px;"></div><div class="kpi-card-box" style="cursor:pointer;opacity:.75;" id="benefit-card-m">'
       +'<div class="kpi-card-inner">'
       +'<div class="kpi-card-label" style="color:var(--green);">💰 Risparmio da benefit</div>'
       +'<div class="kpi-card-body">'
@@ -1056,7 +1052,7 @@ function renderDash(){
       +'<div class="kpi-card-val" style="color:var(--green);">'+fmt(c.totBenefit)+'</div>'
       +'<div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:1px;">non da reddito ordinario</div>'
       +'</div>'
-      +'<span id="benefit-chev-m" style="color:var(--dim);font-size:14px;margin-left:auto;align-self:center;">▼</span>'
+
       +'</div>'
       +'</div>'
       +'<div id="benefit-detail-m" style="display:none;padding:0 14px 12px;border-top:1px solid var(--border);">'
@@ -1065,16 +1061,19 @@ function renderDash(){
       +'</div>';
   }
 
+  if(c.totBenefit>=1) gridHtml+=benefitCard;
+  gridHtml+='</div>';
+
+  // ── Benefit card (only if > €1) ──
+
   const alertsHtml=buildAlerts(c);
-  cont.innerHTML=rdisCard+gridHtml+(alertsHtml?'<div>'+alertsHtml+'</div>':'')+benefitCard;
+  cont.innerHTML=rdisCard+gridHtml+(alertsHtml?'<div>'+alertsHtml+'</div>':'');
   var benefitCardEl=document.getElementById('benefit-card-m');
   if(benefitCardEl){
     benefitCardEl.addEventListener('click',function(){
       var d=document.getElementById('benefit-detail-m');
-      var ch=document.getElementById('benefit-chev-m');
       if(!d) return;
       d.style.display=d.style.display==='none'?'block':'none';
-      if(ch) ch.textContent=d.style.display==='none'?'▼':'▲';
     });
   }
 
@@ -1541,21 +1540,35 @@ function renderStorico(){
           +'<div style="font-size:13px;font-weight:700;color:var(--green);">-'+fmt(t.amt)+'</div>'
           +'</div>';
       }).join('');
-    var benefitAnnCard = '<div class="kpi-card-box" style="cursor:default;margin-top:10px;">'
-      +'<div class="kpi-card-inner">'
-      +'<div class="kpi-card-label" style="color:var(--green);">💰 Benefit '+storYear+'</div>'
-      +'<div class="kpi-card-body">'
+    var benefitAnnCard = '<div class="hcard" style="opacity:.75;" id="benefit-ann-card">'
+      +'<div class="hcard-hdr" id="benefit-ann-hdr">'
+      +'<div class="hcard-left">'
+      +'<div class="hcard-icon i-green"><span style="font-size:16px;">💰</span></div>'
       +'<div>'
-      +'<div class="kpi-card-val" style="color:var(--green);">'+fmt(totAnnBenefit)+'</div>'
-      +'<div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:1px;">risparmio da benefit</div>'
+      +'<div class="hcard-lbl">Risparmio da benefit</div>'
+      +'<div class="hcard-val" style="color:var(--green);">'+fmt(totAnnBenefit)+'</div>'
       +'</div>'
       +'</div>'
+      +'<div class="hcard-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>'
       +'</div>'
-      +'<div style="padding:0 14px 12px;">'
+      +'<div class="hcard-body" id="benefit-ann-body">'
+      +'<div class="hcard-inner">'
       +benefitAnnRows
+      +'</div>'
       +'</div>'
       +'</div>';
     cont.innerHTML = trendHtml + html + benefitAnnCard;
+    // Toggle annual benefit card
+    var bHdr = document.getElementById('benefit-ann-hdr');
+    if(bHdr){
+      bHdr.addEventListener('click', function(){
+        var body = document.getElementById('benefit-ann-body');
+        var chev = document.querySelector('#benefit-ann-card .hcard-chev');
+        if(!body) return;
+        body.classList.toggle('open');
+        if(chev) chev.classList.toggle('open');
+      });
+    }
   } else {
     cont.innerHTML = trendHtml + html;
   }
