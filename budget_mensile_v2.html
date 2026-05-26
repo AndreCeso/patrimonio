@@ -1338,7 +1338,8 @@ function renderStorico(){
     });
   });
 
-  var totUscite = totSpese + totTl + totRisp;
+  var totBenefit = annExtraTxns.reduce(function(s,t){return s+t.amt;},0);
+  var totUscite = totSpese + totTl + totRisp + totBenefit;
   var totSaldo  = totReddito - totUscite;
   var nMesi     = mesiConDati.length;
 
