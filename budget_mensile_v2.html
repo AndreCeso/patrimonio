@@ -1018,7 +1018,7 @@ function renderDash(){
       +'<div class="kpi-card-val" style="color:'+macro.color+';">'+fmt(macro.val)+'</div>'
       +(macro.tipo!=='INCOME'?'<div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:1px;">su '+fmt(macro.bud)+' budget</div>':'')
       +(macro.diff>0?'<div style="font-size:10px;font-weight:700;color:#f59e0b;margin-top:2px;">🔮 '+fmt(macro.diff)+' differiti</div>':'')
-      +(macro.extra>0?'<div style="font-size:10px;font-weight:600;color:var(--muted);margin-top:2px;">+ '+fmt(macro.extra)+' risparmio da benefit</div>':'')
+      
       +'<div class="kpi-card-delta" style="color:'+deltaColor+';">'+deltaTxt+'</div>'
       +'</div>'
       +donutSvg
@@ -1043,17 +1043,34 @@ function renderDash(){
         </div>
         <div style="font-size:13px;font-weight:700;color:var(--green);">-${fmt(t.amt)}</div>
       </div>`).join('');
-    benefitCard='<div class="kpi-card-box" style="cursor:default">'
+    const benefitId='benefit-detail-m';
+    const benefitChevId='benefit-chev-m';
+    benefitCard='<div class="kpi-card-box" style="cursor:pointer;" id="benefit-card-m">'
       +'<div class="kpi-card-inner">'
-      +'<div class="kpi-card-label" style="color:var(--green);">💰 Benefit</div>'
+      +'<div class="kpi-card-label" style="color:var(--green);">💰 Risparmio da benefit</div>'
       +'<div class="kpi-card-body">'
       +'<div>'
       +'<div class="kpi-card-val" style="color:var(--green);">'+fmt(c.totBenefit)+'</div>'
-      +'<div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:1px;">risparmio da benefit</div>'
+      +'<div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:1px;">non da reddito ordinario</div>'
+      +'</div>'
+      +'<span id="benefit-chev-m" style="color:var(--dim);font-size:14px;margin-left:auto;align-self:center;">▼</span>'
       +'</div>'
       +'</div>'
+      +'<div id="benefit-detail-m" style="display:none;padding:0 14px 12px;border-top:1px solid var(--border);">'
+      +benefitRows
       +'</div>'
-      +'<div style="padding:0 14px 12px;">'
+      +'</div>'
+      +'<div class="kpi-card-inner">'
+      +'<div class="kpi-card-label" style="color:var(--green);">💰 Risparmio da benefit</div>'
+      +'<div class="kpi-card-body">'
+      +'<div>'
+      +'<div class="kpi-card-val" style="color:var(--green);">'+fmt(c.totBenefit)+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:1px;">non da reddito ordinario</div>'
+      +'</div>'
+      +'<span id="benefit-chev" style="color:var(--dim);font-size:14px;margin-left:auto;align-self:center;">▼</span>'
+      +'</div>'
+      +'</div>'
+      +'<div id="benefit-detail" style="display:none;padding:0 14px 12px;border-top:1px solid var(--border);">'
       +benefitRows
       +'</div>'
       +'</div>';
@@ -1061,6 +1078,16 @@ function renderDash(){
 
   const alertsHtml=buildAlerts(c);
   cont.innerHTML=rdisCard+gridHtml+(alertsHtml?'<div>'+alertsHtml+'</div>':'')+benefitCard;
+  var benefitCardEl=document.getElementById('benefit-card-m');
+  if(benefitCardEl){
+    benefitCardEl.addEventListener('click',function(){
+      var d=document.getElementById('benefit-detail-m');
+      var ch=document.getElementById('benefit-chev-m');
+      if(!d) return;
+      d.style.display=d.style.display==='none'?'block':'none';
+      if(ch) ch.textContent=d.style.display==='none'?'▼':'▲';
+    });
+  }
 
   // Attach click listeners via event delegation (avoids quote escaping)
   cont.querySelectorAll('.kpi-card-box').forEach(function(el){
