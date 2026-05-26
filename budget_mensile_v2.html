@@ -1014,7 +1014,10 @@ function renderDash(){
       +'<div class="kpi-card-label" style="color:'+macro.color+';">'+macro.lbl+'</div>'
       +'<div class="kpi-card-body">'
       +'<div>'
-      +'<div class="kpi-card-val" style="color:'+macro.color+';">'+fmt(macro.val)+'</div>'+(macro.diff>0?'<div style="font-size:10px;font-weight:700;color:#f59e0b;margin-top:2px;">🔮 '+fmt(macro.diff)+' differiti</div>':'')+(macro.extra>0?'<div style="font-size:10px;font-weight:600;color:var(--muted);margin-top:2px;">+ '+fmt(macro.extra)+' risparmio da benefit</div>':'')
+      +'<div class="kpi-card-val" style="color:'+macro.color+';">'+fmt(macro.val)+'</div>'
+      +(macro.tipo!=='INCOME'?'<div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:1px;">su '+fmt(macro.bud)+' budget</div>':'')
+      +(macro.diff>0?'<div style="font-size:10px;font-weight:700;color:#f59e0b;margin-top:2px;">🔮 '+fmt(macro.diff)+' differiti</div>':'')
+      +(macro.extra>0?'<div style="font-size:10px;font-weight:600;color:var(--muted);margin-top:2px;">+ '+fmt(macro.extra)+' risparmio da benefit</div>':'')
       +'<div class="kpi-card-delta" style="color:'+deltaColor+';">'+deltaTxt+'</div>'
       +'</div>'
       +donutSvg
