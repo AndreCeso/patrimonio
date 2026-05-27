@@ -2961,27 +2961,39 @@ function renderAndamentoChart(data){
   var points = [{ label: fmtDate(t0.date), val: t0.val }];
   var saldo = t0.val;
 
-  // Collect months after T0
+  // Collect months from T0 month onwards
   var now = new Date();
   var y = t0year, m = t0month;
   while(y < now.getFullYear() || (y === now.getFullYear() && m <= now.getMonth()+1)){
-    // Skip T0 month itself in monthly delta (partial month)
-    var nextM = m + 1; var nextY = y;
-    if(nextM > 12){ nextM = 1; nextY++; }
-    
     var c = calcMonth(y, m);
-    // saldo delta = reddito - spese - tl - risp - benefit
     var benefit = (c.extraTxns||[]).reduce(function(s,t){return s+t.amt;},0);
-    var delta = c.reddito - c.spese - c.tl - c.risp - benefit;
+
+    // For T0 month: only count transactions on/after T0 date
+    var txnsToCount = c.allTxns || c.txns || [];
+    if(y === t0year && m === t0month){
+      txnsToCount = txnsToCount.filter(function(t){ return t.date >= t0.date; });
+    }
     
-    // Only add if month has data AND is after T0
-    if(c.txns && c.txns.length > 0){
-      if(y > t0year || (y === t0year && m > t0month)){
-        saldo += delta;
-        var lbl = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'][m-1]+' '+String(y).slice(2);
+    var red  = txnsToCount.filter(function(t){return t.tipo==='INCOME'&&!t.extra;}).reduce(function(s,t){return s+t.amt;},0);
+    var spe  = txnsToCount.filter(function(t){return t.tipo==='EXPENSES'&&!t.extra;}).reduce(function(s,t){return s+t.amt;},0);
+    var tl   = txnsToCount.filter(function(t){return t.tipo==='TEMPO LIBERO'&&!t.extra;}).reduce(function(s,t){return s+t.amt;},0);
+    var risp = txnsToCount.filter(function(t){return t.tipo==='SAVINGS'&&!t.extra;}).reduce(function(s,t){return s+t.amt;},0);
+    var ben  = txnsToCount.filter(function(t){return t.extra;}).reduce(function(s,t){return s+t.amt;},0);
+    var delta = red - spe - tl - risp - ben;
+
+    if(txnsToCount.length > 0 && delta !== 0){
+      saldo += delta;
+      var lbl = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'][m-1]+' '+String(y).slice(2);
+      // Replace T0 point if same month, else add new point
+      if(y === t0year && m === t0month){
+        points[0] = { label: lbl+' (oggi)', val: Math.round(saldo) };
+      } else {
         points.push({ label: lbl, val: Math.round(saldo) });
       }
     }
+
+    var nextM = m + 1; var nextY = y;
+    if(nextM > 12){ nextM = 1; nextY++; }
     m = nextM; y = nextY;
   }
 
