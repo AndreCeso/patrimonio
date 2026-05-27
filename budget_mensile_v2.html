@@ -514,11 +514,70 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>
     Storico
   </button>
+  <button class="tab-btn" id="tab-andamento" onclick="goTab('andamento')" style="opacity:.75;">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"/></svg>
+    Andamento
+  </button>
   <button class="tab-btn" id="tab-cfg" onclick="goTab('cfg')">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
     Config
   </button>
 </nav>
+
+<!-- PAGE ANDAMENTO -->
+<div class="page" id="page-andamento">
+  <div class="hdr" style="padding-bottom:20px;">
+    <div class="hdr-top">
+      <div>
+        <div class="hdr-greeting">Tracciamento</div>
+        <div class="hdr-name">Andamento C/C</div>
+      </div>
+    </div>
+  </div>
+  <div class="wrap" style="margin-top:-20px;">
+    <!-- Setup T0 -->
+    <div class="card card-p" id="andamento-setup" style="margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">📍 Saldo di partenza</div>
+      <div id="andamento-t0-display" style="display:none;">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:4px;">Saldo al <span id="andamento-t0-date"></span></div>
+        <div style="font-size:28px;font-weight:900;color:var(--green);" id="andamento-t0-val"></div>
+        <button onclick="resetAndamento()" style="margin-top:10px;background:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;font-family:Inter,sans-serif;">✕ Reimposta T0</button>
+      </div>
+      <div id="andamento-t0-form">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5;">Inserisci il saldo attuale del tuo conto corrente. Da questo momento il sistema traccia le variazioni mensili.</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="position:relative;flex:1;">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--green);font-size:16px;font-weight:700;">€</span>
+            <input id="andamento-t0-input" type="number" placeholder="14000" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px 10px 32px;font-size:16px;font-weight:700;font-family:Inter,sans-serif;outline:none;">
+          </div>
+          <button onclick="saveAndamentoT0()" style="background:var(--green);color:#fff;border:none;border-radius:var(--r-sm);padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Imposta</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="card card-p" id="andamento-chart-card" style="display:none;margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">📈 Andamento saldo</div>
+      <div style="position:relative;height:220px;"><canvas id="andamento-chart"></canvas></div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px;">
+        <div><span style="color:var(--muted);">Saldo attuale stimato</span><br><span style="font-size:18px;font-weight:800;color:var(--green);" id="andamento-current-val"></span></div>
+        <div style="text-align:right;"><span style="color:var(--muted);">Variazione da T0</span><br><span style="font-size:18px;font-weight:800;" id="andamento-delta-val"></span></div>
+      </div>
+    </div>
+
+    <!-- Soglia -->
+    <div class="card card-p" id="andamento-soglia-card" style="display:none;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">🔴 Soglia minima</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="position:relative;flex:1;">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;">€</span>
+          <input id="andamento-soglia-input" type="number" placeholder="0" oninput="saveAndamentoSoglia()" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:8px 12px 8px 28px;font-size:14px;font-weight:700;font-family:Inter,sans-serif;outline:none;">
+        </div>
+        <div style="font-size:11px;color:var(--muted);">non scendere sotto</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL TX DETAIL -->
 <div class="modal-overlay" id="modal-tx">
@@ -782,6 +841,7 @@ function goTab(t){
   if(t==='home') renderHome();
   if(t==='dash') renderDash();
   if(t==='cfg') renderCfg();
+  if(t==='andamento') renderAndamento();
 }
 function toggleCard(id){
   document.getElementById('body-'+id).classList.toggle('open');
@@ -2813,6 +2873,175 @@ function renderTascheList(){
       if(v>0 && v<=max){ usaTasca(tid,v); }
       else{ toast('Importo non valido'); }
     });
+  });
+}
+
+
+// ── ANDAMENTO C/C ──────────────────────────────────────────
+var ANDAMENTO_KEY = 'bgt_andamento';
+var andamentoChart = null;
+
+function loadAndamento(){
+  try { return JSON.parse(localStorage.getItem(ANDAMENTO_KEY))||{}; } catch(e){ return {}; }
+}
+function saveAndamento(data){
+  localStorage.setItem(ANDAMENTO_KEY, JSON.stringify(data));
+}
+
+function saveAndamentoT0(){
+  var val = parseFloat(document.getElementById('andamento-t0-input').value)||0;
+  if(val <= 0){ showToast('Inserisci un valore valido'); return; }
+  var today = new Date().toISOString().split('T')[0];
+  var data = loadAndamento();
+  data.t0 = { val: val, date: today };
+  data.soglia = data.soglia || 0;
+  saveAndamento(data);
+  renderAndamento();
+  showToast('Saldo T0 impostato: €'+val.toLocaleString('it-IT'));
+}
+
+function resetAndamento(){
+  if(!confirm('Reimpostare il saldo di partenza?')) return;
+  var data = loadAndamento();
+  delete data.t0;
+  saveAndamento(data);
+  renderAndamento();
+}
+
+function saveAndamentoSoglia(){
+  var val = parseFloat(document.getElementById('andamento-soglia-input').value)||0;
+  var data = loadAndamento();
+  data.soglia = val;
+  saveAndamento(data);
+  // Redraw chart with new soglia
+  renderAndamentoChart(data);
+}
+
+function renderAndamento(){
+  var data = loadAndamento();
+  var t0 = data.t0;
+  var setup = document.getElementById('andamento-t0-form');
+  var display = document.getElementById('andamento-t0-display');
+  var chartCard = document.getElementById('andamento-chart-card');
+  var sogliaCard = document.getElementById('andamento-soglia-card');
+
+  if(!t0){
+    setup.style.display = 'block';
+    display.style.display = 'none';
+    chartCard.style.display = 'none';
+    sogliaCard.style.display = 'none';
+    return;
+  }
+
+  // Show T0 info
+  setup.style.display = 'none';
+  display.style.display = 'block';
+  chartCard.style.display = 'block';
+  sogliaCard.style.display = 'block';
+  document.getElementById('andamento-t0-date').textContent = fmtDate(t0.date);
+  document.getElementById('andamento-t0-val').textContent = '€'+t0.val.toLocaleString('it-IT');
+
+  // Restore soglia input
+  var sogliaInput = document.getElementById('andamento-soglia-input');
+  if(sogliaInput && data.soglia) sogliaInput.value = data.soglia;
+
+  renderAndamentoChart(data);
+}
+
+function renderAndamentoChart(data){
+  var t0 = data.t0;
+  if(!t0) return;
+
+  // Build monthly series from T0 date onwards
+  var t0date = new Date(t0.date);
+  var t0year = t0date.getFullYear();
+  var t0month = t0date.getMonth() + 1;
+
+  // Get all months from TXN from T0 onwards
+  var points = [{ label: fmtDate(t0.date), val: t0.val }];
+  var saldo = t0.val;
+
+  // Collect months after T0
+  var now = new Date();
+  var y = t0year, m = t0month;
+  while(y < now.getFullYear() || (y === now.getFullYear() && m <= now.getMonth()+1)){
+    // Skip T0 month itself in monthly delta (partial month)
+    var nextM = m + 1; var nextY = y;
+    if(nextM > 12){ nextM = 1; nextY++; }
+    
+    var c = calcMonth(y, m);
+    // saldo delta = reddito - spese - tl - risp - benefit
+    var benefit = (c.extraTxns||[]).reduce(function(s,t){return s+t.amt;},0);
+    var delta = c.reddito - c.spese - c.tl - c.risp - benefit;
+    
+    // Only add if month has data AND is after T0
+    if(c.txns && c.txns.length > 0){
+      if(y > t0year || (y === t0year && m > t0month)){
+        saldo += delta;
+        var lbl = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'][m-1]+' '+String(y).slice(2);
+        points.push({ label: lbl, val: Math.round(saldo) });
+      }
+    }
+    m = nextM; y = nextY;
+  }
+
+  // Update summary
+  var currentVal = points[points.length-1].val;
+  var delta0 = currentVal - t0.val;
+  var currentEl = document.getElementById('andamento-current-val');
+  var deltaEl = document.getElementById('andamento-delta-val');
+  if(currentEl) currentEl.textContent = '€'+currentVal.toLocaleString('it-IT');
+  if(deltaEl){
+    deltaEl.textContent = (delta0>=0?'+':'')+'€'+Math.abs(delta0).toLocaleString('it-IT');
+    deltaEl.style.color = delta0>=0?'var(--green)':'var(--red)';
+  }
+
+  // Draw chart
+  var canvas = document.getElementById('andamento-chart');
+  if(!canvas) return;
+  if(andamentoChart){ andamentoChart.destroy(); andamentoChart=null; }
+
+  var labels = points.map(function(p){return p.label;});
+  var vals   = points.map(function(p){return p.val;});
+  var soglia = data.soglia || 0;
+
+  var datasets = [{
+    label: 'Saldo C/C',
+    data: vals,
+    borderColor: '#006636',
+    backgroundColor: '#00663620',
+    fill: true,
+    tension: 0.3,
+    pointRadius: 5,
+    pointBackgroundColor: '#006636',
+    borderWidth: 2.5,
+  }];
+
+  if(soglia > 0){
+    datasets.push({
+      label: 'Soglia minima',
+      data: labels.map(function(){ return soglia; }),
+      borderColor: '#b91c1c',
+      borderDash: [6,4],
+      borderWidth: 1.5,
+      pointRadius: 0,
+      fill: false,
+    });
+  }
+
+  andamentoChart = new Chart(canvas, {
+    type: 'line',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: soglia>0, position:'top', labels:{color:'var(--muted)',font:{size:10},padding:8,boxWidth:10} }
+      },
+      scales: {
+        x: { ticks:{color:'var(--dim)',font:{size:10}}, grid:{color:'var(--border)'} },
+        y: { ticks:{color:'var(--dim)',font:{size:10},callback:function(v){return '€'+v.toLocaleString('it-IT');}}, grid:{color:'var(--border)'} }
+      }
+    }
   });
 }
 
