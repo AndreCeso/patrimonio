@@ -455,7 +455,9 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 // ── SUPABASE ─────────────────────────────────────────────────
 const SUPA_URL = 'https://nmzgizjgpyyxyetqvccn.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5temdpempncHl5eHlldHF2Y2NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NDQ1NjQsImV4cCI6MjA5NDMyMDU2NH0.Ay9_ZR9eT6z0dore3huvsjKzWJ5sPGRfw37OsiWRB_k';
-const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY, {
+  auth: { persistSession: false }
+});
 let currentUser = null;
 let authMode = 'login'; // 'login' | 'register'
 
@@ -554,18 +556,6 @@ function openAllocatore(){
 
 function closeAllocatore(){
   document.getElementById('alloc-overlay').style.display='none';
-  var tb=document.querySelector('.tabbar');if(tb)tb.style.display='flex';
-  document.getElementById('hubScreen').classList.remove('hidden');
-}
-
-function openBudget(){
-  document.getElementById('hubScreen').classList.add('hidden');
-  var tb=document.querySelector('.tabbar');if(tb)tb.style.display='none';
-  document.getElementById('budget-overlay').style.display='block';
-}
-
-function closeBudget(){
-  document.getElementById('budget-overlay').style.display='none';
   var tb=document.querySelector('.tabbar');if(tb)tb.style.display='flex';
   document.getElementById('hubScreen').classList.remove('hidden');
 }
