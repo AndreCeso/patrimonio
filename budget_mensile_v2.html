@@ -808,7 +808,8 @@ function calcMonth(y,m){
   const bTl=ref*pct.tl/100;
   const bRisp=ref*pct.risp/100;
   const totBenefitForSaldo=txns.filter(t=>t.extra).reduce((s,t)=>s+t.amt,0);
-  const saldo=reddito-spese-tl-risp-totBenefitForSaldo;
+  const rispCC=txns.filter(t=>t.tipo==='SAVINGS'&&t.cat==='Conto Corrente'&&!t.extra).reduce((s,t)=>s+t.amt,0);
+  const saldo=reddito-spese-tl-risp-totBenefitForSaldo+rispCC;
   const byCat={};
   const byCatDiff={};  // differito amounts per category
   normalTxns.forEach(t=>{
@@ -2913,7 +2914,6 @@ function saveAndamentoSoglia(){
   var data = loadAndamento();
   data.soglia = val;
   saveAndamento(data);
-  // Redraw chart with new soglia
   renderAndamentoChart(data);
 }
 
@@ -2981,6 +2981,12 @@ function renderAndamentoChart(data){
     var nextM = m + 1; var nextY = y;
     if(nextM > 12){ nextM = 1; nextY++; }
     m = nextM; y = nextY;
+  }
+
+  // If only T0 point, add a projected point for current month so soglia line renders
+  if(points.length === 1){
+    var nowLbl = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'][now.getMonth()]+' '+String(now.getFullYear()).slice(2);
+    points.push({ label: nowLbl+' (proj.)', val: points[0].val });
   }
 
   // Update summary
