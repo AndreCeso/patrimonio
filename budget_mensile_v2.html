@@ -518,11 +518,76 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"/></svg>
     Andamento
   </button>
+  <button class="tab-btn" id="tab-simula" onclick="goTab('simula')" style="opacity:.75;">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V13.5Zm0 2.25h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V18Zm2.498-6.75h.007v.008h-.007v-.008Zm0 2.25h.007v.008h-.007V13.5Zm0 2.25h.007v.008h-.007v-.008Zm0 2.25h.007v.008h-.007V18Zm2.504-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5Zm0 2.25h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V18Zm2.498-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5Zm0 2.25h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V18Zm-9-5.25h.008v.008H9v-.008Zm0 2.25h.008v.008H9V13.5Zm0 2.25h.008v.008H9v-.008Zm3.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5ZM12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/></svg>
+    Simula
+  </button>
   <button class="tab-btn" id="tab-cfg" onclick="goTab('cfg')">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
     Config
   </button>
 </nav>
+
+<!-- PAGE SIMULA -->
+<div class="page" id="page-simula">
+  <div class="hdr" style="padding-bottom:20px;">
+    <div class="hdr-top">
+      <div>
+        <div class="hdr-greeting">Pianificazione</div>
+        <div class="hdr-name">🧮 Simulatore mese</div>
+      </div>
+      <button onclick="resetSimula()" style="background:rgba(255,255,255,.2);border:none;border-radius:8px;padding:6px 14px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">↺ Reset</button>
+    </div>
+  </div>
+  <div class="wrap" style="margin-top:-20px;">
+
+    <!-- RISULTATI -->
+    <div class="card card-p" id="simula-results" style="margin-bottom:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Saldo disponibile</div>
+          <div style="font-size:28px;font-weight:900;" id="sim-saldo">€0</div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Totale uscite</div>
+          <div style="font-size:28px;font-weight:900;color:var(--text);" id="sim-uscite">€0</div>
+        </div>
+      </div>
+      <!-- barre categorie -->
+      <div id="sim-bars"></div>
+    </div>
+
+    <!-- PERCENTUALI -->
+    <div class="card card-p" style="margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">🎯 Percentuali target</div>
+      <div id="sim-pct-rows"></div>
+      <div style="font-size:11px;color:var(--dim);margin-top:8px;" id="sim-pct-warn"></div>
+    </div>
+
+    <!-- FORM AGGIUNTA -->
+    <div class="card card-p" style="margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">➕ Aggiungi voce</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;" id="sim-tipo-btns"></div>
+      <div style="margin-bottom:8px;">
+        <select id="sim-cat" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:9px 12px;font-size:14px;font-family:Inter,sans-serif;color:var(--text);outline:none;"></select>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="sim-desc" type="text" placeholder="Descrizione (opz.)" style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:9px 12px;font-size:14px;font-family:Inter,sans-serif;outline:none;">
+        <div style="position:relative;">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--green);font-weight:700;">€</span>
+          <input id="sim-amt" type="number" placeholder="0" style="width:90px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:9px 10px 9px 26px;font-size:15px;font-weight:700;font-family:Inter,sans-serif;outline:none;">
+        </div>
+        <button onclick="addSimulaVoce()" style="background:var(--green);color:#fff;border:none;border-radius:var(--r-sm);padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">+</button>
+      </div>
+    </div>
+
+    <!-- LISTA VOCI -->
+    <div class="card" id="sim-lista-card" style="display:none;">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Voci inserite</div>
+      <div id="sim-lista"></div>
+    </div>
+  </div>
+</div>
 
 <!-- PAGE ANDAMENTO -->
 <div class="page" id="page-andamento">
@@ -843,6 +908,7 @@ function goTab(t){
   if(t==='dash') renderDash();
   if(t==='cfg') renderCfg();
   if(t==='andamento') renderAndamento();
+  if(t==='simula') renderSimula();
 }
 function toggleCard(id){
   document.getElementById('body-'+id).classList.toggle('open');
@@ -2970,7 +3036,8 @@ function renderAndamentoChart(data){
   while(y < now.getFullYear() || (y === now.getFullYear() && m <= now.getMonth()+1)){
     var c = calcMonth(y, m);
     var benefit = (c.extraTxns||[]).reduce(function(s,t){return s+t.amt;},0);
-    var delta = c.reddito - c.spese - c.tl - c.risp - benefit;
+    var rispCC = (c.allTxns||[]).filter(function(t){return t.tipo==='SAVINGS'&&t.cat==='Conto Corrente'&&!t.extra;}).reduce(function(s,t){return s+t.amt;},0);
+    var delta = c.reddito - c.spese - c.tl - c.risp - benefit + rispCC;
 
     if((c.allTxns||c.txns||[]).length > 0){
       saldo += delta;
@@ -3047,6 +3114,186 @@ function renderAndamentoChart(data){
       }
     }
   });
+}
+
+
+// ── SIMULATORE MESE ────────────────────────────────────────
+var simulaVoci = [];
+var simulaTipo = 'INCOME';
+var simulaPct = { spese: 50, tl: 30, risp: 20 };
+
+const SIMULA_TIPO_MAP = {
+  'INCOME':      { label: 'Reddito',      color: 'var(--green)',  sign: +1 },
+  'EXPENSES':    { label: 'Spese',        color: '#e91e8c',       sign: -1 },
+  'TEMPO LIBERO':{ label: 'Tempo Libero', color: '#7c3aed',       sign: -1 },
+  'SAVINGS':     { label: 'Risparmi',     color: '#f0a500',       sign: -1 },
+};
+
+function renderSimula(){
+  // Render percentuali
+  renderSimulaPct();
+  // Render tipo buttons
+  var btnCont = document.getElementById('sim-tipo-btns');
+  if(btnCont){
+    btnCont.innerHTML = Object.entries(SIMULA_TIPO_MAP).map(function(e){
+      var key = e[0], meta = e[1];
+      var active = simulaTipo === key;
+      return '<button data-sim-tipo="'+key+'" class="sim-tipo-btn" style="'
+        +'padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;'
+        +'border:2px solid '+(active?meta.color:'var(--border)')+';'
+        +'background:'+(active?meta.color+'20':'var(--bg)')+';'
+        +'color:'+(active?meta.color:'var(--muted)')+';">'
+        +meta.label+'</button>';
+    }).join('');
+    btnCont.querySelectorAll('.sim-tipo-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){ setSimulaTipo(btn.getAttribute('data-sim-tipo')); });
+    });
+  }
+  // Render category select
+  updateSimulaCatSelect();
+  // Render results
+  renderSimulaResults();
+  // Render lista
+  renderSimulaLista();
+}
+
+function renderSimulaPct(){
+  var el = document.getElementById('sim-pct-rows');
+  if(!el) return;
+  var reddito = simulaVoci.filter(function(v){ return v.tipo==='INCOME'; }).reduce(function(s,v){ return s+v.amt; },0);
+  var rows = [
+    { key:'spese', label:'Spese',        color:'#e91e8c' },
+    { key:'tl',    label:'Tempo Libero', color:'#7c3aed' },
+    { key:'risp',  label:'Risparmi',     color:'#f0a500' },
+  ];
+  el.innerHTML = rows.map(function(r){
+    var eur = reddito ? Math.round(reddito * simulaPct[r.key] / 100) : 0;
+    return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
+      +'<span style="font-size:12px;font-weight:700;color:'+r.color+';min-width:90px;">'+r.label+'</span>'
+      +'<input type="range" min="0" max="100" value="'+simulaPct[r.key]+'" data-sim-pct="'+r.key+'"'
+      +' style="flex:1;accent-color:'+r.color+';cursor:pointer;">'
+      +'<div style="min-width:44px;text-align:center;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:12px;font-weight:700;color:'+r.color+';" id="sim-pct-val-'+r.key+'">'+simulaPct[r.key]+'%</div>'
+      +(reddito?'<div style="min-width:52px;text-align:right;font-size:11px;color:var(--muted);">€'+eur.toLocaleString("it-IT")+'</div>':'')
+      +'</div>';
+  }).join('');
+  // Attach events
+  el.querySelectorAll('input[data-sim-pct]').forEach(function(inp){
+    inp.addEventListener('input', function(){
+      var key = inp.getAttribute('data-sim-pct');
+      simulaPct[key] = parseInt(inp.value)||0;
+      var valEl = document.getElementById('sim-pct-val-'+key);
+      if(valEl) valEl.textContent = simulaPct[key]+'%';
+      // Check total
+      var tot = simulaPct.spese + simulaPct.tl + simulaPct.risp;
+      var warn = document.getElementById('sim-pct-warn');
+      if(warn) warn.textContent = tot !== 100 ? '⚠️ Totale: '+tot+'% (ideale 100%)' : '✅ Totale: 100%';
+      renderSimulaResults();
+    });
+  });
+  // Total warning
+  var tot = simulaPct.spese + simulaPct.tl + simulaPct.risp;
+  var warn = document.getElementById('sim-pct-warn');
+  if(warn) warn.textContent = tot !== 100 ? '⚠️ Totale: '+tot+'% (ideale 100%)' : '';
+}
+
+function setSimulaTipo(tipo){
+  simulaTipo = tipo;
+  renderSimula();
+}
+
+function updateSimulaCatSelect(){
+  var sel = document.getElementById('sim-cat');
+  if(!sel) return;
+  var cats = CFG.categorie[simulaTipo] || [];
+  sel.innerHTML = cats.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('');
+}
+
+function addSimulaVoce(){
+  var amt = parseFloat(document.getElementById('sim-amt').value)||0;
+  var cat = document.getElementById('sim-cat').value;
+  var desc = document.getElementById('sim-desc').value.trim();
+  if(amt <= 0){ showToast('Inserisci un importo'); return; }
+  simulaVoci.push({ tipo: simulaTipo, cat: cat, desc: desc, amt: amt, id: Date.now() });
+  document.getElementById('sim-amt').value = '';
+  document.getElementById('sim-desc').value = '';
+  renderSimulaResults();
+  renderSimulaLista();
+}
+
+function removeSimulaVoce(id){
+  simulaVoci = simulaVoci.filter(function(v){ return v.id !== id; });
+  renderSimulaResults();
+  renderSimulaLista();
+}
+
+function resetSimula(){
+  simulaVoci = [];
+  renderSimula();
+}
+
+function renderSimulaResults(){
+  var reddito = simulaVoci.filter(function(v){ return v.tipo==='INCOME'; }).reduce(function(s,v){ return s+v.amt; }, 0);
+  var spese   = simulaVoci.filter(function(v){ return v.tipo==='EXPENSES'; }).reduce(function(s,v){ return s+v.amt; }, 0);
+  var tl      = simulaVoci.filter(function(v){ return v.tipo==='TEMPO LIBERO'; }).reduce(function(s,v){ return s+v.amt; }, 0);
+  var risp    = simulaVoci.filter(function(v){ return v.tipo==='SAVINGS'; }).reduce(function(s,v){ return s+v.amt; }, 0);
+  var uscite  = spese + tl + risp;
+  var saldo   = reddito - uscite;
+
+  var saldoEl = document.getElementById('sim-saldo');
+  var usciteEl = document.getElementById('sim-uscite');
+  if(saldoEl){ saldoEl.textContent = (saldo>=0?'':'-')+'€'+Math.abs(saldo).toLocaleString('it-IT'); saldoEl.style.color = saldo>=0?'var(--green)':'var(--red)'; }
+  if(usciteEl){ usciteEl.textContent = '€'+uscite.toLocaleString('it-IT'); }
+
+  // Barre categorie
+  var barsEl = document.getElementById('sim-bars');
+  if(!barsEl) return;
+  if(reddito === 0){ barsEl.innerHTML = ''; return; }
+
+  var macros = [
+    { tipo:'EXPENSES',     label:'Spese',        val:spese, bud:reddito*simulaPct.spese/100, color:'#e91e8c' },
+    { tipo:'TEMPO LIBERO', label:'Tempo Libero',  val:tl,    bud:reddito*simulaPct.tl/100,    color:'#7c3aed' },
+    { tipo:'SAVINGS',      label:'Risparmi',      val:risp,  bud:reddito*simulaPct.risp/100,  color:'#f0a500' },
+  ];
+
+  renderSimulaPct();
+  barsEl.innerHTML = macros.map(function(m){
+    var pct = m.bud > 0 ? Math.min(100, Math.round(m.val/m.bud*100)) : 0;
+    var over = m.val > m.bud && m.bud > 0;
+    return '<div style="margin-bottom:10px;">'
+      +'<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:4px;">'
+      +'<span style="color:'+m.color+';">'+m.label+'</span>'
+      +'<span style="color:'+(over?'var(--red)':m.color)+';">'+fmt(m.val)+' <span style="font-size:10px;color:var(--dim);">su '+fmt(m.bud)+'</span></span>'
+      +'</div>'
+      +'<div style="height:7px;background:var(--bg2);border-radius:99px;overflow:hidden;">'
+      +'<div style="height:100%;width:'+pct+'%;background:'+(over?'var(--red)':m.color)+';border-radius:99px;transition:width .3s;"></div>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function renderSimulaLista(){
+  var card = document.getElementById('sim-lista-card');
+  var lista = document.getElementById('sim-lista');
+  if(!card || !lista) return;
+  if(simulaVoci.length === 0){ card.style.display='none'; return; }
+  card.style.display = 'block';
+  lista.innerHTML = simulaVoci.map(function(v){
+    var meta = SIMULA_TIPO_MAP[v.tipo];
+    var sign = meta.sign > 0 ? '+' : '-';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);">'
+      +'<div style="display:flex;align-items:center;gap:10px;">'
+      +'<div style="width:8px;height:8px;border-radius:50%;background:'+meta.color+';flex-shrink:0;"></div>'
+      +'<div>'
+      +'<div style="font-size:13px;font-weight:600;">'+v.cat+'</div>'
+      +(v.desc?'<div style="font-size:11px;color:var(--muted);">'+v.desc+'</div>':'')
+      +'</div>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:10px;">'
+      +'<span style="font-size:13px;font-weight:700;color:'+meta.color+';">'+sign+'€'+v.amt.toLocaleString('it-IT')+'</span>'
+      +'<button onclick="removeSimulaVoce('+v.id+')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;padding:2px 6px;">×</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
 }
 
 </script>
