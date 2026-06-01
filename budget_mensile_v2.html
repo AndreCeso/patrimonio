@@ -600,47 +600,62 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
     </div>
   </div>
   <div class="wrap" style="margin-top:-20px;">
-    <!-- Setup T0 -->
-    <div class="card card-p" id="andamento-setup" style="margin-bottom:12px;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">📍 Saldo di partenza</div>
-      <div id="andamento-t0-display" style="display:none;">
-        <div style="font-size:13px;color:var(--muted);margin-bottom:4px;">Saldo al <span id="andamento-t0-date"></span></div>
-        <div style="font-size:28px;font-weight:900;color:var(--green);" id="andamento-t0-val"></div>
-        <button onclick="resetAndamento()" style="margin-top:10px;background:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;font-family:Inter,sans-serif;">✕ Reimposta T0</button>
-      </div>
-      <div id="andamento-t0-form">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5;">Inserisci il saldo attuale del tuo conto corrente. Da questo momento il sistema traccia le variazioni mensili.</div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <div style="position:relative;flex:1;">
-            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--green);font-size:16px;font-weight:700;">€</span>
-            <input id="andamento-t0-input" type="number" placeholder="14000" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px 10px 32px;font-size:16px;font-weight:700;font-family:Inter,sans-serif;outline:none;">
-          </div>
-          <button onclick="saveAndamentoT0()" style="background:var(--green);color:#fff;border:none;border-radius:var(--r-sm);padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Imposta</button>
-        </div>
+
+    <!-- SALDO ATTUALE (prominent) -->
+    <div class="card card-p" id="andamento-saldo-card" style="margin-bottom:12px;display:none;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Saldo attuale stimato</div>
+      <div style="font-size:38px;font-weight:900;letter-spacing:-.02em;" id="andamento-current-val">€0</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+        <div style="font-size:12px;color:var(--muted);" id="andamento-current-date"></div>
+        <div style="font-size:14px;font-weight:700;" id="andamento-delta-val"></div>
       </div>
     </div>
 
-    <!-- Chart -->
+    <!-- Setup T0 — se non impostato -->
+    <div class="card card-p" id="andamento-t0-setup-card" style="margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">📍 Imposta saldo di partenza</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5;">Inserisci il saldo attuale del conto corrente. Da oggi il sistema traccia le variazioni mensili.</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div style="position:relative;flex:1;">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--green);font-size:16px;font-weight:700;">€</span>
+          <input id="andamento-t0-input" type="number" placeholder="14000" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px 10px 32px;font-size:16px;font-weight:700;font-family:Inter,sans-serif;outline:none;">
+        </div>
+        <button onclick="saveAndamentoT0()" style="background:var(--green);color:#fff;border:none;border-radius:var(--r-sm);padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Imposta</button>
+      </div>
+    </div>
+
+    <!-- GRAFICO -->
     <div class="card card-p" id="andamento-chart-card" style="display:none;margin-bottom:12px;">
       <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">📈 Andamento saldo</div>
       <div style="position:relative;height:220px;"><canvas id="andamento-chart"></canvas></div>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px;">
-        <div><span style="color:var(--muted);">Saldo attuale stimato</span><br><span style="font-size:18px;font-weight:800;color:var(--green);" id="andamento-current-val"></span></div>
-        <div style="text-align:right;"><span style="color:var(--muted);">Variazione da T0</span><br><span style="font-size:18px;font-weight:800;" id="andamento-delta-val"></span></div>
+    </div>
+
+    <!-- CONFIG: T0 + Soglia -->
+    <div class="card card-p" id="andamento-config-card" style="display:none;margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">⚙️ Configurazione</div>
+      <!-- T0 -->
+      <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;">📍 Saldo di partenza (T0)</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:18px;font-weight:800;color:var(--green);" id="andamento-t0-val"></div>
+            <div style="font-size:11px;color:var(--dim);">al <span id="andamento-t0-date"></span></div>
+          </div>
+          <button onclick="resetAndamento()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;font-family:Inter,sans-serif;">↺ Reimposta</button>
+        </div>
+      </div>
+      <!-- Soglia -->
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px;">🔴 Soglia minima — non scendere sotto</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="position:relative;flex:1;">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;">€</span>
+            <input id="andamento-soglia-input" type="number" placeholder="0" oninput="saveAndamentoSoglia()" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:8px 12px 8px 28px;font-size:14px;font-weight:700;font-family:Inter,sans-serif;outline:none;">
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Soglia -->
-    <div class="card card-p" id="andamento-soglia-card" style="display:none;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">🔴 Soglia minima</div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="position:relative;flex:1;">
-          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;">€</span>
-          <input id="andamento-soglia-input" type="number" placeholder="0" oninput="saveAndamentoSoglia()" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:8px 12px 8px 28px;font-size:14px;font-weight:700;font-family:Inter,sans-serif;outline:none;">
-        </div>
-        <div style="font-size:11px;color:var(--muted);">non scendere sotto</div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -745,7 +760,8 @@ let CFG = {
   ]
 };
 let TXN = {};
-let curYear=2026, curMonth=5;
+const _now = new Date();
+let curYear=_now.getFullYear(), curMonth=_now.getMonth()+1;
 let txYear=2026, txMonth=5;
 let txFilter='ALL';
 let cfgMonthSel = '2026-5';
@@ -2986,28 +3002,28 @@ function saveAndamentoSoglia(){
 function renderAndamento(){
   var data = loadAndamento();
   var t0 = data.t0;
-  var setup = document.getElementById('andamento-t0-form');
-  var display = document.getElementById('andamento-t0-display');
-  var chartCard = document.getElementById('andamento-chart-card');
-  var sogliaCard = document.getElementById('andamento-soglia-card');
+  var saldoCard  = document.getElementById('andamento-saldo-card');
+  var setupCard  = document.getElementById('andamento-t0-setup-card');
+  var chartCard  = document.getElementById('andamento-chart-card');
+  var configCard = document.getElementById('andamento-config-card');
 
   if(!t0){
-    setup.style.display = 'block';
-    display.style.display = 'none';
-    chartCard.style.display = 'none';
-    sogliaCard.style.display = 'none';
+    if(saldoCard)  saldoCard.style.display  = 'none';
+    if(setupCard)  setupCard.style.display  = 'block';
+    if(chartCard)  chartCard.style.display  = 'none';
+    if(configCard) configCard.style.display = 'none';
     return;
   }
+  if(saldoCard)  saldoCard.style.display  = 'block';
+  if(setupCard)  setupCard.style.display  = 'none';
+  if(chartCard)  chartCard.style.display  = 'block';
+  if(configCard) configCard.style.display = 'block';
 
-  // Show T0 info
-  setup.style.display = 'none';
-  display.style.display = 'block';
-  chartCard.style.display = 'block';
-  sogliaCard.style.display = 'block';
-  document.getElementById('andamento-t0-date').textContent = fmtDate(t0.date);
-  document.getElementById('andamento-t0-val').textContent = '€'+t0.val.toLocaleString('it-IT');
+  var t0Val  = document.getElementById('andamento-t0-val');
+  var t0Date = document.getElementById('andamento-t0-date');
+  if(t0Val)  t0Val.textContent  = '€'+t0.val.toLocaleString('it-IT');
+  if(t0Date) t0Date.textContent = fmtDate(t0.date);
 
-  // Restore soglia input
   var sogliaInput = document.getElementById('andamento-soglia-input');
   if(sogliaInput && data.soglia) sogliaInput.value = data.soglia;
 
@@ -3056,16 +3072,15 @@ function renderAndamentoChart(data){
     points.push({ label: nowLbl+' (proj.)', val: points[0].val });
   }
 
-  // Update summary
+  // Update saldo card
   var currentVal = points[points.length-1].val;
   var delta0 = currentVal - t0.val;
   var currentEl = document.getElementById('andamento-current-val');
-  var deltaEl = document.getElementById('andamento-delta-val');
-  if(currentEl) currentEl.textContent = '€'+currentVal.toLocaleString('it-IT');
-  if(deltaEl){
-    deltaEl.textContent = (delta0>=0?'+':'')+'€'+Math.abs(delta0).toLocaleString('it-IT');
-    deltaEl.style.color = delta0>=0?'var(--green)':'var(--red)';
-  }
+  var deltaEl   = document.getElementById('andamento-delta-val');
+  var dateEl    = document.getElementById('andamento-current-date');
+  if(currentEl){ currentEl.textContent = '€'+currentVal.toLocaleString('it-IT'); currentEl.style.color = currentVal >= t0.val ? 'var(--green)' : 'var(--red)'; }
+  if(deltaEl){ deltaEl.textContent = (delta0>=0?'▲ +':'▼ ')+'€'+Math.abs(delta0).toLocaleString('it-IT')+' da T0'; deltaEl.style.color = delta0>=0?'var(--green)':'var(--red)'; }
+  if(dateEl){ var now2=new Date(); dateEl.textContent = 'al '+now2.toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'}); }
 
   // Draw chart
   var canvas = document.getElementById('andamento-chart');
