@@ -534,6 +534,12 @@ const ALLOC_DEFAULT_MODEL = {
     B:{macro:{liq:20,spesa:25,jolly:20,fin:35},jolly:{future:50,obiettivi:50},fin:{fe:0, pac:65,pensione:35}},
     C:{macro:{liq:0, spesa:35,jolly:25,fin:40},jolly:{future:50,obiettivi:50},fin:{fe:0, pac:70,pensione:30}},
   },
+  // Bonus S — importo < €400, logica semplificata
+  bonus_s: {
+    A:{macro:{liq:0, spesa:45,jolly:0,fin:55},jolly:{future:50,obiettivi:50},fin:{fe:100,pac:0,pensione:0}},
+    B:{macro:{liq:55,spesa:45,jolly:0,fin:0}, jolly:{future:50,obiettivi:50},fin:{fe:0,  pac:0, pensione:0}},
+    C:{macro:{liq:0, spesa:100,jolly:0,fin:0},jolly:{future:50,obiettivi:50},fin:{fe:0,  pac:0, pensione:0}},
+  },
 };
 
 const ALLOC_ENTRY_TYPES = [
@@ -555,6 +561,7 @@ const ALLOC_OVERFLOW_OPTS = [
   {key:'pensione',       label:'🏛️ Fondo Pensione'},
 ];
 const ALLOC_OVERFLOW_LABELS = Object.fromEntries(ALLOC_OVERFLOW_OPTS.map(o=>[o.key,o.label]));
+const BONUS_S_THRESHOLD = 400;
 const ALLOC_MC = {liq:'#006636',spesa:'#7c3aed',jolly:'#d97706',fin:'#1e40af'};
 
 // ═══════════════════════════════════════════════════════════
@@ -590,7 +597,10 @@ function allocResolveKey(key){
 
 function allocCompute(amount, entryType, scenario, liqCur, feCur, model, cfg){
   cfg = Object.assign({}, cfg, ALLOC_ENTRY_CONFIG_OVERRIDE[entryType]||{});
-  const m = model[entryType][scenario];
+  // Bonus S: importo < soglia → schema semplificato
+  const effectiveType = (entryType==='bonus' && amount < BONUS_S_THRESHOLD) ? 'bonus_s' : entryType;
+  const modelSrc = (ALLOC_DEFAULT_MODEL[effectiveType] && !model[effectiveType]) ? ALLOC_DEFAULT_MODEL : model;
+  const m = modelSrc[effectiveType] ? modelSrc[effectiveType][scenario] : model[entryType][scenario];
   const liqGap = Math.max(0, cfg.liqTarget - liqCur);
   const feGap  = Math.max(0, cfg.feTarget - feCur);
   const notes  = [];
@@ -837,8 +847,9 @@ function allocRender(){
 
   // Results title
   const entMeta=ALLOC_ENTRY_TYPES.find(e=>e.key===entry);
+  const isBonusS = entry==='bonus' && amount < BONUS_S_THRESHOLD;
   document.getElementById('alloc-results-title').innerHTML=
-    `💡 ${entMeta.icon} ${entMeta.label} · Scenario ${scenario}`+
+    `💡 ${entMeta.icon} ${entMeta.label}${isBonusS?' <span style="font-size:10px;background:#f59e0b20;color:#b45309;border:1px solid #fde68a;border-radius:4px;padding:1px 6px;margin-left:4px;">S &lt;€'+BONUS_S_THRESHOLD+'</span>':''} · Scenario ${scenario}`+
     (modelMod?`<span style="color:var(--amber);margin-left:6px;font-size:9px">% personalizzate</span>`:'');
 
   // Macro rows
@@ -1183,7 +1194,11 @@ function allocLoadState(){
     if(s.feCur)           allocState.feCur           = s.feCur;
     if(s.entry)           allocState.entry           = s.entry;
     if(s.scenarioOverride!==undefined) allocState.scenarioOverride = s.scenarioOverride;
-    if(s.model)           allocState.model           = s.model;
+    if(s.model){
+      allocState.model = s.model;
+      // Ensure bonus_s is always present (may be missing in old saves)
+      if(!allocState.model.bonus_s) allocState.model.bonus_s = allocDeepClone(ALLOC_DEFAULT_MODEL.bonus_s);
+    }
     if(s.cfg)             allocState.cfg             = {...ALLOC_DEFAULT_CONFIG, ...s.cfg};
     if(s.openSubs)        allocState.openSubs        = s.openSubs;
     // Restore inputs
