@@ -775,9 +775,13 @@ let cfgYear = 2026;
 // ═══════════════════════════════════════════════════════
 const SUPA_URL='https://nmzgizjgpyyxyetqvccn.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5temdpempncHl5eHlldHF2Y2NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NDQ1NjQsImV4cCI6MjA5NDMyMDU2NH0.Ay9_ZR9eT6z0dore3huvsjKzWJ5sPGRfw37OsiWRB_k';
-const bSb=supabase.createClient(SUPA_URL,SUPA_KEY);
+const bSb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{persistSession:true}});
+let _parentUserId = null;
+window.addEventListener("message", function(e){
+  if(e.data && e.data.type === "AUTH" && e.data.userId) _parentUserId = e.data.userId;
+});
 async function getCurrentUserId(){
-  try{ const {data:{session}}=await bSb.auth.getSession(); return session?.user?.id||null; }catch(e){return null;}
+  try{ const {data:{session}}=await bSb.auth.getSession(); return session?.user?.id||_parentUserId||null; }catch(e){return _parentUserId||null;}
 }
 async function saveAll(){
   try{ localStorage.setItem('bgt_cfg2',JSON.stringify(CFG)); localStorage.setItem('bgt_txn2',JSON.stringify(TXN)); }catch(e){}
