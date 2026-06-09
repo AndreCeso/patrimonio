@@ -2843,14 +2843,18 @@ function seedData(){
 }
 
 // ─── INIT ───
-// Version bump forces re-seed when data changes
 var SEED_VERSION = '2025-2026-v1';
 (async function(){
   await loadAll();
-  if(!Object.keys(TXN).length || localStorage.getItem('bgt_seed_ver') !== SEED_VERSION){
-    TXN={};
+  // Seed SOLO se TXN è completamente vuoto E il seed non è mai stato eseguito.
+  // MAI resettare TXN se loadAll() ha già portato dati reali (da Supabase o localStorage).
+  const seedDone = localStorage.getItem('bgt_seed_ver') === SEED_VERSION;
+  if(!Object.keys(TXN).length && !seedDone){
     seedData();
     await saveAll();
+    localStorage.setItem('bgt_seed_ver', SEED_VERSION);
+  } else if(!seedDone){
+    // Dati reali presenti ma seed_ver vecchio: aggiorna solo il flag, non toccare TXN
     localStorage.setItem('bgt_seed_ver', SEED_VERSION);
   }
   const dateEl=document.getElementById('add-date');
