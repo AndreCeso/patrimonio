@@ -614,13 +614,16 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
     <!-- Setup T0 — se non impostato -->
     <div class="card card-p" id="andamento-t0-setup-card" style="margin-bottom:12px;">
       <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">📍 Imposta saldo di partenza</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5;">Inserisci il saldo attuale del conto corrente. Da oggi il sistema traccia le variazioni mensili.</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <div style="position:relative;flex:1;">
-          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--green);font-size:16px;font-weight:700;">€</span>
-          <input id="andamento-t0-input" type="number" placeholder="14000" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px 10px 32px;font-size:16px;font-weight:700;font-family:Inter,sans-serif;outline:none;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5;">Inserisci il saldo del conto corrente e la data di riferimento.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="position:relative;flex:1;">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--green);font-size:16px;font-weight:700;">€</span>
+            <input id="andamento-t0-input" type="number" placeholder="14000" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px 10px 32px;font-size:16px;font-weight:700;font-family:Inter,sans-serif;outline:none;">
+          </div>
+          <input id="andamento-t0-date-input" type="date" style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;font-size:14px;font-weight:600;font-family:Inter,sans-serif;outline:none;color:var(--text);">
         </div>
-        <button onclick="saveAndamentoT0()" style="background:var(--green);color:#fff;border:none;border-radius:var(--r-sm);padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Imposta</button>
+        <button onclick="saveAndamentoT0()" style="background:var(--green);color:#fff;border:none;border-radius:var(--r-sm);padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;width:100%;">Imposta</button>
       </div>
     </div>
 
@@ -2984,16 +2987,28 @@ function saveAndamento(data){
 }
 
 function saveAndamentoT0(){
-  var val = parseFloat(document.getElementById('andamento-t0-input').value)||0;
-  if(val <= 0){ showToast('Inserisci un valore valido'); return; }
-  var today = new Date().toISOString().split('T')[0];
+  var val = parseFloat(document.getElementById("andamento-t0-input").value)||0;
+  if(val <= 0){ showToast("Inserisci un valore valido"); return; }
+  var dateEl = document.getElementById("andamento-t0-date-input");
+  var date = (dateEl && dateEl.value) ? dateEl.value : new Date().toISOString().split("T")[0];
   var data = loadAndamento();
-  data.t0 = { val: val, date: today };
+  data.t0 = { val: val, date: date };
   data.soglia = data.soglia || 0;
   saveAndamento(data);
   renderAndamento();
-  showToast('Saldo T0 impostato: €'+val.toLocaleString('it-IT'));
+  showToast("Saldo T0 impostato: u20ac"+val.toLocaleString("it-IT"));
 }
+
+
+
+
+
+
+
+
+
+
+
 
 function resetAndamento(){
   if(!confirm('Reimpostare il saldo di partenza?')) return;
