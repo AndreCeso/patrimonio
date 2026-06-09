@@ -537,10 +537,22 @@ function closeTracker(){
   var tb=document.querySelector('.tabbar');if(tb)tb.style.display='flex';
   document.getElementById('hubScreen').classList.remove('hidden');
 }
+function sendAuthToAll(){
+  var frames = ['tracker-frame','budget-frame','alloc-frame'];
+  frames.forEach(function(id){
+    var f = document.getElementById(id);
+    if(f && f.contentWindow && currentUser){
+      f.contentWindow.postMessage({type:'AUTH',userId:currentUser.id},'*');
+    }
+  });
+}
+
 function openBudget(){
   document.getElementById('hubScreen').classList.add('hidden');
   var tb=document.querySelector('.tabbar');if(tb)tb.style.display='none';
   document.getElementById('budget-overlay').style.display='block';
+  var f=document.getElementById('budget-frame');
+  f.onload=sendAuthToAll; setTimeout(sendAuthToAll,500);
 }
 function closeBudget(){
   document.getElementById('budget-overlay').style.display='none';
@@ -552,6 +564,8 @@ function openAllocatore(){
   document.getElementById('hubScreen').classList.add('hidden');
   var tb=document.querySelector('.tabbar');if(tb)tb.style.display='none';
   document.getElementById('alloc-overlay').style.display='block';
+  var f=document.getElementById('alloc-frame');
+  f.onload=sendAuthToAll; setTimeout(sendAuthToAll,500);
 }
 
 function closeAllocatore(){
@@ -577,15 +591,9 @@ function enterApp(){
   document.getElementById('hubScreen').classList.add('hidden');
   var tb=document.querySelector('.tabbar');if(tb)tb.style.display='none';
   document.getElementById('tracker-overlay').style.display='block';
-  // Send auth to tracker child after iframe loads
   var iframe=document.getElementById('tracker-frame');
-  function sendAuth(){
-    if(iframe && iframe.contentWindow && currentUser){
-      iframe.contentWindow.postMessage({type:'AUTH',userId:currentUser.id},'*');
-    }
-  }
-  iframe.onload = sendAuth;
-  setTimeout(sendAuth, 500); // fallback
+  iframe.onload = sendAuthToAll;
+  setTimeout(sendAuthToAll, 500);
 }
 
 // ── INIT ─────────────────────────────────────────────────────
