@@ -656,6 +656,41 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       </div>
     </div>
 
+    <!-- RICONCILIAZIONI -->
+    <div class="card card-p" id="andamento-riconciliazioni-card" style="display:none;margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">🔧 Riconciliazioni</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5;">Aggiustamenti manuali al saldo stimato — entrate/uscite fuori dalla logica budget (contanti, rimborsi informali, ecc.).</div>
+
+      <!-- FORM NUOVO AGGIUSTAMENTO -->
+      <div style="background:var(--bg);border-radius:var(--r-sm);padding:12px;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Nuovo aggiustamento</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <!-- Mese -->
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--dim);margin-bottom:4px;">Mese</div>
+            <input id="riconc-ym" type="month" style="width:100%;background:var(--white);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:8px 10px;font-size:13px;font-weight:600;font-family:Inter,sans-serif;outline:none;">
+          </div>
+          <!-- Importo con segno -->
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--dim);margin-bottom:4px;">Importo (±)</div>
+            <div style="display:flex;gap:4px;align-items:center;">
+              <button id="riconc-sign-btn" onclick="toggleRiconcSign()" style="background:var(--green-light);color:var(--green);border:1.5px solid var(--green);border-radius:var(--r-sm);padding:8px 10px;font-size:14px;font-weight:800;cursor:pointer;font-family:Inter,sans-serif;flex-shrink:0;min-width:36px;text-align:center;">+</button>
+              <input id="riconc-amt" type="number" placeholder="0" min="0" step="1" style="width:100%;background:var(--white);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:8px 10px;font-size:13px;font-weight:700;font-family:Inter,sans-serif;outline:none;">
+            </div>
+          </div>
+        </div>
+        <!-- Nota -->
+        <div style="margin-bottom:10px;">
+          <div style="font-size:10px;font-weight:700;color:var(--dim);margin-bottom:4px;">Nota</div>
+          <input id="riconc-note" type="text" placeholder="es. Rimborso cena Marco" style="width:100%;background:var(--white);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:8px 10px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+        </div>
+        <button onclick="addRiconciliazione()" style="width:100%;background:var(--green);color:#fff;border:none;border-radius:var(--r-sm);padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">+ Aggiungi</button>
+      </div>
+
+      <!-- LISTA -->
+      <div id="riconc-lista"></div>
+    </div>
+
   </div>
 </div>
 
@@ -2999,6 +3034,84 @@ function saveAndamentoSoglia(){
   renderAndamentoChart(data);
 }
 
+// ── RICONCILIAZIONI ────────────────────────────────────────
+var _riconcSign = 1; // +1 o -1
+
+function toggleRiconcSign(){
+  _riconcSign = _riconcSign === 1 ? -1 : 1;
+  var btn = document.getElementById('riconc-sign-btn');
+  if(!btn) return;
+  if(_riconcSign === 1){
+    btn.textContent = '+';
+    btn.style.background = 'var(--green-light)';
+    btn.style.color = 'var(--green)';
+    btn.style.borderColor = 'var(--green)';
+  } else {
+    btn.textContent = '−';
+    btn.style.background = 'var(--red-l)';
+    btn.style.color = 'var(--red)';
+    btn.style.borderColor = 'var(--red)';
+  }
+}
+
+function addRiconciliazione(){
+  var ym   = document.getElementById('riconc-ym').value;
+  var amt  = parseFloat(document.getElementById('riconc-amt').value)||0;
+  var note = document.getElementById('riconc-note').value.trim();
+  if(!ym){ showToast('Seleziona il mese'); return; }
+  if(amt <= 0){ showToast('Inserisci un importo'); return; }
+  if(!note){ showToast('Aggiungi una nota'); return; }
+  var data = loadAndamento();
+  if(!data.adjustments) data.adjustments = [];
+  data.adjustments.push({ id: Date.now(), ym: ym, amt: _riconcSign * amt, note: note });
+  saveAndamento(data);
+  // reset form
+  document.getElementById('riconc-amt').value = '';
+  document.getElementById('riconc-note').value = '';
+  _riconcSign = 1;
+  var btn = document.getElementById('riconc-sign-btn');
+  if(btn){ btn.textContent='+'; btn.style.background='var(--green-light)'; btn.style.color='var(--green)'; btn.style.borderColor='var(--green)'; }
+  renderRiconcLista(data);
+  renderAndamentoChart(data);
+  showToast('Riconciliazione aggiunta');
+}
+
+function deleteRiconciliazione(id){
+  var data = loadAndamento();
+  data.adjustments = (data.adjustments||[]).filter(function(a){ return a.id !== id; });
+  saveAndamento(data);
+  renderRiconcLista(data);
+  renderAndamentoChart(data);
+  showToast('Riconciliazione eliminata');
+}
+
+function renderRiconcLista(data){
+  var el = document.getElementById('riconc-lista');
+  if(!el) return;
+  var adjs = (data.adjustments||[]).slice().sort(function(a,b){ return b.ym.localeCompare(a.ym); });
+  if(!adjs.length){
+    el.innerHTML = '<div style="text-align:center;color:var(--dim);font-size:12px;padding:12px 0;">Nessuna riconciliazione</div>';
+    return;
+  }
+  el.innerHTML = adjs.map(function(a){
+    var pos = a.amt >= 0;
+    var col = pos ? 'var(--green)' : 'var(--red)';
+    var sign = pos ? '+' : '';
+    // Formatta ym "2025-06" → "Giu 25"
+    var parts = a.ym.split('-');
+    var mLabel = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'][parseInt(parts[1])-1]+' '+parts[0].slice(2);
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">'
+      +'<div style="width:36px;height:36px;border-radius:10px;background:'+(pos?'var(--green-light)':'var(--red-l)')+';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:'+col+';flex-shrink:0;">'+sign+a.amt.toLocaleString('it-IT')+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+a.note+'</div>'
+      +'<div style="font-size:11px;color:var(--dim);margin-top:1px;">'+mLabel+'</div>'
+      +'</div>'
+      +'<div style="font-size:14px;font-weight:800;color:'+col+';flex-shrink:0;">'+sign+'€'+Math.abs(a.amt).toLocaleString('it-IT')+'</div>'
+      +'<button onclick="deleteRiconciliazione('+a.id+')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:18px;padding:2px 6px;flex-shrink:0;">×</button>'
+      +'</div>';
+  }).join('');
+}
+
 function renderAndamento(){
   var data = loadAndamento();
   var t0 = data.t0;
@@ -3006,18 +3119,28 @@ function renderAndamento(){
   var setupCard  = document.getElementById('andamento-t0-setup-card');
   var chartCard  = document.getElementById('andamento-chart-card');
   var configCard = document.getElementById('andamento-config-card');
+  var riconcCard = document.getElementById('andamento-riconciliazioni-card');
 
   if(!t0){
     if(saldoCard)  saldoCard.style.display  = 'none';
     if(setupCard)  setupCard.style.display  = 'block';
     if(chartCard)  chartCard.style.display  = 'none';
     if(configCard) configCard.style.display = 'none';
+    if(riconcCard) riconcCard.style.display = 'none';
     return;
   }
   if(saldoCard)  saldoCard.style.display  = 'block';
   if(setupCard)  setupCard.style.display  = 'none';
   if(chartCard)  chartCard.style.display  = 'block';
   if(configCard) configCard.style.display = 'block';
+  if(riconcCard) riconcCard.style.display = 'block';
+
+  var ymInput = document.getElementById('riconc-ym');
+  if(ymInput && !ymInput.value){
+    var now = new Date();
+    ymInput.value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  }
+  renderRiconcLista(data);
 
   var t0Val  = document.getElementById('andamento-t0-val');
   var t0Date = document.getElementById('andamento-t0-date');
@@ -3056,8 +3179,11 @@ function renderAndamentoChart(data){
     var delta = c.reddito - c.spese - c.tl - c.risp - benefit + rispCC;
 
     if((c.allTxns||c.txns||[]).length > 0){
-      saldo += delta;
+      var ymKey = y+'-'+String(m).padStart(2,'0');
+      var adj = (data.adjustments||[]).filter(function(a){ return a.ym===ymKey; }).reduce(function(s,a){ return s+a.amt; }, 0);
+      saldo += delta + adj;
       var lbl = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'][m-1]+' '+String(y).slice(2);
+      if(adj !== 0) lbl += ' ✦';
       points.push({ label: lbl, val: Math.round(saldo) });
     }
 
