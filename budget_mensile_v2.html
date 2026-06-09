@@ -780,15 +780,21 @@ async function saveAll(){
   try{ localStorage.setItem('bgt_cfg2',JSON.stringify(CFG)); localStorage.setItem('bgt_txn2',JSON.stringify(TXN)); }catch(e){}
   const uid=await getCurrentUserId();
   if(!uid) return;
-  try{ await bSb.from('patrimonio').upsert({user_id:uid,budget_txn:TXN,budget_cfg:CFG,updated_at:new Date().toISOString()},{onConflict:'user_id'}); }catch(e){console.warn('Budget save err:',e.message);}
+  try{
+    const andamento = loadAndamento();
+    const tasche = loadTasche();
+    await bSb.from('patrimonio').upsert({user_id:uid,budget_txn:TXN,budget_cfg:CFG,budget_andamento:andamento,budget_tasche:tasche,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  }catch(e){console.warn('Budget save err:',e.message);}
 }
 async function loadAll(){
   const uid=await getCurrentUserId();
   if(uid){
     try{
-      const {data}=await bSb.from('patrimonio').select('budget_txn,budget_cfg').eq('user_id',uid).maybeSingle();
+      const {data}=await bSb.from('patrimonio').select('budget_txn,budget_cfg,budget_andamento,budget_tasche').eq('user_id',uid).maybeSingle();
       if(data?.budget_cfg){const p=data.budget_cfg;CFG={...CFG,...p,categorie:{...CFG.categorie,...(p.categorie||{})},mPct:{...CFG.mPct,...(p.mPct||{})}};}
       if(data?.budget_txn) TXN=data.budget_txn;
+      if(data?.budget_andamento) localStorage.setItem('bgt_andamento',JSON.stringify(data.budget_andamento));
+      if(data?.budget_tasche) localStorage.setItem('bgt_tasche',JSON.stringify(data.budget_tasche));
       return;
     }catch(e){console.warn('Budget load err:',e.message);}
   }
@@ -2873,6 +2879,7 @@ function loadTasche(){
 }
 function saveTasche(tasche){
   localStorage.setItem(TASCHE_KEY, JSON.stringify(tasche));
+  saveAll();
 }
 function openTasche(){
   renderTascheList();
@@ -2973,6 +2980,7 @@ function loadAndamento(){
 }
 function saveAndamento(data){
   localStorage.setItem(ANDAMENTO_KEY, JSON.stringify(data));
+  saveAll();
 }
 
 function saveAndamentoT0(){
