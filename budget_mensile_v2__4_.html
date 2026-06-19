@@ -1262,7 +1262,7 @@ function buildDetailContent(c,macro){
   const cats=c.byCat[macro.tipo]||{};
   const catEntries=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
   const catTotal=Object.values(cats).reduce((s,v)=>s+v,0);
-  const txns=c.allTxns.filter(t=>t.tipo===macro.tipo&&!t.extra).sort((a,b)=>b.date.localeCompare(a.date));
+  const txns=c.allTxns.filter(t=>t.tipo===macro.tipo&&!t.extra&&!(t.tipo==='INCOME'&&t.cat==='Riconcilia C/C')).sort((a,b)=>b.date.localeCompare(a.date));
   let html='';
   if(catEntries.length){
     html+=`<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Per categoria</div>`;
