@@ -633,6 +633,23 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       <div style="position:relative;height:220px;"><canvas id="andamento-chart"></canvas></div>
     </div>
 
+    <!-- AGGIUSTAMENTI -->
+    <div class="card card-p" id="andamento-aggiust-card" style="display:none;margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">🔧 Aggiustamenti saldo</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+        <div style="display:flex;gap:8px;">
+          <div style="position:relative;flex:1;">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--green);font-size:14px;font-weight:700;">€</span>
+            <input id="aggiust-amt" type="number" placeholder="es. 500 o -200" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:9px 10px 9px 28px;font-size:14px;font-weight:700;font-family:Inter,sans-serif;outline:none;">
+          </div>
+          <input id="aggiust-date" type="date" style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:9px 10px;font-size:13px;font-weight:600;font-family:Inter,sans-serif;outline:none;color:var(--text);">
+        </div>
+        <input id="aggiust-desc" type="text" placeholder="Descrizione (opzionale)" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:9px 12px;font-size:13px;font-family:Inter,sans-serif;outline:none;color:var(--text);">
+        <button onclick="addAggiustamento()" style="background:var(--green);color:#fff;border:none;border-radius:var(--r-sm);padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">+ Aggiungi</button>
+      </div>
+      <div id="aggiust-list"></div>
+    </div>
+
     <!-- CONFIG: T0 + Soglia -->
     <div class="card card-p" id="andamento-config-card" style="display:none;margin-bottom:12px;">
       <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">⚙️ Configurazione</div>
@@ -742,7 +759,7 @@ let CFG = {
   defaultPct: {spese:50,tl:25,risp:25},
   scheduledTypes: {EXPENSES:true,'TEMPO LIBERO':true,SAVINGS:false,INCOME:false},
   categorie: {
-    INCOME: ['Stipendio','Rimborso 730','Tredicesima','Entrate Extra'],
+    INCOME: ['Stipendio','Rimborso 730','Tredicesima','Entrate Extra','Riconcilia C/C'],
     EXPENSES: ['Mutuo','Assicurazione Casa','Internet/Telefono','Gas','Luce','Spesa','Benzina','Macchina','Casa','Sanità','Cibo Ufficio','Tasse'],
     SAVINGS: ['PAC','Vacanze','Fondo di Emergenza','Investimento personale','Obiettivi'],
     'TEMPO LIBERO': ['Palestra e Affini','Cultura','Cibo Fuori','Vestiti','Cura Personale','Bar/Caffè','Regali','Viaggi/Vacanze','Altro']
@@ -884,10 +901,12 @@ function calcMonth(y,m){
   const scheduledTxns=allTxns.filter(t=>isScheduled(t.date,t.tipo));
   const normal=txns.filter(t=>!t.extra);
   const extraTxns=txns.filter(t=>t.extra);
-  // Totals include ALL (saldo is real money)
-  const reddito=sumByTipo(txns,'INCOME');
-  // Exclude benefit (extra) from category display totals
-  const normalTxns=txns.filter(t=>!t.extra);
+  // Riconcilia C/C: INCOME entries that affect only Andamento C/C, not budget/KPI
+  const riconciliaCC=txns.filter(t=>t.tipo==='INCOME'&&t.cat==='Riconcilia C/C').reduce((s,t)=>s+t.amt,0);
+  // Totals include ALL (saldo is real money) — exclude Riconcilia C/C
+  const reddito=txns.filter(t=>t.tipo==='INCOME'&&t.cat!=='Riconcilia C/C').reduce((s,t)=>s+t.amt,0);
+  // Exclude benefit (extra) and Riconcilia C/C from category display totals
+  const normalTxns=txns.filter(t=>!t.extra&&!(t.tipo==='INCOME'&&t.cat==='Riconcilia C/C'));
   const spese=sumByTipo(normalTxns,'EXPENSES');
   const tl=sumByTipo(normalTxns,'TEMPO LIBERO');
   const risp=sumByTipo(normalTxns,'SAVINGS');
@@ -901,7 +920,7 @@ function calcMonth(y,m){
   const extraReddito=sumByTipo(extraTxns,'INCOME');
   const totBenefit=extraTxns.reduce((s,t)=>s+t.amt,0);
   // % calculated on NORMAL only
-  const redditoNorm=sumByTipo(normal,'INCOME');
+  const redditoNorm=normal.filter(t=>t.tipo==='INCOME'&&t.cat!=='Riconcilia C/C').reduce((s,t)=>s+t.amt,0);
   const speseNorm=sumByTipo(normal,'EXPENSES');
   const tlNorm=sumByTipo(normal,'TEMPO LIBERO');
   const rispNorm=sumByTipo(normal,'SAVINGS');
@@ -929,7 +948,7 @@ function calcMonth(y,m){
   return {reddito,spese,tl,risp,bSpese,bTl,bRisp,saldo,ref,pct,txns,byCat,byCatDiff,tlDiff,tlNow,totBenefit,extraTxns,
     speseNorm,tlNorm,rispNorm,redditoNorm,
     extraSpese,extraTl,extraRisp,extraReddito,
-    scheduledTxns,schedAmt,allTxns};
+    scheduledTxns,schedAmt,allTxns,riconciliaCC};
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1260,7 +1279,7 @@ function buildDetailContent(c,macro){
   const cats=c.byCat[macro.tipo]||{};
   const catEntries=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
   const catTotal=Object.values(cats).reduce((s,v)=>s+v,0);
-  const txns=c.allTxns.filter(t=>t.tipo===macro.tipo&&!t.extra).sort((a,b)=>b.date.localeCompare(a.date));
+  const txns=c.allTxns.filter(t=>t.tipo===macro.tipo&&!t.extra&&!(t.tipo==='INCOME'&&t.cat==='Riconcilia C/C')).sort((a,b)=>b.date.localeCompare(a.date));
   let html='';
   if(catEntries.length){
     html+=`<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Per categoria</div>`;
@@ -3046,18 +3065,21 @@ function renderAndamento(){
   var setupCard  = document.getElementById('andamento-t0-setup-card');
   var chartCard  = document.getElementById('andamento-chart-card');
   var configCard = document.getElementById('andamento-config-card');
+  var aggiustCard= document.getElementById('andamento-aggiust-card');
 
   if(!t0){
     if(saldoCard)  saldoCard.style.display  = 'none';
     if(setupCard)  setupCard.style.display  = 'block';
     if(chartCard)  chartCard.style.display  = 'none';
     if(configCard) configCard.style.display = 'none';
+    if(aggiustCard)aggiustCard.style.display= 'none';
     return;
   }
   if(saldoCard)  saldoCard.style.display  = 'block';
   if(setupCard)  setupCard.style.display  = 'none';
   if(chartCard)  chartCard.style.display  = 'block';
   if(configCard) configCard.style.display = 'block';
+  if(aggiustCard)aggiustCard.style.display= 'block';
 
   var t0Val  = document.getElementById('andamento-t0-val');
   var t0Date = document.getElementById('andamento-t0-date');
@@ -3067,7 +3089,57 @@ function renderAndamento(){
   var sogliaInput = document.getElementById('andamento-soglia-input');
   if(sogliaInput && data.soglia) sogliaInput.value = data.soglia;
 
+  renderAggiustList(data);
   renderAndamentoChart(data);
+}
+
+// ── Aggiustamenti ──────────────────────────────────────────
+function addAggiustamento(){
+  var amt  = parseFloat(document.getElementById('aggiust-amt').value);
+  var date = document.getElementById('aggiust-date').value;
+  var desc = document.getElementById('aggiust-desc').value.trim();
+  if(!amt || !date){ showToast('⚠️ Inserisci importo e data'); return; }
+  var data = loadAndamento();
+  if(!data.aggiustamenti) data.aggiustamenti = [];
+  data.aggiustamenti.push({ id: Date.now(), amt: amt, date: date, desc: desc });
+  data.aggiustamenti.sort(function(a,b){ return a.date.localeCompare(b.date); });
+  saveAndamento(data);
+  document.getElementById('aggiust-amt').value  = '';
+  document.getElementById('aggiust-date').value = '';
+  document.getElementById('aggiust-desc').value = '';
+  renderAggiustList(data);
+  renderAndamentoChart(data);
+  showToast('✅ Aggiustamento aggiunto');
+}
+
+function deleteAggiustamento(id){
+  var data = loadAndamento();
+  data.aggiustamenti = (data.aggiustamenti||[]).filter(function(a){ return a.id !== id; });
+  saveAndamento(data);
+  renderAggiustList(data);
+  renderAndamentoChart(data);
+}
+
+function renderAggiustList(data){
+  var el = document.getElementById('aggiust-list');
+  if(!el) return;
+  var list = data.aggiustamenti || [];
+  if(list.length === 0){
+    el.innerHTML = '<div style="font-size:12px;color:var(--dim);text-align:center;padding:8px 0;">Nessun aggiustamento inserito</div>';
+    return;
+  }
+  el.innerHTML = list.slice().reverse().map(function(a){
+    var pos = a.amt >= 0;
+    var color = pos ? 'var(--green)' : 'var(--red)';
+    var sign  = pos ? '+' : '';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">'
+      + '<div>'
+      + '<div style="font-size:13px;font-weight:700;color:'+color+';">'+sign+'€'+Math.abs(a.amt).toLocaleString('it-IT')+'</div>'
+      + '<div style="font-size:11px;color:var(--dim);margin-top:2px;">'+fmtDate(a.date)+(a.desc?' · '+a.desc:'')+'</div>'
+      + '</div>'
+      + '<button onclick="deleteAggiustamento('+a.id+')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:18px;padding:4px 8px;">🗑</button>'
+      + '</div>';
+  }).join('');
 }
 
 function renderAndamentoChart(data){
@@ -3093,7 +3165,13 @@ function renderAndamentoChart(data){
     var c = calcMonth(y, m);
     var benefit = (c.extraTxns||[]).reduce(function(s,t){return s+t.amt;},0);
     var rispCC = (c.allTxns||[]).filter(function(t){return t.tipo==='SAVINGS'&&t.cat==='Conto Corrente'&&!t.extra;}).reduce(function(s,t){return s+t.amt;},0);
-    var delta = c.reddito - c.spese - c.tl - c.risp - benefit + rispCC;
+    var riconciliaCC = c.riconciliaCC || 0;
+    // Aggiustamenti manuali del mese
+    var aggiustMese = (data.aggiustamenti||[]).filter(function(a){
+      var d = new Date(a.date);
+      return d.getFullYear()===y && d.getMonth()+1===m;
+    }).reduce(function(s,a){ return s+a.amt; }, 0);
+    var delta = c.reddito - c.spese - c.tl - c.risp - benefit + rispCC + riconciliaCC + aggiustMese;
 
     if((c.allTxns||c.txns||[]).length > 0){
       saldo += delta;
