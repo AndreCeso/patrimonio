@@ -280,6 +280,18 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
         <div class="form-lbl">Descrizione</div>
         <input type="text" class="form-input" id="add-desc" placeholder="es. Conad, Benzina, Netflix…">
       </div>
+      <div id="add-mezzo-row" style="margin-bottom:12px;display:none;">
+        <div class="form-lbl">Mezzo di pagamento</div>
+        <select class="form-select" id="add-mezzo">
+          <option value="">— Non specificato —</option>
+          <option value="Bancomat">💳 Bancomat</option>
+          <option value="Contanti">💵 Contanti</option>
+          <option value="Carta Credito">🔵 Carta Credito</option>
+          <option value="Trade Republic">🟢 Trade Republic</option>
+          <option value="Satispay">🔴 Satispay</option>
+          <option value="PayPal">🔷 PayPal</option>
+        </select>
+      </div>
       <!-- FONTE ESTERNA -->
       <div style="display:flex;align-items:flex-start;gap:12px;background:var(--bg);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:12px;cursor:pointer;" onclick="document.getElementById('add-extra').click();event.stopPropagation();">
         <input type="checkbox" id="add-extra" style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;margin-top:2px;" onclick="event.stopPropagation();">
@@ -997,6 +1009,11 @@ function selTipo(t){
     difRow.style.display = t==='TEMPO LIBERO' ? 'flex' : 'none';
     if(t!=='TEMPO LIBERO') document.getElementById('add-differito').checked = false;
   }
+  var mezzoRow = document.getElementById('add-mezzo-row');
+  if(mezzoRow){
+    mezzoRow.style.display = (t==='EXPENSES'||t==='TEMPO LIBERO') ? 'block' : 'none';
+    if(t!=='EXPENSES'&&t!=='TEMPO LIBERO') document.getElementById('add-mezzo').value = '';
+  }
 }
 function updateCatSelect(id,tipo){
   const sel=document.getElementById(id);
@@ -1033,13 +1050,16 @@ function addTransaction(){
   if(!TXN[k]) TXN[k]=[];
   const extra=document.getElementById('add-extra')?.checked||false;
   const differito=addTipo==='TEMPO LIBERO'&&(document.getElementById('add-differito')?.checked||false);
-  TXN[k].push({tipo:addTipo,cat,desc,amt,date,extra,differito});
+  const mezzoEl=document.getElementById('add-mezzo');
+  const mezzo=(addTipo==='EXPENSES'||addTipo==='TEMPO LIBERO')&&mezzoEl ? mezzoEl.value : '';
+  TXN[k].push({tipo:addTipo,cat,desc,amt,date,extra,differito,mezzo});
   if(document.getElementById('add-extra')) document.getElementById('add-extra').checked=false;
   saveAll();
   showToast('✅ Aggiunto: '+fmt(amt));
   document.getElementById('add-desc').value='';
   document.getElementById('add-amt').value='';
   document.getElementById('add-differito').checked=false;
+  if(document.getElementById('add-mezzo')) document.getElementById('add-mezzo').value='';
   updateSchedNote();
 }
 
@@ -1251,7 +1271,9 @@ function renderDash(){
   // ── Benefit card (only if > €1) ──
 
   const alertsHtml=buildAlerts(c);
-  cont.innerHTML=rdisCard+gridHtml+(alertsHtml?'<div>'+alertsHtml+'</div>':'');
+  const mezzoHtml=buildMezzoBreakdown(c.allTxns,'var(--text)');
+  const mezzoCard=mezzoHtml?'<div class="card card-p" style="margin-top:12px;"><div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">💳 Spese per mezzo</div>'+mezzoHtml+'</div>':'';
+  cont.innerHTML=rdisCard+gridHtml+(alertsHtml?'<div>'+alertsHtml+'</div>':'')+mezzoCard;
   var benefitCardEl=document.getElementById('benefit-card-m');
   if(benefitCardEl){
     benefitCardEl.addEventListener('click',function(){
@@ -1273,6 +1295,40 @@ function renderDash(){
 function toggleKpi2(id){
   const body=document.getElementById(id+'-body');
   body.classList.toggle('open');
+}
+
+const MEZZO_EMOJI = {'Bancomat':'💳','Contanti':'💵','Carta Credito':'🔵','Trade Republic':'🟢','Satispay':'🔴','PayPal':'🔷','':'❔'};
+
+function buildMezzoBreakdown(txns, color){
+  var rilevanti = txns.filter(function(t){ return (t.tipo==='EXPENSES'||t.tipo==='TEMPO LIBERO') && !t.extra; });
+  if(!rilevanti.length) return '';
+  var byMezzo = {};
+  rilevanti.forEach(function(t){
+    var m = t.mezzo || '';
+    if(!byMezzo[m]) byMezzo[m] = 0;
+    byMezzo[m] += t.amt;
+  });
+  var entries = Object.entries(byMezzo).sort(function(a,b){ return b[1]-a[1]; });
+  var tot = rilevanti.reduce(function(s,t){ return s+t.amt; }, 0);
+  var rows = entries.map(function(e){
+    var lbl = e[0] || 'Non specificato';
+    var emoji = MEZZO_EMOJI[e[0]] || '❔';
+    var pct = tot ? Math.round(e[1]/tot*100) : 0;
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">'
+      +'<div style="display:flex;align-items:center;gap:8px;">'
+      +'<span style="font-size:16px;">'+emoji+'</span>'
+      +'<div>'
+      +'<div style="font-size:12px;font-weight:700;color:var(--text);">'+lbl+'</div>'
+      +'<div style="font-size:10px;color:var(--dim);">'+pct+'% del totale</div>'
+      +'</div>'
+      +'</div>'
+      +'<div style="font-size:13px;font-weight:800;color:var(--text);">'+fmt(e[1])+'</div>'
+      +'</div>';
+  }).join('');
+  return '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Per mezzo di pagamento</div>'
+    +rows
+    +'</div>';
 }
 
 function buildDetailContent(c,macro){
@@ -1757,6 +1813,18 @@ function renderStorico(){
   } else {
     cont.innerHTML = trendHtml + html;
   }
+
+  // ── Card mezzo annuale ──
+  var allAnnTxns = mesiDati.reduce(function(acc,md){ return acc.concat(md.c.allTxns||[]); }, []);
+  var mezzoAnnHtml = buildMezzoBreakdown(allAnnTxns,'var(--text)');
+  if(mezzoAnnHtml){
+    var mezzoAnnCard = '<div class="hcard">'
+      +'<div style="padding:14px 16px;">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">💳 Spese per mezzo · anno '+storYear+'</div>'
+      +mezzoAnnHtml
+      +'</div></div>';
+    cont.innerHTML += mezzoAnnCard;
+  }
   // ── Top & Flop interactions ──
   var tfHeader = document.getElementById('tf-header');
   var tfBody   = document.getElementById('tf-body');
@@ -1983,6 +2051,7 @@ function openTxDetail(idx, y, m){
     +'<div class="subrow"><div class="subrow-lbl">Categoria</div><div class="subrow-val">'+t.cat+'</div></div>'
     +'<div class="subrow"><div class="subrow-lbl">Descrizione</div><div class="subrow-val">'+(t.desc||'—')+'</div></div>'
     +'<div class="subrow"><div class="subrow-lbl">Tipo</div><div class="subrow-val">'+TIPO_LABEL[t.tipo]+'</div></div>'
+    +((t.mezzo)?'<div class="subrow"><div class="subrow-lbl">Mezzo</div><div class="subrow-val">'+t.mezzo+'</div></div>':'')
     +'<div class="subrow" style="border:none;"><div class="subrow-lbl">Data</div><div class="subrow-val">'+t.date+'</div></div>'
     +'<button style="width:100%;margin-top:16px;background:var(--red-l);color:var(--red);border:none;border-radius:var(--r-sm);padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;" onclick="deleteTx('+idx+','+y+','+m+')">🗑 Elimina transazione</button>';
   openModal('modal-tx');
