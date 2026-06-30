@@ -290,6 +290,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
           <option value="Trade Republic">🟢 Trade Republic</option>
           <option value="Satispay">🔴 Satispay</option>
           <option value="PayPal">🔷 PayPal</option>
+          <option value="Domiciliazione Bancaria">🏦 Domiciliazione Bancaria</option>
         </select>
       </div>
       <!-- FONTE ESTERNA -->
@@ -1297,7 +1298,7 @@ function toggleKpi2(id){
   body.classList.toggle('open');
 }
 
-const MEZZO_EMOJI = {'Bancomat':'💳','Contanti':'💵','Carta Credito':'🔵','Trade Republic':'🟢','Satispay':'🔴','PayPal':'🔷','':'❔'};
+const MEZZO_EMOJI = {'Bancomat':'💳','Contanti':'💵','Carta Credito':'🔵','Trade Republic':'🟢','Satispay':'🔴','PayPal':'🔷','Domiciliazione Bancaria':'🏦','':'❔'};
 
 function buildMezzoBreakdown(txns, color){
   var rilevanti = txns.filter(function(t){ return (t.tipo==='EXPENSES'||t.tipo==='TEMPO LIBERO') && !t.extra; });
