@@ -581,6 +581,22 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       <div id="sim-bars"></div>
     </div>
 
+    <!-- SALDO C/C -->
+    <div class="card card-p" style="margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">🏦 Saldo C/C (opzionale)</div>
+      <div style="position:relative;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--green);font-size:14px;font-weight:700;">€</span>
+        <input id="sim-saldo-cc" type="number" placeholder="es. 8.000" oninput="renderSimulaResults()" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:9px 10px 9px 28px;font-size:15px;font-weight:700;font-family:Inter,sans-serif;outline:none;">
+      </div>
+    </div>
+
+    <!-- SALDO C/C PROIETTATO -->
+    <div class="card card-p" id="sim-cc-result" style="margin-bottom:12px;display:none;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">C/C dopo simulazione</div>
+      <div style="font-size:32px;font-weight:900;margin-bottom:6px;" id="sim-cc-result-val">€0</div>
+      <div style="font-size:12px;color:var(--dim);" id="sim-cc-result-delta"></div>
+    </div>
+
     <!-- PERCENTUALI -->
     <div class="card card-p" style="margin-bottom:12px;">
       <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">🎯 Percentuali target</div>
@@ -3481,6 +3497,23 @@ function renderSimulaResults(){
   var usciteEl = document.getElementById('sim-uscite');
   if(saldoEl){ saldoEl.textContent = (saldo>=0?'':'-')+'€'+Math.abs(saldo).toLocaleString('it-IT'); saldoEl.style.color = saldo>=0?'var(--green)':'var(--red)'; }
   if(usciteEl){ usciteEl.textContent = '€'+uscite.toLocaleString('it-IT'); }
+
+  // Saldo C/C proiettato
+  var ccInput = document.getElementById('sim-saldo-cc');
+  var ccCard  = document.getElementById('sim-cc-result');
+  var ccVal   = document.getElementById('sim-cc-result-val');
+  var ccDelta = document.getElementById('sim-cc-result-delta');
+  var ccBase  = ccInput ? parseFloat(ccInput.value) : NaN;
+  if(!isNaN(ccBase) && ccInput && ccInput.value !== ''){
+    var ccProiettato = ccBase + saldo;
+    var ccDiff = ccProiettato - ccBase;
+    if(ccCard)  ccCard.style.display = 'block';
+    if(ccVal){  ccVal.textContent = (ccProiettato>=0?'':'-')+'€'+Math.abs(ccProiettato).toLocaleString('it-IT');
+                ccVal.style.color = ccProiettato>=0?'var(--green)':'var(--red)'; }
+    if(ccDelta){ var sign = ccDiff>=0?'▲ +':'▼ '; ccDelta.textContent = sign+'€'+Math.abs(ccDiff).toLocaleString('it-IT')+' rispetto al saldo attuale'; ccDelta.style.color = ccDiff>=0?'var(--green)':'var(--red)'; }
+  } else {
+    if(ccCard) ccCard.style.display = 'none';
+  }
 
   // Barre categorie
   var barsEl = document.getElementById('sim-bars');
