@@ -432,7 +432,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
     <div id="alloc-scenario-btns" style="display:flex;flex-direction:column;gap:7px"></div>
   </div>
 
-  <!-- NOTES -->
+  <!-- NOTES PILL -->
   <div id="alloc-notes-area" style="margin-bottom:12px"></div>
 
   <!-- RESULTS CARD -->
@@ -849,13 +849,11 @@ function allocRender(){
   const emptyState=document.getElementById('alloc-empty-state');
   const resultsCard=document.getElementById('alloc-results-card');
   const summaryChips=document.getElementById('alloc-summary-chips');
-  const notesArea=document.getElementById('alloc-notes-area');
-
   if(amount<=0){
     emptyState.style.display='block';
     resultsCard.style.display='none';
     summaryChips.style.display='none';
-    notesArea.innerHTML='';
+    document.getElementById('alloc-notes-area').innerHTML='';
     return;
   }
 
@@ -863,11 +861,34 @@ function allocRender(){
   const res=allocCompute(amount,entry,scenario,liqCur,feCur,model,cfg);
   const R=res.rounded;
 
-  // Notes
-  notesArea.innerHTML=res.notes.map(n=>`
-    <div class="note note-${n.type}" style="margin-bottom:5px">
-      ${n.type==='skip'?'⚠️ ':n.type==='cap'?'🔒 ':'↩️ '}${n.msg}
-    </div>`).join('');
+  // Notes — pillola collassabile
+  const notesArea = document.getElementById('alloc-notes-area');
+  if(!res.notes || res.notes.length === 0){
+    notesArea.innerHTML = '';
+  } else {
+    const n = res.notes.length;
+    const hasWarn = res.notes.some(x => x.type==='skip' || x.type==='cap');
+    const pillColor = hasWarn ? 'var(--amber)' : 'var(--dim)';
+    const pillBg    = hasWarn ? 'var(--amber-l)' : 'var(--bg)';
+    const pillBorder= hasWarn ? '#fde68a' : 'var(--border)';
+    const icon      = hasWarn ? '⚠️' : 'ℹ️';
+    const detail = res.notes.map(x => {
+      const ic = x.type==='skip'?'⚠️ ':x.type==='cap'?'🔒 ':x.type==='info'?'💡 ':'↩️ ';
+      return `<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;color:var(--text);line-height:1.5">${ic}${x.msg}</div>`;
+    }).join('');
+    notesArea.innerHTML = `
+      <div>
+        <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.pill-arrow').style.transform=this.nextElementSibling.style.display==='block'?'rotate(180deg)':'rotate(0deg)'"
+          style="display:flex;align-items:center;gap:6px;background:${pillBg};border:1px solid ${pillBorder};border-radius:20px;padding:5px 12px;cursor:pointer;font-size:11px;font-weight:700;color:${pillColor};outline:none;">
+          <span>${icon}</span>
+          <span>${n} nota${n>1?'':''} di calcolo</span>
+          <span class="pill-arrow" style="font-size:9px;transition:transform .2s;margin-left:2px;">▼</span>
+        </button>
+        <div style="display:none;margin-top:6px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:10px 14px;">
+          ${detail}
+        </div>
+      </div>`;
+  }
 
   // Results title
   const entMeta=ALLOC_ENTRY_TYPES.find(e=>e.key===entry);
