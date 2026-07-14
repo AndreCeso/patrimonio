@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Financial Allocator</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 
@@ -378,7 +377,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
           <button id="alloc-btn-edit-pct" onclick="allocOpenModal('edit')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">✎ %</button>
           <button id="alloc-btn-storico" onclick="allocOpenModal('storico')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">📋 Storico</button>
-          <button id="alloc-btn-esegui" onclick="allocOpenModal('esegui')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">✓ Esegui</button>
           <button id="alloc-btn-config" onclick="allocOpenModal('config')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;grid-column:span 2;">⚙ Config</button>
         </div>
       </div>
@@ -507,7 +505,8 @@ const ALLOC_DEFAULT_CONFIG = {
   overflowPensione: 'pac', skipPac: 'jolly_future', skipPensione: 'jolly_future',
   spesaMax: 450, overflowSpesa: 'pac',
   pctMomenti: 65, pctPiggy: 35,
-  arrotonda: false, overflowArrotonda: 'pensione'
+  arrotonda: false, overflowArrotonda: 'pensione',
+  multipliDi5: false, overflowM5: 'spesa'
 };
 
 // Override config per tipo di entrata — sovrascrive solo le chiavi specificate
@@ -676,6 +675,29 @@ function allocCompute(amount, entryType, scenario, liqCur, feCur, model, cfg){
       else leaves.pensione += spicci;
       allocState._spicci = spicci;
       notes.push({type:'info', msg:`€${spicci} spicci → ${ALLOC_OVERFLOW_LABELS[cfg.overflowArrotonda]}`});
+    }
+  }
+
+  // ── Multipli di 5 — tronca ogni voce al multiplo di 5 inferiore, scarto → destinazione ──
+  allocState._scartoM5 = 0;
+  if(cfg.multipliDi5){
+    let scarto = 0;
+    const destM5 = allocResolveKey(cfg.overflowM5||'spesa');
+    Object.keys(leaves).forEach(function(k){
+      if(k === destM5) return; // la destinazione riceve lo scarto, non viene troncata ora
+      const m5 = Math.floor(Math.max(0, leaves[k]) / 5) * 5;
+      scarto += leaves[k] - m5;
+      leaves[k] = m5;
+    });
+    // Tronca anche la destinazione al multiplo di 5, poi aggiunge lo scarto totale
+    const destM5v = Math.floor(Math.max(0, leaves[destM5]) / 5) * 5;
+    scarto += leaves[destM5] - destM5v;
+    leaves[destM5] = destM5v;
+    scarto = Math.round(scarto);
+    if(scarto > 0){
+      leaves[destM5] += scarto;
+      allocState._scartoM5 = scarto;
+      notes.push({type:'info', msg:`€${scarto} scarto multipli di 5 → ${ALLOC_OVERFLOW_LABELS[cfg.overflowM5||'spesa']}`});
     }
   }
 
@@ -1136,14 +1158,27 @@ function allocRenderConfigModal(){
       <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">Arrotondamento</div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
         <div>
-          <div style="font-size:13px;font-weight:700;color:var(--text);">Multipli di 5</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Cifre tonde per difetto, spicci → destinazione</div>
+          <div style="font-size:13px;font-weight:700;color:var(--text);">Arrotonda importi interi</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Elimina decimali, spicci → destinazione</div>
         </div>
-        <button id="arrotonda-toggle" onclick="allocToggleArrotonda()" style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;background:${cfg.arrotonda?'var(--green)':'var(--border)'};position:relative;transition:background .2s;">
+        <button onclick="allocToggleArrotonda()" style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;background:${cfg.arrotonda?'var(--green)':'var(--border)'};position:relative;transition:background .2s;">
           <span style="width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:3px;${cfg.arrotonda?'right:3px':'left:3px'};transition:all .2s;display:block;"></span>
         </button>
       </div>
       ${cfg.arrotonda ? selectRow('Spicci →','overflowArrotonda') : ''}
+    </div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;margin-bottom:10px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px">Multipli di 5</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text);">Cifre tonde per difetto, spicci → destinazione</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Es. €128→€125, €173→€170</div>
+        </div>
+        <button onclick="allocToggleM5()" style="width:44px;height:24px;border-radius:12px;border:none;cursor:pointer;background:${cfg.multipliDi5?'var(--green)':'var(--border)'};position:relative;transition:background .2s;">
+          <span style="width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:3px;${cfg.multipliDi5?'right:3px':'left:3px'};transition:all .2s;display:block;"></span>
+        </button>
+      </div>
+      ${cfg.multipliDi5 ? selectRow('Spicci →','overflowM5') : ''}
     </div>
     <button onclick="allocResetCfg()" style="width:100%;padding:9px;background:var(--amber-l)12;border:1px solid #fde68a40;border-radius:8px;color:var(--amber);cursor:pointer;font-size:12px;font-weight:700">
       ↺ Reset configurazione di default
@@ -1160,94 +1195,41 @@ function allocToggleArrotonda(){
   allocRender();
 }
 
+function allocToggleM5(){
+  allocState.cfg.multipliDi5 = !allocState.cfg.multipliDi5;
+  allocSaveState();
+  allocRenderConfigModal();
+  allocRender();
+}
+
 function allocResetCfg(){ allocState.cfg={...ALLOC_DEFAULT_CONFIG}; allocRender(); allocRenderConfigModal(); }
 
 // ═══════════════════════════════════════════════════════════
-// SUPABASE + PERSISTENCE
+// LOCALSTORAGE PERSISTENCE
 // ═══════════════════════════════════════════════════════════
 const ALLOC_LS_STATE   = 'fa_state_v4';
 const ALLOC_LS_STORICO = 'fa_storico_v4';
 
-const SUPA_URL = 'https://nmzgizjgpyyxyetqvccn.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5temdpempncHl5eHlldHF2Y2NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NDQ1NjQsImV4cCI6MjA5NDMyMDU2NH0.Ay9_ZR9eT6z0dore3huvsjKzWJ5sPGRfw37OsiWRB_k';
-const _allocSb = supabase.createClient(SUPA_URL, SUPA_KEY, {auth:{persistSession:true}});
-let _allocUserId = null;
-let _allocAuthLoaded = false;
-
-// Riceve userId dall'hub genitore
-window.addEventListener('message', async function(e){
-  if(e.data && e.data.type === 'AUTH' && e.data.userId){
-    _allocUserId = e.data.userId;
-    if(!_allocAuthLoaded){
-      _allocAuthLoaded = true;
-      await allocLoadAll();
-      allocRender();
-      allocUpdateStoricoBadge();
-    }
-  }
-});
-
-async function allocGetCurrentUserId(){
-  try {
-    const {data:{session}} = await _allocSb.auth.getSession();
-    return session?.user?.id || _allocUserId || null;
-  } catch(e){ return _allocUserId || null; }
-}
-
-// ── Salva su Supabase (storico + state), fallback localStorage ──
-async function allocSaveToSupabase(){
-  const uid = await allocGetCurrentUserId();
-  if(!uid) return;
-  try {
-    const storicoList = allocGetStoricoLocal();
-    const stateObj = allocBuildStateObj();
-    await _allocSb.from('patrimonio').upsert({
-      user_id: uid,
-      storico_allocazioni: storicoList,
-      alloc_state: stateObj,
-      updated_at: new Date().toISOString()
-    }, {onConflict: 'user_id'});
-  } catch(e){ console.warn('Alloc save err:', e.message); }
-}
-
-// ── Carica da Supabase, fallback localStorage ──
-async function allocLoadAll(){
-  const uid = await allocGetCurrentUserId();
-  if(uid){
-    try {
-      const {data} = await _allocSb.from('patrimonio')
-        .select('storico_allocazioni,alloc_state')
-        .eq('user_id', uid)
-        .maybeSingle();
-      if(data?.storico_allocazioni){
-        localStorage.setItem(ALLOC_LS_STORICO, JSON.stringify(data.storico_allocazioni));
-      }
-      if(data?.alloc_state){
-        localStorage.setItem(ALLOC_LS_STATE, JSON.stringify(data.alloc_state));
-      }
-    } catch(e){ console.warn('Alloc load err:', e.message); }
-  }
-  // Applica stato caricato (da Supabase o localStorage)
-  allocLoadState();
-}
-
-function allocBuildStateObj(){
-  return {
-    amount: allocState.amount, liqCur: allocState.liqCur, feCur: allocState.feCur,
-    entry: allocState.entry, scenarioOverride: allocState.scenarioOverride,
-    model: allocState.model, cfg: allocState.cfg, openSubs: allocState.openSubs
-  };
-}
-
 function allocSaveState(){
   try {
-    localStorage.setItem(ALLOC_LS_STATE, JSON.stringify(allocBuildStateObj()));
+    const s = {
+      amount: allocState.amount, liqCur: allocState.liqCur, feCur: allocState.feCur,
+      entry: allocState.entry, scenarioOverride: allocState.scenarioOverride,
+      model: allocState.model, cfg: allocState.cfg, openSubs: allocState.openSubs
+    };
+    localStorage.setItem(ALLOC_LS_STATE, JSON.stringify(s));
   } catch(e){}
-  allocSaveToSupabase();
 }
 
 function allocLoadState(){
   try {
+    // Seed storico on first load
+    const seedKey = 'fa_seed_version';
+    if(localStorage.getItem(seedKey) !== ALLOC_SEED_VERSION){
+      localStorage.setItem(ALLOC_LS_STORICO, JSON.stringify(ALLOC_SEED_STORICO));
+      localStorage.setItem(ALLOC_LS_STATE,   ALLOC_SEED_STATE);
+      localStorage.setItem(seedKey,           ALLOC_SEED_VERSION);
+    }
     const raw = localStorage.getItem(ALLOC_LS_STATE);
     if(!raw) return;
     const s = JSON.parse(raw);
@@ -1258,6 +1240,7 @@ function allocLoadState(){
     if(s.scenarioOverride!==undefined) allocState.scenarioOverride = s.scenarioOverride;
     if(s.model){
       allocState.model = s.model;
+      // Ensure bonus_s is always present (may be missing in old saves)
       if(!allocState.model.bonus_s) allocState.model.bonus_s = allocDeepClone(ALLOC_DEFAULT_MODEL.bonus_s);
     }
     if(s.cfg)             allocState.cfg             = {...ALLOC_DEFAULT_CONFIG, ...s.cfg};
@@ -1279,15 +1262,11 @@ allocRender = function(){
 // ═══════════════════════════════════════════════════════════
 // STORICO
 // ═══════════════════════════════════════════════════════════
-function allocGetStoricoLocal(){
-  try { return JSON.parse(localStorage.getItem(ALLOC_LS_STORICO)||'[]'); } catch(e){ return []; }
-}
 function allocGetStorico(){
-  return allocGetStoricoLocal();
+  try { return JSON.parse(localStorage.getItem(ALLOC_LS_STORICO)||'[]'); } catch(e){ return []; }
 }
 function allocSaveStorico(list){
   try { localStorage.setItem(ALLOC_LS_STORICO, JSON.stringify(list)); } catch(e){}
-  allocSaveToSupabase();
 }
 
 function allocAutoNome(entryKey, date){
@@ -1362,84 +1341,12 @@ function allocRinominaRecord(id){
   }
 }
 
-function allocToggleDetailRow(id){
-  const panel = document.getElementById('detail-'+id);
-  if(!panel) return;
-  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-}
-
 function allocEliminaRecord(id){
   if(!confirm('Eliminare questa voce?')) return;
   const list = allocGetStorico().filter(r=>r.id!==id);
   allocSaveStorico(list);
   allocRenderStoricoModal();
   allocUpdateStoricoBadge();
-}
-
-// ── Checklist esecuzione ──
-// Voci tracciabili: tutte tranne 'obiettivi' (gratificazione, non richiede esecuzione)
-const ALLOC_CHECKLIST_VOCI = ['liq','spesa','future','obiettivi','fe','pac','pensione'];
-
-function allocToggleEseguito(id, voce){
-  const list = allocGetStorico();
-  const rec  = list.find(r=>r.id===id);
-  if(!rec) return;
-  if(!rec.eseguito) rec.eseguito = {};
-  rec.eseguito[voce] = !rec.eseguito[voce];
-  allocSaveStorico(list);
-  allocRenderEseguiModal();
-}
-
-function allocRenderEseguiModal(){
-  const box = document.getElementById('alloc-modal-body');
-  if(!box) return;
-  const list = allocGetStorico(); // unshift = più recente per primo
-  const rec  = list[0];
-
-  if(!rec){
-    box.innerHTML = `<div style="padding:30px 10px;text-align:center;color:var(--muted);font-size:13px;">
-      Nessuna allocazione salvata. Genera e salva un'allocazione per vedere qui la checklist di esecuzione.
-    </div>`;
-    return;
-  }
-
-  const ALLOC_VOCE_LABEL = {liq:'Liquidità', spesa:'Gratificazione', future:'Future', obiettivi:'Obiettivi', fe:'Fondo Emergenza', pac:'PAC ETF', pensione:'Pensione'};
-  const ALLOC_VOCE_COLOR = {liq:'var(--green)', spesa:'#a78bfa', future:'#fdba74', obiettivi:'#fbbf24', fe:'#e05c3a', pac:'#60a5fa', pensione:'#818cf8'};
-
-  const voci = ALLOC_CHECKLIST_VOCI.filter(v => rec.alloc[v] > 0);
-  const completate = voci.filter(v => rec.eseguito && rec.eseguito[v]);
-  const tuttoFatto = voci.length>0 && completate.length===voci.length;
-
-  const d = new Date(rec.date);
-  const ds = d.toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
-
-  const righe = voci.map(v => {
-    const done = !!(rec.eseguito && rec.eseguito[v]);
-    const color = ALLOC_VOCE_COLOR[v];
-    return `<div onclick="allocToggleEseguito('${rec.id}','${v}')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid ${done?'var(--green)40':'var(--border)'};border-radius:10px;margin-bottom:8px;cursor:pointer;background:${done?'var(--green-light)08':'var(--white)'};transition:.15s;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:24px;height:24px;border-radius:50%;border:2px solid ${done?'var(--green)':color};background:${done?'var(--green)':'transparent'};display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;flex-shrink:0;">${done?'✓':''}</div>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:${done?'var(--green)':'var(--text)'};text-decoration:${done?'line-through':'none'};">${ALLOC_VOCE_LABEL[v]}</div>
-          <div style="font-size:11px;color:var(--muted);">€${rec.alloc[v].toLocaleString('it-IT')}</div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-
-  box.innerHTML = `
-    <div style="margin-bottom:14px;">
-      <div style="font-size:15px;font-weight:800;color:var(--text);">${rec.nome}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px;">${ds} · €${rec.amount.toLocaleString('it-IT')}</div>
-    </div>
-    ${voci.length===0
-      ? `<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:13px;">Nessuna voce da eseguire per questa allocazione.</div>`
-      : `<div>${righe}</div>
-         <div style="margin-top:12px;padding:10px;text-align:center;border-radius:8px;background:${tuttoFatto?'var(--green-light)15':'var(--border)'};color:${tuttoFatto?'var(--green)':'var(--muted)'};font-size:12px;font-weight:700;">
-           ${tuttoFatto ? '✓ Tutto eseguito' : completate.length+' di '+voci.length+' completate'}
-         </div>`
-    }
-  `;
 }
 
 function allocCloseStorico(){
@@ -1458,9 +1365,6 @@ function allocOpenModal(type){
   if(type==='edit'){
     document.getElementById('alloc-modal-title').textContent='✎ Modifica percentuali';
     allocRenderEditModal();
-  } else if(type==='esegui'){
-    document.getElementById('alloc-modal-title').textContent='✓ Esegui ultima allocazione';
-    allocRenderEseguiModal();
   } else {
     document.getElementById('alloc-modal-title').textContent='⚙ Configurazione limiti e reindirizzamenti';
     allocRenderConfigModal();
@@ -1532,6 +1436,7 @@ function allocRenderStoricoModal(){
 
 // ── TAB LISTA ────────────────────────────────────────────────
 function allocRenderListaTab(list, container){
+  // Helper for sub-cell (indented, smaller)
   function subCell(val, pct, color){
     return `<div style="font-size:10px;color:${color};white-space:nowrap;padding-left:8px;border-left:2px solid ${color}30;">€${val.toLocaleString('it-IT')} <span style="color:var(--dim);font-size:9px;">${pct}</span></div>`;
   }
@@ -1539,75 +1444,6 @@ function allocRenderListaTab(list, container){
     return `<div style="font-size:12px;font-weight:800;color:${color};white-space:nowrap;">€${val.toLocaleString('it-IT')}</div><div style="font-size:9px;color:var(--dim);">${pct}</div>`;
   }
 
-  // Genera la grafica espansa identica alla vista principale
-  function buildDetailRow(r, colspan){
-    const p = v => r.amount>0 ? Math.round(v/r.amount*100) : 0;
-    const ec = ALLOC_ENTRY_COLORS[r.entry]||'var(--muted)';
-    const sc = ALLOC_SC_COLORS[r.scenario]||'var(--muted)';
-    const sl = ALLOC_SC_LABELS[r.scenario]||r.scenario;
-
-    const macros = [
-      { label:'Liquidità di Comfort', sub:'Liquidità di sicurezza sul c/c', icon:'💧', color:'var(--green)', val: r.alloc.liq, subs:[] },
-      { label:'Gratificazione', sub:'Piaceri e acquisti discrezionali', icon:'🎁', color:'#a78bfa', val: r.alloc.spesa, subs:[] },
-      { label:'Jolly Strategico', sub:'Fondo flessibile multi-scopo', icon:'🎯', color:'#fb923c',
-        val: r.alloc.future + r.alloc.obiettivi,
-        subs:[
-          {label:'Spese Future', val:r.alloc.future, color:'#fdba74'},
-          {label:'Obiettivi', val:r.alloc.obiettivi, color:'#fbbf24'},
-        ]},
-      { label:'Rafforzamento Finanziario', sub:'Investimenti e obiettivi di lungo termine', icon:'💪', color:'#4f8ef7',
-        val: r.alloc.fe + r.alloc.pac + r.alloc.pensione,
-        subs:[
-          {label:'Fondo Emergenza', val:r.alloc.fe, color:'#e05c3a'},
-          {label:'PAC ETF', val:r.alloc.pac, color:'#60a5fa'},
-          {label:'Pensione', val:r.alloc.pensione, color:'#818cf8'},
-        ]},
-    ];
-
-    const rows = macros.filter(m=>m.val>0).map(m=>{
-      const barW = p(m.val);
-      const subRows = m.subs.filter(s=>s.val>0).map(s=>`
-        <div style="margin-top:6px;padding-left:12px;border-left:2px solid ${s.color}40">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:10px;color:${s.color};font-weight:600">${s.label}</span>
-            <span style="font-size:10px;font-weight:700;color:${s.color}">€${s.val.toLocaleString('it-IT')} <span style="color:var(--dim);font-size:9px;">${p(s.val)}%</span></span>
-          </div>
-        </div>`).join('');
-      return `
-        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:18px">${m.icon}</span>
-            <div style="flex:1">
-              <div style="font-size:12px;font-weight:800;color:${m.color}">${m.label}</div>
-              <div style="font-size:10px;color:var(--muted)">${m.sub}</div>
-            </div>
-            <div style="text-align:right">
-              <div style="font-size:14px;font-weight:800;color:${m.color}">€${m.val.toLocaleString('it-IT')}</div>
-              <div style="font-size:10px;color:var(--dim)">${barW}% entrata</div>
-            </div>
-          </div>
-          ${subRows}
-        </div>`;
-    }).join('');
-
-    return `<div id="detail-${r.id}" style="display:none;margin-bottom:8px;">
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;color:var(--dim);margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <span style="font-weight:700;color:var(--text)">${r.nome}</span>
-          <span style="background:${ec}20;color:${ec};border:1px solid ${ec}40;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700">${ALLOC_ENTRY_LABELS_FULL[r.entry]||r.entry}</span>
-          <span style="background:${sc}20;color:${sc};border:1px solid ${sc}40;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700">${sl}</span>
-          <span style="color:var(--muted)">€${r.amount.toLocaleString('it-IT')} totali</span>
-        </div>
-        ${rows}
-        <div style="padding-top:8px;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:11px;color:var(--muted);font-weight:600">Totale allocato</span>
-          <span style="font-size:15px;font-weight:800;color:var(--text)">€${r.amount.toLocaleString('it-IT')}</span>
-        </div>
-      </div>
-    </div>`;
-  }
-
-  const COLSPAN = 8;
   const tableRows = list.map(r => {
     const d    = new Date(r.date);
     const ds   = d.toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'2-digit'});
@@ -1617,7 +1453,7 @@ function allocRenderListaTab(list, container){
     const raf  = r.alloc.fe + r.alloc.pac + r.alloc.pensione;
     const jolly= r.alloc.future + r.alloc.obiettivi;
     const p    = v => r.amount>0 ? Math.round(v/r.amount*100)+'%' : '0%';
-    return `<tr data-id="${r.id}" style="border-bottom:1px solid var(--border);vertical-align:top;">
+    return `<tr style="border-bottom:1px solid var(--border);vertical-align:top;">
       <td style="padding:10px 8px;white-space:nowrap">
         <div style="font-size:12px;font-weight:700;color:var(--text)">${r.nome}</div>
         <div style="font-size:10px;color:var(--muted);margin-top:1px">${ds}</div>
@@ -1627,8 +1463,11 @@ function allocRenderListaTab(list, container){
         <span style="font-size:11px;margin-left:4px;background:${sc}20;color:${sc};border:1px solid ${sc}40;border-radius:4px;padding:2px 6px">${sl}</span>
       </td>
       <td style="padding:10px 8px;text-align:right;font-size:13px;font-weight:700;color:var(--blue);white-space:nowrap">€${r.amount.toLocaleString('it-IT')}</td>
+      <!-- Liquidità -->
       <td style="padding:10px 8px;text-align:right">${macroCell(r.alloc.liq, p(r.alloc.liq), 'var(--green)')}</td>
+      <!-- Spesa -->
       <td style="padding:10px 8px;text-align:right">${macroCell(r.alloc.spesa, p(r.alloc.spesa), '#a78bfa')}</td>
+      <!-- Jolly (macro + subs) -->
       <td style="padding:10px 8px;text-align:right">
         ${macroCell(jolly, p(jolly), '#fb923c')}
         <div style="margin-top:4px;display:flex;flex-direction:column;gap:2px;align-items:flex-end;">
@@ -1636,6 +1475,7 @@ function allocRenderListaTab(list, container){
           ${subCell(r.alloc.obiettivi, p(r.alloc.obiettivi), '#fbbf24')}
         </div>
       </td>
+      <!-- Rafforzamento (macro + subs) -->
       <td style="padding:10px 8px;text-align:right">
         ${macroCell(raf, p(raf), '#4f8ef7')}
         <div style="margin-top:4px;display:flex;flex-direction:column;gap:2px;align-items:flex-end;">
@@ -1645,18 +1485,14 @@ function allocRenderListaTab(list, container){
         </div>
       </td>
       <td style="padding:10px 8px;text-align:center;white-space:nowrap;vertical-align:middle;">
-        <button onclick="allocToggleDetailRow('${r.id}')" title="Visualizza grafica" style="background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--dim);cursor:pointer;font-size:10px;padding:3px 7px;margin-right:3px">👁</button>
         <button onclick="allocRinominaRecord('${r.id}')" style="background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:5px;color:var(--blue);cursor:pointer;font-size:10px;padding:3px 7px;margin-right:3px">✎</button>
         <button onclick="allocEliminaRecord('${r.id}')" style="background:var(--red-l)12;border:1px solid #fca5a540;border-radius:5px;color:var(--red);cursor:pointer;font-size:10px;padding:3px 7px">🗑</button>
       </td>
     </tr>`;
   }).join('');
 
-  // Detail panels outside the scrollable table — one per record
-  const detailPanels = list.map(r => buildDetailRow(r)).join('');
-
   container.innerHTML = `
-    <div style="overflow-x:auto;margin-bottom:4px">
+    <div style="overflow-x:auto;margin-bottom:12px">
       <table style="width:100%;border-collapse:collapse;font-family:inherit;min-width:600px">
         <thead>
           <tr style="border-bottom:2px solid var(--border);background:var(--bg);">
@@ -1679,8 +1515,7 @@ function allocRenderListaTab(list, container){
         <tbody>${tableRows}</tbody>
       </table>
     </div>
-    <div id="lista-detail-panels">${detailPanels}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">
       <button onclick="allocExportDati()" style="padding:9px;background:var(--green-light)15;border:1px solid #6ee7b740;border-radius:8px;color:var(--green);cursor:pointer;font-size:11px;font-weight:700">⬇ Esporta dati</button>
       <button onclick="document.getElementById('alloc-import-input').click()" style="padding:9px;background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:8px;color:var(--blue);cursor:pointer;font-size:11px;font-weight:700">⬆ Importa dati</button>
       <button onclick="if(confirm('Cancellare tutto lo storico?')){localStorage.removeItem('${ALLOC_LS_STORICO}');allocStoricoTab='overview';allocRenderStoricoModal();allocUpdateStoricoBadge();}" style="padding:9px;background:var(--red-l)12;border:1px solid #fca5a540;border-radius:8px;color:var(--red);cursor:pointer;font-size:11px;font-weight:700">🗑 Cancella storico</button>
@@ -2010,8 +1845,6 @@ function allocImportDati(input){
         allocLoadState();
         allocRender();
       }
-      // Sincronizza su Supabase
-      allocSaveToSupabase();
       allocUpdateStoricoBadge();
       allocRenderStoricoModal();
       alert('✓ Importazione completata — '+payload.storico.length+' voci caricate.');
@@ -2033,8 +1866,6 @@ const ALLOC_SEED_VERSION = 'v1-2026-05-22';
 // ═══════════════════════════════════════════════════════════
 // INIT allocatore
 // ═══════════════════════════════════════════════════════════
-// Carica da localStorage subito (render immediato),
-// poi sovrascrive con Supabase quando arriva AUTH dall'hub.
 allocLoadState();
 allocRender();
 allocUpdateStoricoBadge();
