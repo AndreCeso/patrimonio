@@ -1342,12 +1342,16 @@ async function allocSaveToStorico(){
   btn.style.background = '#f59e0b30';
   btn.disabled = true;
 
-  // Aspetta Supabase
-  await allocSaveToSupabase();
+  // Aspetta Supabase con timeout di sicurezza (5 secondi)
+  const uid = await allocGetCurrentUserId();
+  await Promise.race([
+    allocSaveToSupabase(),
+    new Promise(res => setTimeout(res, 5000))
+  ]);
 
   // Feedback "Salvato!"
-  btn.textContent = '✓ Salvato!';
-  btn.style.background = '#34c78a30';
+  btn.textContent = uid ? '✓ Salvato!' : '⚠ Solo locale';
+  btn.style.background = uid ? '#34c78a30' : '#f59e0b30';
   btn.disabled = false;
   setTimeout(()=>{ btn.textContent=orig; btn.style.background='#34c78a15'; }, 1500);
 
