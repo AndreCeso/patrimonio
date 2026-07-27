@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Financial Allocator</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 
@@ -1231,26 +1232,81 @@ function allocResetCfg(){ allocState.cfg={...ALLOC_DEFAULT_CONFIG}; allocRender(
 const ALLOC_LS_STATE   = 'fa_state_v4';
 const ALLOC_LS_STORICO = 'fa_storico_v4';
 
-function allocSaveState(){
+// ── Supabase ──
+const SUPA_URL = 'https://nmzgizjgpyyxyetqvccn.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5temdpempncHl5eHlldHF2Y2NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NDQ1NjQsImV4cCI6MjA5NDMyMDU2NH0.Ay9_ZR9eT6z0dore3huvsjKzWJ5sPGRfw37OsiWRB_k';
+const _allocSb = supabase.createClient(SUPA_URL, SUPA_KEY, {auth:{persistSession:true}});
+let _allocUserId = null;
+let _allocAuthLoaded = false;
+
+window.addEventListener('message', async function(e){
+  if(e.data && e.data.type === 'AUTH' && e.data.userId){
+    _allocUserId = e.data.userId;
+    if(!_allocAuthLoaded){
+      _allocAuthLoaded = true;
+      await allocLoadAll();
+      allocRender();
+      allocUpdateStoricoBadge();
+    }
+  }
+});
+
+async function allocGetCurrentUserId(){
   try {
-    const s = {
-      amount: allocState.amount, liqCur: allocState.liqCur, feCur: allocState.feCur,
-      entry: allocState.entry, scenarioOverride: allocState.scenarioOverride,
-      model: allocState.model, cfg: allocState.cfg, openSubs: allocState.openSubs
-    };
-    localStorage.setItem(ALLOC_LS_STATE, JSON.stringify(s));
-  } catch(e){}
+    const {data:{session}} = await _allocSb.auth.getSession();
+    return session?.user?.id || _allocUserId || null;
+  } catch(e){ return _allocUserId || null; }
+}
+
+async function allocSaveToSupabase(){
+  const uid = await allocGetCurrentUserId();
+  if(!uid) return;
+  try {
+    const storicoList = allocGetStoricoLocal();
+    const stateObj = allocBuildStateObj();
+    await _allocSb.from('patrimonio').upsert({
+      user_id: uid,
+      storico_allocazioni: storicoList,
+      alloc_state: stateObj,
+      updated_at: new Date().toISOString()
+    }, {onConflict: 'user_id'});
+  } catch(e){ console.warn('Alloc save err:', e.message); }
+}
+
+async function allocLoadAll(){
+  const uid = await allocGetCurrentUserId();
+  if(uid){
+    try {
+      const {data} = await _allocSb.from('patrimonio')
+        .select('storico_allocazioni,alloc_state')
+        .eq('user_id', uid)
+        .maybeSingle();
+      if(data?.storico_allocazioni){
+        localStorage.setItem(ALLOC_LS_STORICO, JSON.stringify(data.storico_allocazioni));
+      }
+      if(data?.alloc_state){
+        localStorage.setItem(ALLOC_LS_STATE, JSON.stringify(data.alloc_state));
+      }
+    } catch(e){ console.warn('Alloc load err:', e.message); }
+  }
+  allocLoadState();
+}
+
+function allocBuildStateObj(){
+  return {
+    amount: allocState.amount, liqCur: allocState.liqCur, feCur: allocState.feCur,
+    entry: allocState.entry, scenarioOverride: allocState.scenarioOverride,
+    model: allocState.model, cfg: allocState.cfg, openSubs: allocState.openSubs
+  };
+}
+
+function allocSaveState(){
+  try { localStorage.setItem(ALLOC_LS_STATE, JSON.stringify(allocBuildStateObj())); } catch(e){}
+  allocSaveToSupabase();
 }
 
 function allocLoadState(){
   try {
-    // Seed storico on first load
-    const seedKey = 'fa_seed_version';
-    if(localStorage.getItem(seedKey) !== ALLOC_SEED_VERSION){
-      localStorage.setItem(ALLOC_LS_STORICO, JSON.stringify(ALLOC_SEED_STORICO));
-      localStorage.setItem(ALLOC_LS_STATE,   ALLOC_SEED_STATE);
-      localStorage.setItem(seedKey,           ALLOC_SEED_VERSION);
-    }
     const raw = localStorage.getItem(ALLOC_LS_STATE);
     if(!raw) return;
     const s = JSON.parse(raw);
@@ -1261,12 +1317,10 @@ function allocLoadState(){
     if(s.scenarioOverride!==undefined) allocState.scenarioOverride = s.scenarioOverride;
     if(s.model){
       allocState.model = s.model;
-      // Ensure bonus_s is always present (may be missing in old saves)
       if(!allocState.model.bonus_s) allocState.model.bonus_s = allocDeepClone(ALLOC_DEFAULT_MODEL.bonus_s);
     }
     if(s.cfg)             allocState.cfg             = {...ALLOC_DEFAULT_CONFIG, ...s.cfg};
     if(s.openSubs)        allocState.openSubs        = s.openSubs;
-    // Restore inputs
     if(s.amount)  document.getElementById('alloc-inp-amount').value = s.amount;
     if(s.liqCur)  document.getElementById('alloc-inp-liq').value    = s.liqCur;
     if(s.feCur)   document.getElementById('alloc-inp-fe').value     = s.feCur;
@@ -1283,11 +1337,13 @@ allocRender = function(){
 // ═══════════════════════════════════════════════════════════
 // STORICO
 // ═══════════════════════════════════════════════════════════
-function allocGetStorico(){
+function allocGetStoricoLocal(){
   try { return JSON.parse(localStorage.getItem(ALLOC_LS_STORICO)||'[]'); } catch(e){ return []; }
 }
+function allocGetStorico(){ return allocGetStoricoLocal(); }
 function allocSaveStorico(list){
   try { localStorage.setItem(ALLOC_LS_STORICO, JSON.stringify(list)); } catch(e){}
+  allocSaveToSupabase();
 }
 
 function allocAutoNome(entryKey, date){
@@ -1868,6 +1924,7 @@ function allocImportDati(input){
       }
       allocUpdateStoricoBadge();
       allocRenderStoricoModal();
+      allocSaveToSupabase();
       alert('✓ Importazione completata — '+payload.storico.length+' voci caricate.');
     } catch(err){
       alert("Errore durante l'importazione: "+err.message);
@@ -1887,6 +1944,8 @@ const ALLOC_SEED_VERSION = 'v1-2026-05-22';
 // ═══════════════════════════════════════════════════════════
 // INIT allocatore
 // ═══════════════════════════════════════════════════════════
+// Carica da localStorage subito (render immediato),
+// poi sovrascrive con Supabase quando arriva AUTH dall'hub.
 allocLoadState();
 allocRender();
 allocUpdateStoricoBadge();
