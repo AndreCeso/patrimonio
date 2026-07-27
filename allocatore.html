@@ -1300,7 +1300,7 @@ function allocAutoNome(entryKey, date){
   return `${labels[entryKey]||entryKey}_${m}${y}`;
 }
 
-function allocSaveToStorico(){
+async function allocSaveToStorico(){
   const {amount, liqCur, feCur, entry, scenarioOverride, model, cfg} = allocState;
   if(amount <= 0) return;
   const autoSc   = allocAutoScenario(liqCur, feCur);
@@ -1332,13 +1332,23 @@ function allocSaveToStorico(){
 
   const list = allocGetStorico();
   list.unshift(record);
-  allocSaveStorico(list);
+  // Salva su localStorage subito
+  try { localStorage.setItem(ALLOC_LS_STORICO, JSON.stringify(list)); } catch(e){}
 
-  // Flash feedback
+  // Feedback "Salvataggio..."
   const btn = event.target;
   const orig = btn.textContent;
+  btn.textContent = '⏳ Salvataggio...';
+  btn.style.background = '#f59e0b30';
+  btn.disabled = true;
+
+  // Aspetta Supabase
+  await allocSaveToSupabase();
+
+  // Feedback "Salvato!"
   btn.textContent = '✓ Salvato!';
   btn.style.background = '#34c78a30';
+  btn.disabled = false;
   setTimeout(()=>{ btn.textContent=orig; btn.style.background='#34c78a15'; }, 1500);
 
   // Update badge
