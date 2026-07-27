@@ -1244,6 +1244,9 @@ window.addEventListener('message', async function(e){
     _allocUserId = e.data.userId;
     if(!_allocAuthLoaded){
       _allocAuthLoaded = true;
+      // Mostra stato caricamento sul badge storico
+      const btnS = document.getElementById('alloc-btn-storico');
+      if(btnS) btnS.textContent = '📋 ⏳';
       await allocLoadAll();
       allocRender();
       allocUpdateStoricoBadge();
@@ -1512,8 +1515,13 @@ function allocRenderStoricoModal(){
 }
 
 // ── TAB LISTA ────────────────────────────────────────────────
+function allocToggleDetailRow(id){
+  const panel = document.getElementById('detail-'+id);
+  if(!panel) return;
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
 function allocRenderListaTab(list, container){
-  // Helper for sub-cell (indented, smaller)
   function subCell(val, pct, color){
     return `<div style="font-size:10px;color:${color};white-space:nowrap;padding-left:8px;border-left:2px solid ${color}30;">€${val.toLocaleString('it-IT')} <span style="color:var(--dim);font-size:9px;">${pct}</span></div>`;
   }
@@ -1540,11 +1548,8 @@ function allocRenderListaTab(list, container){
         <span style="font-size:11px;margin-left:4px;background:${sc}20;color:${sc};border:1px solid ${sc}40;border-radius:4px;padding:2px 6px">${sl}</span>
       </td>
       <td style="padding:10px 8px;text-align:right;font-size:13px;font-weight:700;color:var(--blue);white-space:nowrap">€${r.amount.toLocaleString('it-IT')}</td>
-      <!-- Liquidità -->
       <td style="padding:10px 8px;text-align:right">${macroCell(r.alloc.liq, p(r.alloc.liq), 'var(--green)')}</td>
-      <!-- Spesa -->
       <td style="padding:10px 8px;text-align:right">${macroCell(r.alloc.spesa, p(r.alloc.spesa), '#a78bfa')}</td>
-      <!-- Jolly (macro + subs) -->
       <td style="padding:10px 8px;text-align:right">
         ${macroCell(jolly, p(jolly), '#fb923c')}
         <div style="margin-top:4px;display:flex;flex-direction:column;gap:2px;align-items:flex-end;">
@@ -1552,7 +1557,6 @@ function allocRenderListaTab(list, container){
           ${subCell(r.alloc.obiettivi, p(r.alloc.obiettivi), '#fbbf24')}
         </div>
       </td>
-      <!-- Rafforzamento (macro + subs) -->
       <td style="padding:10px 8px;text-align:right">
         ${macroCell(raf, p(raf), '#4f8ef7')}
         <div style="margin-top:4px;display:flex;flex-direction:column;gap:2px;align-items:flex-end;">
@@ -1562,14 +1566,70 @@ function allocRenderListaTab(list, container){
         </div>
       </td>
       <td style="padding:10px 8px;text-align:center;white-space:nowrap;vertical-align:middle;">
+        <button onclick="allocToggleDetailRow('${r.id}')" title="Visualizza" style="background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--dim);cursor:pointer;font-size:10px;padding:3px 7px;margin-right:3px">👁</button>
         <button onclick="allocRinominaRecord('${r.id}')" style="background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:5px;color:var(--blue);cursor:pointer;font-size:10px;padding:3px 7px;margin-right:3px">✎</button>
         <button onclick="allocEliminaRecord('${r.id}')" style="background:var(--red-l)12;border:1px solid #fca5a540;border-radius:5px;color:var(--red);cursor:pointer;font-size:10px;padding:3px 7px">🗑</button>
       </td>
     </tr>`;
   }).join('');
 
+  // Pannelli dettaglio fuori dalla tabella scrollabile
+  const detailPanels = list.map(r => {
+    const ec = ALLOC_ENTRY_COLORS[r.entry]||'var(--muted)';
+    const sc = ALLOC_SC_COLORS[r.scenario]||'var(--muted)';
+    const sl = ALLOC_SC_LABELS[r.scenario]||r.scenario;
+    const pn = v => r.amount>0 ? Math.round(v/r.amount*100) : 0;
+    const macros = [
+      {label:'Liquidità di Comfort', sub:'Liquidità di sicurezza sul c/c', icon:'💧', color:'var(--green)', val:r.alloc.liq, subs:[]},
+      {label:'Gratificazione', sub:'Piaceri e acquisti discrezionali', icon:'🎁', color:'#a78bfa', val:r.alloc.spesa, subs:[]},
+      {label:'Jolly Strategico', sub:'Fondo flessibile multi-scopo', icon:'🎯', color:'#fb923c',
+        val:r.alloc.future+r.alloc.obiettivi,
+        subs:[{label:'Spese Future',val:r.alloc.future,color:'#fdba74'},{label:'Obiettivi',val:r.alloc.obiettivi,color:'#fbbf24'}]},
+      {label:'Rafforzamento Finanziario', sub:'Investimenti e obiettivi di lungo termine', icon:'💪', color:'#4f8ef7',
+        val:r.alloc.fe+r.alloc.pac+r.alloc.pensione,
+        subs:[{label:'Fondo Emergenza',val:r.alloc.fe,color:'#e05c3a'},{label:'PAC ETF',val:r.alloc.pac,color:'#60a5fa'},{label:'Pensione',val:r.alloc.pensione,color:'#818cf8'}]},
+    ];
+    const rows = macros.filter(m=>m.val>0).map(m=>{
+      const subRows = m.subs.filter(s=>s.val>0).map(s=>`
+        <div style="margin-top:6px;padding-left:12px;border-left:2px solid ${s.color}40">
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:10px;color:${s.color};font-weight:600">${s.label}</span>
+            <span style="font-size:10px;font-weight:700;color:${s.color}">€${s.val.toLocaleString('it-IT')} <span style="color:var(--dim);font-size:9px;">${pn(s.val)}%</span></span>
+          </div>
+        </div>`).join('');
+      return `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:18px">${m.icon}</span>
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:800;color:${m.color}">${m.label}</div>
+            <div style="font-size:10px;color:var(--muted)">${m.sub}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:14px;font-weight:800;color:${m.color}">€${m.val.toLocaleString('it-IT')}</div>
+            <div style="font-size:10px;color:var(--dim)">${pn(m.val)}% entrata</div>
+          </div>
+        </div>
+        ${subRows}
+      </div>`;
+    }).join('');
+    return `<div id="detail-${r.id}" style="display:none;margin-bottom:8px;">
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+        <div style="font-size:10px;margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <span style="font-weight:700;color:var(--text)">${r.nome}</span>
+          <span style="background:${ec}20;color:${ec};border:1px solid ${ec}40;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700">${ALLOC_ENTRY_LABELS_FULL[r.entry]||r.entry}</span>
+          <span style="background:${sc}20;color:${sc};border:1px solid ${sc}40;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700">${sl}</span>
+        </div>
+        ${rows}
+        <div style="padding-top:8px;display:flex;justify-content:space-between;">
+          <span style="font-size:11px;color:var(--muted);font-weight:600">Totale allocato</span>
+          <span style="font-size:15px;font-weight:800;color:var(--text)">€${r.amount.toLocaleString('it-IT')}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
   container.innerHTML = `
-    <div style="overflow-x:auto;margin-bottom:12px">
+    <div style="overflow-x:auto;margin-bottom:4px">
       <table style="width:100%;border-collapse:collapse;font-family:inherit;min-width:600px">
         <thead>
           <tr style="border-bottom:2px solid var(--border);background:var(--bg);">
@@ -1592,7 +1652,8 @@ function allocRenderListaTab(list, container){
         <tbody>${tableRows}</tbody>
       </table>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">
+    <div id="lista-detail-panels">${detailPanels}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
       <button onclick="allocExportDati()" style="padding:9px;background:var(--green-light)15;border:1px solid #6ee7b740;border-radius:8px;color:var(--green);cursor:pointer;font-size:11px;font-weight:700">⬇ Esporta dati</button>
       <button onclick="document.getElementById('alloc-import-input').click()" style="padding:9px;background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:8px;color:var(--blue);cursor:pointer;font-size:11px;font-weight:700">⬆ Importa dati</button>
       <button onclick="if(confirm('Cancellare tutto lo storico?')){localStorage.removeItem('${ALLOC_LS_STORICO}');allocStoricoTab='overview';allocRenderStoricoModal();allocUpdateStoricoBadge();}" style="padding:9px;background:var(--red-l)12;border:1px solid #fca5a540;border-radius:8px;color:var(--red);cursor:pointer;font-size:11px;font-weight:700">🗑 Cancella storico</button>
