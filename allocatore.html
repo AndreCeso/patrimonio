@@ -377,7 +377,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
           <button id="alloc-btn-edit-pct" onclick="allocOpenModal('edit')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">✎ %</button>
           <button id="alloc-btn-storico" onclick="allocOpenModal('storico')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">📋 Storico</button>
-          <button id="alloc-btn-esegui" onclick="allocOpenModal('esegui')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">✓ Esegui</button>
           <button id="alloc-btn-config" onclick="allocOpenModal('config')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;grid-column:span 2;">⚙ Config</button>
         </div>
       </div>
@@ -1300,7 +1299,7 @@ function allocAutoNome(entryKey, date){
   return `${labels[entryKey]||entryKey}_${m}${y}`;
 }
 
-async function allocSaveToStorico(){
+function allocSaveToStorico(){
   const {amount, liqCur, feCur, entry, scenarioOverride, model, cfg} = allocState;
   if(amount <= 0) return;
   const autoSc   = allocAutoScenario(liqCur, feCur);
@@ -1332,27 +1331,13 @@ async function allocSaveToStorico(){
 
   const list = allocGetStorico();
   list.unshift(record);
-  // Salva su localStorage subito
-  try { localStorage.setItem(ALLOC_LS_STORICO, JSON.stringify(list)); } catch(e){}
+  allocSaveStorico(list);
 
-  // Feedback "Salvataggio..."
+  // Flash feedback
   const btn = event.target;
   const orig = btn.textContent;
-  btn.textContent = '⏳ Salvataggio...';
-  btn.style.background = '#f59e0b30';
-  btn.disabled = true;
-
-  // Aspetta Supabase con timeout di sicurezza (5 secondi)
-  const uid = await allocGetCurrentUserId();
-  await Promise.race([
-    allocSaveToSupabase(),
-    new Promise(res => setTimeout(res, 5000))
-  ]);
-
-  // Feedback "Salvato!"
-  btn.textContent = uid ? '✓ Salvato!' : '⚠ Solo locale';
-  btn.style.background = uid ? '#34c78a30' : '#f59e0b30';
-  btn.disabled = false;
+  btn.textContent = '✓ Salvato!';
+  btn.style.background = '#34c78a30';
   setTimeout(()=>{ btn.textContent=orig; btn.style.background='#34c78a15'; }, 1500);
 
   // Update badge
@@ -1375,69 +1360,6 @@ function allocRinominaRecord(id){
     allocSaveStorico(list);
     allocRenderStoricoModal();
   }
-}
-
-function allocToggleDetailRow(id){
-  const panel = document.getElementById('detail-'+id);
-  if(!panel) return;
-  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-}
-
-// ── Checklist esecuzione ──
-const ALLOC_CHECKLIST_VOCI = ['liq','spesa','future','obiettivi','fe','pac','pensione'];
-const ALLOC_VOCE_LABEL = {liq:'Liquidità', spesa:'Gratificazione', future:'Future', obiettivi:'Obiettivi', fe:'Fondo Emergenza', pac:'PAC ETF', pensione:'Pensione'};
-const ALLOC_VOCE_COLOR = {liq:'var(--green)', spesa:'#a78bfa', future:'#fdba74', obiettivi:'#fbbf24', fe:'#e05c3a', pac:'#60a5fa', pensione:'#818cf8'};
-
-function allocToggleEseguito(id, voce){
-  const list = allocGetStorico();
-  const rec  = list.find(r=>r.id===id);
-  if(!rec) return;
-  if(!rec.eseguito) rec.eseguito = {};
-  rec.eseguito[voce] = !rec.eseguito[voce];
-  allocSaveStorico(list);
-  allocRenderEseguiModal();
-}
-
-function allocRenderEseguiModal(){
-  const box = document.getElementById('alloc-modal-body');
-  if(!box) return;
-  const list = allocGetStorico();
-  const rec  = list[0];
-
-  if(!rec){
-    box.innerHTML = `<div style="padding:30px 10px;text-align:center;color:var(--muted);font-size:13px;">Nessuna allocazione salvata. Genera e salva un'allocazione per vedere la checklist di esecuzione.</div>`;
-    return;
-  }
-
-  const voci = ALLOC_CHECKLIST_VOCI.filter(v => rec.alloc[v] > 0);
-  const completate = voci.filter(v => rec.eseguito && rec.eseguito[v]);
-  const tuttoFatto = voci.length>0 && completate.length===voci.length;
-  const d = new Date(rec.date);
-  const ds = d.toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
-
-  const righe = voci.map(v => {
-    const done = !!(rec.eseguito && rec.eseguito[v]);
-    const color = ALLOC_VOCE_COLOR[v];
-    return `<div onclick="allocToggleEseguito('${rec.id}','${v}')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid ${done?'var(--green)40':'var(--border)'};border-radius:10px;margin-bottom:8px;cursor:pointer;background:${done?'#f0fdf415':'var(--white)'};transition:.15s;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:24px;height:24px;border-radius:50%;border:2px solid ${done?'var(--green)':color};background:${done?'var(--green)':'transparent'};display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;flex-shrink:0;">${done?'✓':''}</div>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:${done?'var(--green)':'var(--text)'};text-decoration:${done?'line-through':'none'};">${ALLOC_VOCE_LABEL[v]}</div>
-          <div style="font-size:11px;color:var(--muted);">€${rec.alloc[v].toLocaleString('it-IT')}</div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-
-  box.innerHTML = `
-    <div style="margin-bottom:14px;">
-      <div style="font-size:15px;font-weight:800;color:var(--text);">${rec.nome}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px;">${ds} · €${rec.amount.toLocaleString('it-IT')}</div>
-    </div>
-    ${righe}
-    <div style="margin-top:12px;padding:10px;text-align:center;border-radius:8px;background:${tuttoFatto?'#f0fdf415':'var(--border)'};color:${tuttoFatto?'var(--green)':'var(--muted)'};font-size:12px;font-weight:700;">
-      ${tuttoFatto ? '✓ Tutto eseguito' : completate.length+' di '+voci.length+' completate'}
-    </div>`;
 }
 
 function allocEliminaRecord(id){
@@ -1464,9 +1386,6 @@ function allocOpenModal(type){
   if(type==='edit'){
     document.getElementById('alloc-modal-title').textContent='✎ Modifica percentuali';
     allocRenderEditModal();
-  } else if(type==='esegui'){
-    document.getElementById('alloc-modal-title').textContent='✓ Esegui ultima allocazione';
-    allocRenderEseguiModal();
   } else {
     document.getElementById('alloc-modal-title').textContent='⚙ Configurazione limiti e reindirizzamenti';
     allocRenderConfigModal();
@@ -1587,68 +1506,14 @@ function allocRenderListaTab(list, container){
         </div>
       </td>
       <td style="padding:10px 8px;text-align:center;white-space:nowrap;vertical-align:middle;">
-        <button onclick="allocToggleDetailRow('${r.id}')" title="Visualizza grafica" style="background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--dim);cursor:pointer;font-size:10px;padding:3px 7px;margin-right:3px">👁</button>
         <button onclick="allocRinominaRecord('${r.id}')" style="background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:5px;color:var(--blue);cursor:pointer;font-size:10px;padding:3px 7px;margin-right:3px">✎</button>
         <button onclick="allocEliminaRecord('${r.id}')" style="background:var(--red-l)12;border:1px solid #fca5a540;border-radius:5px;color:var(--red);cursor:pointer;font-size:10px;padding:3px 7px">🗑</button>
       </td>
     </tr>`;
   }).join('');
 
-  // Detail panels outside scrollable table
-  const detailPanels = list.map(r => {
-    const ec = ALLOC_ENTRY_COLORS[r.entry]||'var(--muted)';
-    const sc = ALLOC_SC_COLORS[r.scenario]||'var(--muted)';
-    const sl = ALLOC_SC_LABELS[r.scenario]||r.scenario;
-    const p  = v => r.amount>0 ? Math.round(v/r.amount*100) : 0;
-    const macros = [
-      {label:'Liquidità di Comfort', sub:'Liquidità di sicurezza sul c/c', icon:'💧', color:'var(--green)', val:r.alloc.liq, subs:[]},
-      {label:'Gratificazione', sub:'Piaceri e acquisti discrezionali', icon:'🎁', color:'#a78bfa', val:r.alloc.spesa, subs:[]},
-      {label:'Jolly Strategico', sub:'Fondo flessibile multi-scopo', icon:'🎯', color:'#fb923c', val:r.alloc.future+r.alloc.obiettivi,
-        subs:[{label:'Spese Future',val:r.alloc.future,color:'#fdba74'},{label:'Obiettivi',val:r.alloc.obiettivi,color:'#fbbf24'}]},
-      {label:'Rafforzamento Finanziario', sub:'Investimenti e obiettivi di lungo termine', icon:'💪', color:'#4f8ef7', val:r.alloc.fe+r.alloc.pac+r.alloc.pensione,
-        subs:[{label:'Fondo Emergenza',val:r.alloc.fe,color:'#e05c3a'},{label:'PAC ETF',val:r.alloc.pac,color:'#60a5fa'},{label:'Pensione',val:r.alloc.pensione,color:'#818cf8'}]},
-    ];
-    const rows = macros.filter(m=>m.val>0).map(m=>{
-      const subRows = m.subs.filter(s=>s.val>0).map(s=>`
-        <div style="margin-top:6px;padding-left:12px;border-left:2px solid ${s.color}40">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:10px;color:${s.color};font-weight:600">${s.label}</span>
-            <span style="font-size:10px;font-weight:700;color:${s.color}">€${s.val.toLocaleString('it-IT')} <span style="color:var(--dim);font-size:9px;">${p(s.val)}%</span></span>
-          </div>
-        </div>`).join('');
-      return `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:18px">${m.icon}</span>
-          <div style="flex:1">
-            <div style="font-size:12px;font-weight:800;color:${m.color}">${m.label}</div>
-            <div style="font-size:10px;color:var(--muted)">${m.sub}</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:14px;font-weight:800;color:${m.color}">€${m.val.toLocaleString('it-IT')}</div>
-            <div style="font-size:10px;color:var(--dim)">${p(m.val)}% entrata</div>
-          </div>
-        </div>
-        ${subRows}
-      </div>`;
-    }).join('');
-    return `<div id="detail-${r.id}" style="display:none;margin-bottom:8px;">
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <span style="font-weight:700;color:var(--text)">${r.nome}</span>
-          <span style="background:${ec}20;color:${ec};border:1px solid ${ec}40;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700">${ALLOC_ENTRY_LABELS_FULL[r.entry]||r.entry}</span>
-          <span style="background:${sc}20;color:${sc};border:1px solid ${sc}40;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700">${sl}</span>
-        </div>
-        ${rows}
-        <div style="padding-top:8px;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:11px;color:var(--muted);font-weight:600">Totale allocato</span>
-          <span style="font-size:15px;font-weight:800;color:var(--text)">€${r.amount.toLocaleString('it-IT')}</span>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-
   container.innerHTML = `
-    <div style="overflow-x:auto;margin-bottom:4px">
+    <div style="overflow-x:auto;margin-bottom:12px">
       <table style="width:100%;border-collapse:collapse;font-family:inherit;min-width:600px">
         <thead>
           <tr style="border-bottom:2px solid var(--border);background:var(--bg);">
@@ -1671,8 +1536,7 @@ function allocRenderListaTab(list, container){
         <tbody>${tableRows}</tbody>
       </table>
     </div>
-    <div id="lista-detail-panels">${detailPanels}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">
       <button onclick="allocExportDati()" style="padding:9px;background:var(--green-light)15;border:1px solid #6ee7b740;border-radius:8px;color:var(--green);cursor:pointer;font-size:11px;font-weight:700">⬇ Esporta dati</button>
       <button onclick="document.getElementById('alloc-import-input').click()" style="padding:9px;background:var(--blue-l)15;border:1px solid #93c5fd40;border-radius:8px;color:var(--blue);cursor:pointer;font-size:11px;font-weight:700">⬆ Importa dati</button>
       <button onclick="if(confirm('Cancellare tutto lo storico?')){localStorage.removeItem('${ALLOC_LS_STORICO}');allocStoricoTab='overview';allocRenderStoricoModal();allocUpdateStoricoBadge();}" style="padding:9px;background:var(--red-l)12;border:1px solid #fca5a540;border-radius:8px;color:var(--red);cursor:pointer;font-size:11px;font-weight:700">🗑 Cancella storico</button>
