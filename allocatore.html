@@ -378,6 +378,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
           <button id="alloc-btn-edit-pct" onclick="allocOpenModal('edit')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">✎ %</button>
           <button id="alloc-btn-storico" onclick="allocOpenModal('storico')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">📋 Storico</button>
+          <button id="alloc-btn-esegui" onclick="allocOpenModal('esegui')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;">✓ Esegui</button>
           <button id="alloc-btn-config" onclick="allocOpenModal('config')" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;padding:8px 14px;cursor:pointer;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;grid-column:span 2;">⚙ Config</button>
         </div>
       </div>
@@ -1445,10 +1446,70 @@ function allocOpenModal(type){
   if(type==='edit'){
     document.getElementById('alloc-modal-title').textContent='✎ Modifica percentuali';
     allocRenderEditModal();
+  } else if(type==='esegui'){
+    document.getElementById('alloc-modal-title').textContent='✓ Esegui ultima allocazione';
+    allocRenderEseguiModal();
   } else {
     document.getElementById('alloc-modal-title').textContent='⚙ Configurazione limiti e reindirizzamenti';
     allocRenderConfigModal();
   }
+}
+
+// ── Checklist esecuzione ──
+const ALLOC_CHECKLIST_VOCI = ['liq','spesa','future','obiettivi','fe','pac','pensione'];
+const ALLOC_VOCE_LABEL = {liq:'Liquidità', spesa:'Gratificazione', future:'Future', obiettivi:'Obiettivi', fe:'Fondo Emergenza', pac:'PAC ETF', pensione:'Pensione'};
+const ALLOC_VOCE_COLOR = {liq:'var(--green)', spesa:'#a78bfa', future:'#fdba74', obiettivi:'#fbbf24', fe:'#e05c3a', pac:'#60a5fa', pensione:'#818cf8'};
+
+function allocToggleEseguito(id, voce){
+  const list = allocGetStorico();
+  const rec  = list.find(r=>r.id===id);
+  if(!rec) return;
+  if(!rec.eseguito) rec.eseguito = {};
+  rec.eseguito[voce] = !rec.eseguito[voce];
+  allocSaveStorico(list);
+  allocRenderEseguiModal();
+}
+
+function allocRenderEseguiModal(){
+  const box = document.getElementById('alloc-modal-body');
+  if(!box) return;
+  const list = allocGetStorico();
+  const rec  = list[0];
+
+  if(!rec){
+    box.innerHTML = `<div style="padding:30px 10px;text-align:center;color:var(--muted);font-size:13px;">Nessuna allocazione salvata. Genera e salva un'allocazione per vedere la checklist.</div>`;
+    return;
+  }
+
+  const voci = ALLOC_CHECKLIST_VOCI.filter(v => rec.alloc[v] > 0);
+  const completate = voci.filter(v => rec.eseguito && rec.eseguito[v]);
+  const tuttoFatto = voci.length>0 && completate.length===voci.length;
+  const d = new Date(rec.date);
+  const ds = d.toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+
+  const righe = voci.map(v => {
+    const done  = !!(rec.eseguito && rec.eseguito[v]);
+    const color = ALLOC_VOCE_COLOR[v];
+    return `<div onclick="allocToggleEseguito('${rec.id}','${v}')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid ${done?'var(--green)40':'var(--border)'};border-radius:10px;margin-bottom:8px;cursor:pointer;background:${done?'#f0fdf415':'var(--white)'};transition:.15s;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:24px;height:24px;border-radius:50%;border:2px solid ${done?'var(--green)':color};background:${done?'var(--green)':'transparent'};display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;flex-shrink:0;">${done?'✓':''}</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:${done?'var(--green)':'var(--text)'};text-decoration:${done?'line-through':'none'};">${ALLOC_VOCE_LABEL[v]}</div>
+          <div style="font-size:11px;color:var(--muted);">€${rec.alloc[v].toLocaleString('it-IT')}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  box.innerHTML = `
+    <div style="margin-bottom:14px;">
+      <div style="font-size:15px;font-weight:800;color:var(--text);">${rec.nome}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;">${ds} · €${rec.amount.toLocaleString('it-IT')}</div>
+    </div>
+    ${righe}
+    <div style="margin-top:12px;padding:10px;text-align:center;border-radius:8px;background:${tuttoFatto?'#f0fdf415':'var(--border)'};color:${tuttoFatto?'var(--green)':'var(--muted)'};font-size:12px;font-weight:700;">
+      ${tuttoFatto ? '✓ Tutto eseguito' : completate.length+' di '+voci.length+' completate'}
+    </div>`;
 }
 
 let allocStoricoTab = 'overview';
