@@ -1154,8 +1154,8 @@ function updLiqSub(){
 }
 
 // ── PAC ──────────────────────────────────────────────────────
-// strumenti con PAC > 0
-function getPacStrumenti(){ return getStrumenti().filter(s=>s.tipo!=='liq'&&s.tipo!=='fe'); }
+// solo strumenti con PAC > 0
+function getPacStrumenti(){ return getStrumenti().filter(s=>s.tipo!=='liq'&&s.tipo!=='fe'&&(s.pac||0)>0); }
 
 function buildPac(){
   const c = calc();
@@ -1190,12 +1190,13 @@ function updPac(id, v){
   }
 }
 
-// Colori fissi per il grafico PAC
+// Colori grafico PAC — border e fill per tipo strumento
 const PAC_COLORS = ['#1e40af','#d97706','#006636','#7c3aed','#be123c','#0891b2'];
+const PAC_BG     = ['rgba(30,64,175,.07)','rgba(217,119,6,.07)','rgba(0,102,54,.07)','rgba(124,58,237,.07)','rgba(190,18,60,.07)','rgba(8,145,178,.07)'];
 
 function renderPacProj(){
   const M = 36;
-  const pacItems = getPacStrumenti().filter(s=>(s.pac||0)>0);
+  const pacItems = getPacStrumenti();
   if(!pacItems.length){ document.getElementById('pacProj').innerHTML='<span style="color:var(--dim)">Nessun PAC configurato.</span>'; return; }
 
   const labs = [];
@@ -1216,7 +1217,7 @@ function renderPacProj(){
         label: x.s.ticker,
         data: x.vals,
         borderColor: PAC_COLORS[i%PAC_COLORS.length],
-        backgroundColor: PAC_COLORS[i%PAC_COLORS.length].replace(')',', .07)').replace('#','rgba(').replace(/[0-9a-f]{2}/gi, c=>parseInt(c,16)+',').replace(/,$/,''),
+        backgroundColor: PAC_BG[i%PAC_BG.length],
         borderWidth:2, pointRadius:0, fill:true, tension:.4
       }))
     },
