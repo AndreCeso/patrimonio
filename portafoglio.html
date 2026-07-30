@@ -356,6 +356,34 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
 
+/* ── STRUMENTI MANAGER ── */
+.strum-mgr-row{display:flex;align-items:center;gap:10px;background:var(--white);padding:12px 14px;border-bottom:1px solid var(--border);}
+.strum-mgr-row:first-child{border-radius:var(--r) var(--r) 0 0;}
+.strum-mgr-row:last-child{border-bottom:none;border-radius:0 0 var(--r) var(--r);}
+.strum-mgr-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.strum-mgr-info{flex:1;min-width:0;}
+.strum-mgr-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.strum-mgr-sub{font-size:10px;color:var(--dim);margin-top:1px;}
+.strum-mgr-pac{font-size:11px;color:var(--green);font-weight:700;margin-top:2px;}
+.strum-mgr-val-wrap{display:flex;align-items:center;gap:2px;flex-shrink:0;}
+.strum-mgr-sym{color:var(--muted);font-size:13px;font-weight:600;}
+.strum-mgr-input{text-align:right;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;outline:none;font-size:15px;font-weight:800;color:var(--text);font-family:'Inter',sans-serif;width:100px;padding:6px 8px;}
+.strum-mgr-input:focus{border-color:var(--green);background:var(--white);}
+.strum-mgr-btn{background:none;border:1.5px solid var(--border);border-radius:8px;padding:4px 9px;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);font-family:'Inter',sans-serif;flex-shrink:0;line-height:1;}
+.strum-mgr-btn:active{background:var(--bg2);}
+.strum-mgr-del{background:none;border:1.5px solid var(--red);border-radius:8px;padding:4px 9px;font-size:13px;font-weight:700;cursor:pointer;color:var(--red);font-family:'Inter',sans-serif;flex-shrink:0;line-height:1;}
+
+/* ── MODAL STRUMENTO ── */
+.strum-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:flex-end;justify-content:center;}
+.strum-modal-overlay.hidden{display:none;}
+.strum-modal{background:var(--white);border-radius:var(--r) var(--r) 0 0;width:100%;max-width:480px;padding:24px 20px 32px;max-height:90vh;overflow-y:auto;}
+.strum-modal-title{font-size:16px;font-weight:800;margin-bottom:18px;color:var(--text);}
+.sfield{margin-bottom:14px;}
+.sfield label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase;}
+.sfield input,.sfield select{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:15px;font-family:'Inter',sans-serif;outline:none;color:var(--text);background:var(--white);transition:border-color .15s;}
+.sfield input:focus,.sfield select:focus{border-color:var(--green);}
+.sfield-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
 /* Override page display for standalone child */
 .page.active { display: block; }
 </style>
@@ -453,9 +481,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 
     <div class="sec">La tua strategia</div>
     <div id="stratCard"></div>
-
-    <div class="sec">Prossime mosse</div>
-    <div class="card card-p"><div id="homeSteps"></div></div>
   </div>
 </div>
 
@@ -522,16 +547,24 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
   <div class="hdr" style="padding:20px 20px 24px;"><div class="hdr-greeting">Sezione</div><div class="hdr-name">Impostazioni</div></div>
   <div class="wrap">
 
-    <div class="sec">Aggiorna valori</div>
-    <div id="cfgValori"></div>
-    <button class="btn-p" onclick="salva()" style="margin-top:14px;">Salva e aggiorna</button>
+    <div class="sec">Strumenti e valori</div>
+    <div class="info-box" style="margin-bottom:10px;">Aggiorna i valori correnti e gestisci il tuo portafoglio. Il totale viene salvato automaticamente.</div>
+    <div id="strumentiManager"></div>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="btn-p" onclick="salva()">💾 Salva valori</button>
+    </div>
+    <button onclick="apriNuovoStrumento()" style="background:none;border:none;color:var(--green);font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;padding:10px 0;width:100%;text-align:center;letter-spacing:.02em;">+ Aggiungi strumento</button>
 
     <div class="sec">Liquidità · sottovoci</div>
     <div id="liqSub"></div>
 
+    <div class="sec">Fondo emergenza</div>
+    <div id="feInput"></div>
+
     <div class="sec">Soglie</div>
     <div>
       <div class="crow"><div><div class="crow-lbl">Soglia liquidità minima</div><div class="crow-sub">Sotto questa cifra il ribilanciamento % è sospeso</div></div><div class="crow-r"><span class="isym">€</span><input class="cinput" type="number" id="cfgSoglia" step="500"></div></div>
+      <div class="crow"><div><div class="crow-lbl">Buffer eccedenza liquidità</div><div class="crow-sub">Oltre soglia+buffer scatta l'alert "valuta di investire"</div></div><div class="crow-r"><span class="isym">€</span><input class="cinput" type="number" id="cfgLiqBuffer" step="100"></div></div>
       <div class="crow"><div><div class="crow-lbl">Fondo emergenza massimo</div><div class="crow-sub">Oltre questo importo segnalo eccedenza</div></div><div class="crow-r"><span class="isym">€</span><input class="cinput" type="number" id="cfgMaxFE" step="500"></div></div>
     </div>
 
@@ -549,6 +582,52 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
   </div>
 </div>
 
+<!-- ══════════ MODAL STRUMENTO ══════════ -->
+<div class="strum-modal-overlay hidden" id="strumModal">
+  <div class="strum-modal">
+    <div class="strum-modal-title" id="strumModalTitle">Nuovo strumento</div>
+    <input type="hidden" id="strumModalId">
+    <div class="sfield">
+      <label>Nome</label>
+      <input type="text" id="smNome" placeholder="es. Vanguard FTSE All-World">
+    </div>
+    <div class="sfield-row">
+      <div class="sfield">
+        <label>Ticker</label>
+        <input type="text" id="smTicker" placeholder="VWCE" style="text-transform:uppercase;">
+      </div>
+      <div class="sfield">
+        <label>Tipo</label>
+        <select id="smTipo">
+          <option value="az">Azioni</option>
+          <option value="ob">Obbligazioni</option>
+          <option value="or">Oro</option>
+        </select>
+      </div>
+    </div>
+    <div class="sfield">
+      <label>ISIN</label>
+      <input type="text" id="smIsin" placeholder="IE00BK5BQT80" style="text-transform:uppercase;">
+    </div>
+    <div class="sfield">
+      <label>Broker / Note</label>
+      <input type="text" id="smBroker" placeholder="Trade Republic">
+    </div>
+    <div class="sfield">
+      <label>Nota vincolo (opzionale)</label>
+      <input type="text" id="smNota" placeholder="es. Vincolato 2028">
+    </div>
+    <div class="sfield">
+      <label>PAC mensile (€, 0 = nessun PAC)</label>
+      <input type="number" id="smPac" placeholder="0" min="0" step="1">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="btn-p" onclick="salvaStrumento()" style="flex:1;">Salva</button>
+      <button class="btn-g" onclick="chiudiModalStrumento()" style="flex:0 0 auto;width:100px;">Annulla</button>
+    </div>
+  </div>
+</div>
+
 <!-- TAB BAR -->
 <div class="tabbar">
   <button class="tab-btn active" id="tab-home" onclick="goTab('home')">
@@ -563,7 +642,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
     Ribilancia
   </button>
-  <button class="tab-btn" id="tab-pac" onclick="goTab('pac')">
+  <button class="tab-btn" id="tab-pac" onclick="goTab('pac')" style="display:none;">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
     PAC
   </button>
@@ -573,11 +652,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
   </button>
 </div>
 <div class="toast" id="toast">✓ Salvato</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-
-
-
 
 <script>
 // ── SUPABASE ──────────────────────────────────────────────
@@ -609,11 +683,20 @@ async function loadFromCloud(){
   if(data.cfg){
     C={...C,...data.cfg,
       mix:{...DEF.mix,...(data.cfg.mix||{})},
-      pac:{...DEF.pac,...(data.cfg.pac||{})},
       liqSub:{...DEF.liqSub,...(data.cfg.liqSub||{})}
     };
-    // Garantisce che mix.liq esista sempre
     if(!C.mix.liq) C.mix.liq = DEF.mix.liq;
+    if(!C.liqBuffer) C.liqBuffer = DEF.liqBuffer;
+    // Migrazione: se non ci sono strumenti salvati usa i default
+    if(!C.strumenti || !C.strumenti.length){
+      C.strumenti = JSON.parse(JSON.stringify(DEF_STRUMENTI));
+      // migra pac vecchio formato {az:192,or:10} nei singoli strumenti
+      if(data.cfg.pac){
+        C.strumenti.forEach(s=>{
+          if(data.cfg.pac[s.id]!==undefined) s.pac = data.cfg.pac[s.id];
+        });
+      }
+    }
   }
   if(data.storico) localStorage.setItem('patrimonio_storico',JSON.stringify(data.storico));
   if(data.storico_allocazioni) localStorage.setItem('fa_storico_v4',JSON.stringify(data.storico_allocazioni));
@@ -635,39 +718,73 @@ async function saveToCloud(){
 }
 
 // ── CONFIG ──────────────────────────────────────────────────
+const DEF_STRUMENTI = [
+  {id:'az', nome:'Vanguard FTSE All-World', ticker:'VWCE', isin:'IE00BK5BQT80', broker:'Trade Republic', tipo:'az', pac:192, attivo:true},
+  {id:'or', nome:'iShares Physical Gold',   ticker:'SGLN', isin:'IE00B4ND3602', broker:'Trade Republic', tipo:'or', pac:10,  attivo:true},
+  {id:'ob', nome:'BTP Valore 2028',         ticker:'BTP',  isin:'IT0005622110', broker:'Intesa · vincolato 2028 → VAGF', tipo:'ob', pac:0, attivo:true, nota:'Vincolato 2028'},
+  {id:'ob2',nome:'Vanguard Global Agg Bond',ticker:'VAGF', isin:'IE00BG47KH54', broker:'Trade Republic', tipo:'ob', pac:0, attivo:true, nota:'Piano futuro post-2028'},
+];
+
 const DEF = {
-  soglia:15000, maxFE:6000,
-  // % sul patrimonio totale (az+ob+or+liq = 100%, fe separato)
+  soglia:15000, maxFE:6000, liqBuffer:1000,
   mix:{az:75, ob:10, or:5, liq:10},
-  pac:{az:192, or:10},
   liqSub:{cc:10000, tr:4000},
+  strumenti: JSON.parse(JSON.stringify(DEF_STRUMENTI)),
 };
-let D = {az:10716.94, ob:5000, or:768, liq:14000, fe:4700};
+
+// D: valori correnti indicizzati per id strumento
+let D = {az:10716.94, ob:5000, or:768, ob2:0, liq:14000, fe:4700};
 let C = JSON.parse(JSON.stringify(DEF));
 let hidden = false;
 let charts = {};
+
+// Helper: strumenti attivi (esclude liq/fe che sono speciali)
+function getStrumenti(){ return C.strumenti || DEF.strumenti; }
+function getStrInvestiti(){ return getStrumenti().filter(s=>s.tipo!=='liq'&&s.tipo!=='fe'); }
+// Calcola totale per categoria
+function sumCat(cat){ return getStrumenti().filter(s=>s.tipo===cat&&s.attivo!==false).reduce((t,s)=>t+(D[s.id]||0),0); }
+// Totale PAC mensile
+function totalPac(){ return getStrumenti().reduce((t,s)=>t+(s.pac||0),0); }
 
 const fmt  = n => '€'+Math.round(n).toLocaleString('it-IT');
 const fmtD = n => (n>=0?'+':'')+Math.round(n).toLocaleString('it-IT');
 
 // ── CALCOLA ─────────────────────────────────────────────────
-// Mix % sul patrimonio totale (az+ob+or+liq = 100%, fe separato)
-// Liquidità: max(soglia, totale * liq%)
+// Mix % sul patrimonio totale. fe separato. liq: max(soglia, totale*liq%)
 function calc() {
-  const {az,ob,or,liq,fe} = D;
-  const totale  = az+ob+or+liq+fe;
-  const totInv  = az+ob+or;
-  const liqOk   = liq >= C.soglia;
-  // target calcolati sul patrimonio totale
+  const liq = D.liq||0;
+  const fe  = D.fe||0;
+  // somma tutti gli strumenti investiti (non liq, non fe)
+  const totInv = getStrumenti().filter(s=>s.tipo!=='liq'&&s.tipo!=='fe').reduce((t,s)=>t+(D[s.id]||0),0);
+  const totale = totInv + liq + fe;
+  const liqOk  = liq >= C.soglia;
+
+  // target per categoria principale (az/ob/or)
   const tAz  = totale * (C.mix.az/100);
   const tOb  = totale * (C.mix.ob/100);
   const tOr  = totale * (C.mix.or/100);
   const tLiq = Math.max(C.soglia, totale * (C.mix.liq/100));
+
+  // valori attuali per categoria
+  const vAz = sumCat('az');
+  const vOb = sumCat('ob');
+  const vOr = sumCat('or');
+
+  // liquidità: soglia effettiva e stato buffer
+  const sogliaEff = tLiq; // già max(soglia, totale*liq%)
+  const buffer    = C.liqBuffer || 1000;
+  const liqPhase  = liq < C.soglia ? 'under'
+                  : liq < C.soglia + buffer ? 'ok'
+                  : 'over';
+  const liqExcess = Math.max(0, liq - (C.soglia + buffer));
+
   return {
-    totale, totInv, liqOk,
-    tAz, tOb, tOr, tLiq,
-    dAz: tAz-az, dOb: tOb-ob, dOr: tOr-or, dLiq: tLiq-liq,
-    pAz: az/totale, pOb: ob/totale, pOr: or/totale, pLiq: liq/totale,
+    totale, totInv, liqOk, liqPhase, liqExcess,
+    tAz, tOb, tOr, tLiq, sogliaEff,
+    dAz: tAz-vAz, dOb: tOb-vOb, dOr: tOr-vOr, dLiq: tLiq-liq,
+    pAz: totale?vAz/totale:0, pOb: totale?vOb/totale:0,
+    pOr: totale?vOr/totale:0, pLiq: totale?liq/totale:0,
+    vAz, vOb, vOr,
   };
 }
 
@@ -710,12 +827,11 @@ function buildAlerts(c){
 function renderAlloc(c){
   const el = document.getElementById('allocCard');
   if(!el) return;
-  // % sul patrimonio totale
   const rows=[
-    {lbl:'Azioni',   pa:c.pAz*100, pt:C.mix.az, tv:c.tAz, av:D.az, col:'var(--col-az)'},
-    {lbl:'Obbl.',    pa:c.pOb*100, pt:C.mix.ob, tv:c.tOb, av:D.ob, col:'var(--col-ob)'},
-    {lbl:'Oro',      pa:c.pOr*100, pt:C.mix.or, tv:c.tOr, av:D.or, col:'var(--col-or)'},
-    {lbl:'Liquidità',pa:c.pLiq*100,pt:C.mix.liq,tv:c.tLiq,av:D.liq,col:'var(--col-liq)'},
+    {lbl:'Azioni',   pa:c.pAz*100, pt:C.mix.az, tv:c.tAz, av:c.vAz, col:'var(--col-az)'},
+    {lbl:'Obbl.',    pa:c.pOb*100, pt:C.mix.ob, tv:c.tOb, av:c.vOb, col:'var(--col-ob)'},
+    {lbl:'Oro',      pa:c.pOr*100, pt:C.mix.or, tv:c.tOr, av:c.vOr, col:'var(--col-or)'},
+    {lbl:'Liquidità',pa:c.pLiq*100,pt:C.mix.liq,tv:c.tLiq,av:D.liq, col:'var(--col-liq)'},
   ];
   el.innerHTML = rows.map((r,i)=>{
     const d=r.av-r.tv;
@@ -790,9 +906,9 @@ function renderStrategia(){
 
   // Barre capitale investito
   const invBars = [
-    {lbl:'Azioni', attuale:D.az, ideale:c.tAz, col:'var(--col-az)'},
-    {lbl:'Obbl.',  attuale:D.ob, ideale:c.tOb, col:'var(--col-ob)'},
-    {lbl:'Oro',    attuale:D.or, ideale:c.tOr, col:'var(--col-or)'},
+    {lbl:'Azioni', attuale:c.vAz, ideale:c.tAz, col:'var(--col-az)'},
+    {lbl:'Obbl.',  attuale:c.vOb, ideale:c.tOb, col:'var(--col-ob)'},
+    {lbl:'Oro',    attuale:c.vOr, ideale:c.tOr, col:'var(--col-or)'},
   ].map(b => {
     const pBar = Math.min(b.attuale / (b.ideale * 1.5 || 1) * 100, 100);
     const delta = b.attuale - b.ideale;
@@ -849,7 +965,7 @@ function renderStrategia(){
           <div class="stato-body-inner">
             <div class="stato-bar-lbl">
               <span>Attuale: <strong>${fmt(D.liq)}</strong></span>
-              <span>Ideale: ${fmt(liqIdeal)} (${C.liqPct}%)</span>
+              <span>Ideale: ${fmt(liqIdeal)} (${C.mix.liq}%)</span>
             </div>
             <div class="stato-bar-track">
               <div class="stato-bar-fill" style="width:${liqBarPct.toFixed(1)}%;background:${liqBarCol};"></div>
@@ -888,24 +1004,46 @@ function renderStrategia(){
 // ── STEPS ────────────────────────────────────────────────────
 function buildSteps(c,lim){
   const s=[];
-  if(D.liq<C.soglia)
+
+  // Liquidità
+  if(c.liqPhase==='under')
     s.push({cls:'buy',t:`Porta la liquidità a ${fmt(C.soglia)}`,d:`Mancano ${fmt(C.soglia-D.liq)}. Priorità assoluta prima di ribilanciare.`,pac:null,b:'PRIORITÀ 1'});
+  else if(c.liqPhase==='over')
+    s.push({cls:'sell',t:`Liquidità in eccesso: ${fmt(c.liqExcess)}`,d:`Hai ${fmt(D.liq)} vs target ${fmt(c.sogliaEff)} (${C.mix.liq}%). Valuta di investire l'eccedente.`,pac:null,b:'VALUTA'});
   else
-    s.push({cls:'hold',t:'Liquidità: soglia raggiunta',d:`${fmt(D.liq)} — nessun intervento.`,pac:null,b:'OK'});
-  if(c.dOb<-200)
-    s.push({cls:'hold',t:'BTP 2028: vincolato su Intesa',d:'Non ribilanciare. A scadenza 2028 reinvestire tutto in VAGF (IE00BG47KH54) su Trade Republic.',pac:null,b:'ATTENDI 2028'});
-  if(c.dAz>200){
-    const m=Math.ceil(c.dAz/C.pac.az);
-    s.push({cls:'buy',t:`Aumenta azioni (VWCE) di ${fmt(c.dAz)}`,d:`Attuale ${fmt(D.az)} → ideale ${fmt(c.tAz)}. PAC attivo su Trade Republic.`,pac:`PAC ${fmt(C.pac.az)}/mese copre il gap in ~${m} mesi`,b:'COMPRA'});
-  }
-  if(c.dOr>50){
-    const m=Math.ceil(c.dOr/C.pac.or);
-    s.push({cls:'buy',t:`Oro (SGLN): gap di ${fmt(c.dOr)}`,d:`Attuale ${fmt(D.or)} → ideale ${fmt(c.tOr)}.`,pac:`PAC ${fmt(C.pac.or)}/mese copre il gap in ~${m} mesi`,b:'COMPRA'});
-  } else {
-    s.push({cls:'hold',t:'Oro: in linea',d:`${fmt(D.or)} vs ideale ${fmt(c.tOr)} — scostamento trascurabile.`,pac:null,b:'OK'});
-  }
+    s.push({cls:'hold',t:'Liquidità: soglia raggiunta',d:`${fmt(D.liq)} — nella finestra ottimale.`,pac:null,b:'OK'});
+
+  // Per ogni categoria investita, genera step se gap > soglia
+  const cats = [
+    {cat:'az', label:'Azioni', gap:c.dAz, attuale:c.vAz, target:c.tAz, soglia:200},
+    {cat:'ob', label:'Obbligazioni', gap:c.dOb, attuale:c.vOb, target:c.tOb, soglia:200},
+    {cat:'or', label:'Oro', gap:c.dOr, attuale:c.vOr, target:c.tOr, soglia:50},
+  ];
+
+  cats.forEach(({cat,label,gap,attuale,target,soglia})=>{
+    // strumenti della categoria con PAC attivo
+    const pacStrum = getStrumenti().filter(x=>x.tipo===cat&&(x.pac||0)>0);
+    const totalPacCat = pacStrum.reduce((t,x)=>t+(x.pac||0),0);
+    // strumenti vincolati (nota presente)
+    const vincolati = getStrumenti().filter(x=>x.tipo===cat&&x.nota);
+
+    if(vincolati.length && gap<-200){
+      vincolati.forEach(v=>{
+        s.push({cls:'hold',t:`${v.ticker}: vincolato (${v.nota})`,d:`Non ribilanciare ora. Segui le istruzioni del broker.`,pac:null,b:'ATTENDI'});
+      });
+    } else if(gap>soglia){
+      const mesi = totalPacCat>0?Math.ceil(gap/totalPacCat):'∞';
+      const pacTxt = totalPacCat>0?`PAC ${fmt(totalPacCat)}/mese copre il gap in ~${mesi} mesi`:null;
+      const tickers = getStrumenti().filter(x=>x.tipo===cat&&x.pac>0).map(x=>x.ticker).join(', ');
+      s.push({cls:'buy',t:`Aumenta ${label} di ${fmt(gap)}`,d:`Attuale ${fmt(attuale)} → ideale ${fmt(target)}. ${tickers?'PAC su '+tickers+'.':''}`,pac:pacTxt,b:'COMPRA'});
+    } else if(cat!=='ob'){
+      s.push({cls:'hold',t:`${label}: in linea`,d:`${fmt(attuale)} vs ideale ${fmt(target)} — scostamento trascurabile.`,pac:null,b:'OK'});
+    }
+  });
+
   if(D.fe>C.maxFE)
     s.push({cls:'sell',t:`Fondo emergenza: eccedenza ${fmt(D.fe-C.maxFE)}`,d:"Valuta di spostare l'eccedenza negli investimenti.",pac:null,b:'VALUTA'});
+
   const arr=lim?s.slice(0,lim):s;
   return arr.map((st,i)=>`<div class="step">
     <div class="step-n sn-${st.cls}">${i+1}</div>
@@ -920,12 +1058,21 @@ function buildSteps(c,lim){
 
 // ── PORTAFOGLIO ALLOC ────────────────────────────────────────
 function buildPfAlloc(c){
-  // % sul patrimonio totale
+  // raggruppa strumenti per categoria
+  const cats = ['az','ob','or'];
+  const catVals = {az:c.vAz, ob:c.vOb, or:c.vOr};
+  const catTargets = {az:c.tAz, ob:c.tOb, or:c.tOr};
+  const catNames = {az:'Azioni', ob:'Obbligazioni', or:'Oro'};
+  // sub: lista ticker della categoria
+  const catSub = {};
+  cats.forEach(cat=>{
+    catSub[cat] = getStrumenti().filter(s=>s.tipo===cat).map(s=>s.ticker).join(' · ') || cat;
+  });
   const rows=[
-    {lbl:'Azioni',    sub:'VWCE · TR',       v:D.az,  tv:c.tAz,  tot:c.totale, col:'var(--col-az)'},
-    {lbl:'Obbl.',     sub:'BTP · Intesa',    v:D.ob,  tv:c.tOb,  tot:c.totale, col:'var(--col-ob)'},
-    {lbl:'Oro',       sub:'SGLN · TR',       v:D.or,  tv:c.tOr,  tot:c.totale, col:'var(--col-or)'},
-    {lbl:'Liquidità', sub:'CC + TR',         v:D.liq, tv:c.tLiq, tot:c.totale, col:'var(--col-liq)'},
+    {lbl:catNames.az, sub:catSub.az, v:catVals.az, tv:catTargets.az, tot:c.totale, col:'var(--col-az)'},
+    {lbl:catNames.ob, sub:catSub.ob, v:catVals.ob, tv:catTargets.ob, tot:c.totale, col:'var(--col-ob)'},
+    {lbl:catNames.or, sub:catSub.or, v:catVals.or, tv:catTargets.or, tot:c.totale, col:'var(--col-or)'},
+    {lbl:'Liquidità', sub:'CC + TR', v:D.liq,       tv:c.tLiq,       tot:c.totale, col:'var(--col-liq)'},
   ];
   return rows.map((r,i)=>{
     const pa=r.v/r.tot*100, pt=r.tv/r.tot*100, d=r.v-r.tv;
@@ -954,41 +1101,40 @@ function buildPfAlloc(c){
 }
 
 // ── STRUMENTI ────────────────────────────────────────────────
-function buildStrum(){
-  const items=[
-    {n:'Vanguard FTSE All-World',tk:'VWCE',isin:'IE00BK5BQT80',tipo:'Azioni globali',  v:D.az, logo:'TR',badge:'sb-tr',  bt:'Trade Republic'},
-    {n:'iShares Physical Gold',  tk:'SGLN',isin:'IE00B4ND3602',tipo:'Oro fisico',       v:D.or, logo:'TR',badge:'sb-tr',  bt:'Trade Republic'},
-    {n:'BTP Valore 2028',        tk:'BTP', isin:'IT0005622110',tipo:'Obbligazione IT',  v:D.ob, logo:'IS',badge:'sb-lock',bt:'Intesa · vincolato 2028 → VAGF'},
-    {n:'Vanguard Global Agg Bond',tk:'VAGF',isin:'IE00BG47KH54',tipo:'Obbl. globali',  v:0,    logo:'TR',badge:'sb-future',bt:'Piano futuro post-2028'},
-  ];
-  return items.map(s=>`<div class="strum-row">
-    <div class="strum-logo ${s.logo==='TR'?'logo-tr':'logo-is'}">${s.logo}</div>
-    <div class="strum-info">
-      <div class="strum-name">${s.n} <span style="color:var(--dim);font-weight:500;">${s.tk}</span></div>
-      <div class="strum-isin">${s.isin}</div>
-      <span class="strum-badge ${s.badge}">${s.bt}</span>
-    </div>
-    <div class="strum-r">
-      <div class="strum-val">${s.v>0?fmt(s.v):'—'}</div>
-      <div class="strum-tipo">${s.tipo}</div>
-    </div>
-  </div>`).join('');
+const TIPO_LABEL = {az:'Azioni',ob:'Obbligazioni',or:'Oro',liq:'Liquidità',fe:'Fondo emergenza'};
+const TIPO_COL   = {az:'var(--col-az)',ob:'var(--col-ob)',or:'var(--col-or)',liq:'var(--col-liq)',fe:'var(--amber)'};
+
+function getLogoInitials(broker){
+  // mostra max 2 lettere iniziali del broker
+  return broker.replace(/[·→].*/,'').trim().split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
 }
 
-// ── INPUT LIST ───────────────────────────────────────────────
-const ASSETS=[
-  {k:'az', lbl:'Azioni (VWCE)',     sub:'Trade Republic'},
-  {k:'ob', lbl:'Obbligazioni (BTP)',sub:'Intesa · vincolato 2028'},
-  {k:'or', lbl:'Oro (SGLN)',        sub:'Trade Republic'},
-  {k:'liq',lbl:'Liquidità totale',  sub:'CC + Trade Republic'},
-  {k:'fe', lbl:'Fondo emergenza',   sub:'separato'},
-];
-function buildInputList(cid){
-  document.getElementById(cid).innerHTML=ASSETS.map(a=>`<div class="irow">
-    <div><div class="irow-lbl">${a.lbl}</div><div class="irow-sub">${a.sub}</div></div>
-    <div class="irow-r"><span class="isym">€</span><input class="iinput" type="number" id="i_${a.k}" value="${D[a.k]}" step="0.01"></div>
-  </div>`).join('');
+function buildStrum(){
+  const strumenti = getStrumenti().filter(s=>s.tipo!=='liq'&&s.tipo!=='fe');
+  return strumenti.map(s=>{
+    const v = D[s.id]||0;
+    const initials = getLogoInitials(s.broker);
+    const isDark = s.broker.toLowerCase().includes('trade republic') || s.broker.toLowerCase().includes('tr');
+    const logoCls = isDark?'logo-tr':'logo-is';
+    const nota = s.nota || s.broker;
+    const badgeCls = v===0 ? 'sb-future' : (s.broker.toLowerCase().includes('intesa')?'sb-lock':'sb-tr');
+    const opacity = v===0 ? 'opacity:.5;' : '';
+    return `<div class="strum-row" style="${opacity}">
+      <div class="strum-logo ${logoCls}">${initials}</div>
+      <div class="strum-info">
+        <div class="strum-name">${s.nome} <span style="color:var(--dim);font-weight:500;">${s.ticker}</span></div>
+        <div class="strum-isin">${s.isin}</div>
+        <span class="strum-badge ${badgeCls}">${nota}</span>
+      </div>
+      <div class="strum-r">
+        <div class="strum-val">${v>0?fmt(v):'—'}</div>
+        <div class="strum-tipo">${TIPO_LABEL[s.tipo]||s.tipo}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
+
+// (buildInputList rimosso — valori ora inline nel manager strumenti)
 
 // ── LIQ SUB ─────────────────────────────────────────────────
 function buildLiqSub(){
@@ -1008,59 +1154,88 @@ function updLiqSub(){
 }
 
 // ── PAC ──────────────────────────────────────────────────────
+// strumenti con PAC > 0
+function getPacStrumenti(){ return getStrumenti().filter(s=>s.tipo!=='liq'&&s.tipo!=='fe'); }
+
 function buildPac(){
-  const c=calc();
-  document.getElementById('pacTot').innerHTML=`<div><div class="pac-tot-lbl">Totale PAC mensile</div></div><div class="pac-tot-val">${fmt(C.pac.az+C.pac.or)}/mese</div>`;
-  const items=[
-    {k:'az',lbl:'Azioni (VWCE)',col:'var(--col-az)',gap:Math.max(c.dAz,0)},
-    {k:'or',lbl:'Oro (SGLN)',   col:'var(--col-or)',gap:Math.max(c.dOr,0)},
-  ];
-  document.getElementById('pacCards').innerHTML=items.map(a=>{
-    const mesi=C.pac[a.k]>0?Math.ceil(a.gap/C.pac[a.k]):'∞';
+  const c = calc();
+  const pacItems = getPacStrumenti();
+  const totPac = pacItems.reduce((t,s)=>t+(s.pac||0),0);
+  document.getElementById('pacTot').innerHTML=`<div><div class="pac-tot-lbl">Totale PAC mensile</div></div><div class="pac-tot-val">${fmt(totPac)}/mese</div>`;
+
+  // gap per categoria
+  const gapMap = {az:Math.max(c.dAz,0), ob:Math.max(c.dOb,0), or:Math.max(c.dOr,0)};
+
+  document.getElementById('pacCards').innerHTML = pacItems.map(s=>{
+    const pac = s.pac||0;
+    const gap = gapMap[s.tipo]||0;
+    const mesi = pac>0 ? Math.ceil(gap/pac) : '∞';
+    const col = TIPO_COL[s.tipo]||'var(--dim)';
     return `<div class="pac-card">
-      <div class="pac-hdr"><div class="pac-dot" style="background:${a.col}"></div><div class="pac-name">${a.lbl}</div></div>
+      <div class="pac-hdr"><div class="pac-dot" style="background:${col}"></div><div class="pac-name">${s.nome} <span style="color:var(--dim);font-size:11px;font-weight:500;">${s.ticker}</span></div></div>
       <div class="irow" style="border-radius:var(--r-sm);">
-        <div><div class="irow-lbl">Rata mensile</div></div>
-        <div class="irow-r"><span class="isym">€</span><input class="iinput" type="number" id="pac_${a.k}" value="${C.pac[a.k]}" step="1" min="0" oninput="updPac('${a.k}',this.value)"></div>
+        <div><div class="irow-lbl">Rata mensile</div><div class="irow-sub">${s.broker}</div></div>
+        <div class="irow-r"><span class="isym">€</span><input class="iinput" type="number" id="pac_${s.id}" value="${pac}" step="1" min="0" oninput="updPac('${s.id}',this.value)"></div>
       </div>
-      <div class="pac-info">Gap attuale: <strong>${fmt(a.gap)}</strong><br>Copertura solo PAC: <strong>~${mesi} mesi</strong></div>
+      <div class="pac-info">Gap ${TIPO_LABEL[s.tipo]||s.tipo}: <strong>${fmt(gap)}</strong><br>Copertura solo PAC: <strong>~${mesi} mesi</strong></div>
     </div>`;
   }).join('');
 }
-function updPac(k,v){
-  const n=parseFloat(v);
-  if(!isNaN(n)&&n>=0){C.pac[k]=n;save('patrimonio_cfg',C);buildPac();renderPacProj();renderAll();}
-}
-function renderPacProj(){
-  const c=calc();const M=36;
-  const labs=[],dAz=[],dOr=[];
-  let az=D.az,or=D.or;
-  for(let i=1;i<=M;i++){
-    az+=C.pac.az;or+=C.pac.or;
-    const d=new Date();d.setMonth(d.getMonth()+i);
-    labs.push(d.toLocaleDateString('it-IT',{month:'short',year:'2-digit'}));
-    dAz.push(+az.toFixed(0));dOr.push(+or.toFixed(0));
+
+function updPac(id, v){
+  const n = parseFloat(v);
+  if(!isNaN(n)&&n>=0){
+    const s = getStrumenti().find(x=>x.id===id);
+    if(s){ s.pac=n; save('patrimonio_cfg',C); buildPac(); renderPacProj(); renderAll(); }
   }
-  if(charts.pac)charts.pac.destroy();
-  charts.pac=new Chart(document.getElementById('cPac'),{
+}
+
+// Colori fissi per il grafico PAC
+const PAC_COLORS = ['#1e40af','#d97706','#006636','#7c3aed','#be123c','#0891b2'];
+
+function renderPacProj(){
+  const M = 36;
+  const pacItems = getPacStrumenti().filter(s=>(s.pac||0)>0);
+  if(!pacItems.length){ document.getElementById('pacProj').innerHTML='<span style="color:var(--dim)">Nessun PAC configurato.</span>'; return; }
+
+  const labs = [];
+  const series = pacItems.map(s=>({s, vals:[], start: D[s.id]||0}));
+
+  for(let i=1;i<=M;i++){
+    const d=new Date(); d.setMonth(d.getMonth()+i);
+    labs.push(d.toLocaleDateString('it-IT',{month:'short',year:'2-digit'}));
+    series.forEach(x=>{ x.vals.push(+(x.start + x.s.pac*i).toFixed(0)); });
+  }
+
+  if(charts.pac) charts.pac.destroy();
+  charts.pac = new Chart(document.getElementById('cPac'),{
     type:'line',
-    data:{labels:labs,datasets:[
-      {label:'Azioni',data:dAz,borderColor:'#1e40af',backgroundColor:'rgba(30,64,175,.07)',borderWidth:2,pointRadius:0,fill:true,tension:.4},
-      {label:'Oro',   data:dOr,borderColor:'#d97706',backgroundColor:'rgba(217,119,6,.06)', borderWidth:2,pointRadius:0,fill:true,tension:.4},
-    ]},
+    data:{
+      labels:labs,
+      datasets: series.map((x,i)=>({
+        label: x.s.ticker,
+        data: x.vals,
+        borderColor: PAC_COLORS[i%PAC_COLORS.length],
+        backgroundColor: PAC_COLORS[i%PAC_COLORS.length].replace(')',', .07)').replace('#','rgba(').replace(/[0-9a-f]{2}/gi, c=>parseInt(c,16)+',').replace(/,$/,''),
+        borderWidth:2, pointRadius:0, fill:true, tension:.4
+      }))
+    },
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{labels:{color:'#5a6b62',boxWidth:10,font:{size:11}}}},
       scales:{x:{ticks:{color:'#9aaa9f',maxTicksLimit:12,font:{size:10}},grid:{color:'rgba(0,0,0,.05)'}},
               y:{ticks:{color:'#5a6b62',callback:v=>'€'+Math.round(v).toLocaleString('it-IT')},grid:{color:'rgba(0,0,0,.05)'}}}
     }
   });
-  const mAz=c.dAz>0?Math.ceil(c.dAz/C.pac.az):0;
-  const mOr=c.dOr>0?Math.ceil(c.dOr/C.pac.or):0;
-  document.getElementById('pacProj').innerHTML=
-    `PAC <strong>${fmt(C.pac.az)}/mese</strong> azioni + <strong>${fmt(C.pac.or)}/mese</strong> oro:<br>
-     • Gap azioni (${fmt(Math.max(c.dAz,0))}): ~<strong style="color:var(--green);">${mAz} mesi</strong><br>
-     • Gap oro (${fmt(Math.max(c.dOr,0))}): ~<strong style="color:var(--green);">${mOr} mesi</strong><br>
-     <span style="font-size:11px;color:var(--dim);">Proiezione statica, senza variazioni di mercato.</span>`;
+
+  const c = calc();
+  const gapMap = {az:Math.max(c.dAz,0),ob:Math.max(c.dOb,0),or:Math.max(c.dOr,0)};
+  document.getElementById('pacProj').innerHTML =
+    series.map(x=>{
+      const gap = gapMap[x.s.tipo]||0;
+      const mesi = x.s.pac>0?Math.ceil(gap/x.s.pac):0;
+      return `• <strong>${x.s.ticker}</strong> ${fmt(x.s.pac)}/mese — gap ${fmt(gap)}: ~<strong style="color:var(--green);">${mesi} mesi</strong>`;
+    }).join('<br>')+
+    `<br><span style="font-size:11px;color:var(--dim);">Proiezione statica, senza variazioni di mercato.</span>`;
 }
 
 // ── STORICO ──────────────────────────────────────────────────
@@ -1080,13 +1255,13 @@ async function salvaSnapshot(){
   const nota = (document.getElementById('stor-nota')?.value||'').trim();
   const c = calc();
   const st = getStor();
-  const totInv = D.az+D.ob+D.or;
-  const totAz = totInv>0?Math.round(D.az/totInv*100):0;
-  const totOb = totInv>0?Math.round(D.ob/totInv*100):0;
-  const totOr = totInv>0?Math.round(D.or/totInv*100):0;
+  const totInv = c.totInv;
+  const totAz = totInv>0?Math.round(c.vAz/totInv*100):0;
+  const totOb = totInv>0?Math.round(c.vOb/totInv*100):0;
+  const totOr = totInv>0?Math.round(c.vOr/totInv*100):0;
   st.push({
     d: new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}),
-    tot: c.totale, az:D.az, ob:D.ob, or:D.or, liq:D.liq, fe:D.fe,
+    tot: c.totale, az:c.vAz, ob:c.vOb, or:c.vOr, liq:D.liq, fe:D.fe,
     totInv, pAz:totAz, pOb:totOb, pOr:totOr,
     nota: nota||null
   });
@@ -1170,10 +1345,14 @@ function renderStorico(){
 
 // ── SALVA ────────────────────────────────────────────────────
 async function salva(){
-  ASSETS.forEach(a=>{
-    const e=document.getElementById('i_'+a.k);
-    if(e){ const v=parseFloat(e.value); if(!isNaN(v)&&v>=0) D[a.k]=v; }
+  // legge tutti gli strumenti investiti
+  getStrumenti().filter(s=>s.tipo!=='liq'&&s.tipo!=='fe').forEach(s=>{
+    const e = document.getElementById('i_'+s.id);
+    if(e){ const v=parseFloat(e.value); if(!isNaN(v)&&v>=0) D[s.id]=v; }
   });
+  // fondo emergenza
+  const fe = document.getElementById('i_fe');
+  if(fe){ const v=parseFloat(fe.value); if(!isNaN(v)&&v>=0) D.fe=v; }
   // sincronizza liqSub col totale liquidità
   C.liqSub.tr = Math.max(0, D.liq - C.liqSub.cc);
   renderAll();
@@ -1184,8 +1363,9 @@ async function salva(){
 
 // ── SALVA CONFIG ─────────────────────────────────────────────
 async function salvaConfig(){
-  C.soglia = parseFloat(document.getElementById('cfgSoglia').value)||C.soglia;
-  C.maxFE  = parseFloat(document.getElementById('cfgMaxFE').value)||C.maxFE;
+  C.soglia     = parseFloat(document.getElementById('cfgSoglia').value)||C.soglia;
+  C.maxFE      = parseFloat(document.getElementById('cfgMaxFE').value)||C.maxFE;
+  C.liqBuffer  = parseFloat(document.getElementById('cfgLiqBuffer').value)||1000;
   C.mix.az  = parseFloat(document.getElementById('cfgAz').value)||0;
   C.mix.ob  = parseFloat(document.getElementById('cfgOb').value)||0;
   C.mix.or  = parseFloat(document.getElementById('cfgOr').value)||0;
@@ -1201,12 +1381,150 @@ async function salvaConfig(){
 function loadCfg(){
   document.getElementById('cfgSoglia').value=C.soglia;
   document.getElementById('cfgMaxFE').value=C.maxFE;
+  document.getElementById('cfgLiqBuffer').value=C.liqBuffer||1000;
   document.getElementById('cfgAz').value=C.mix.az;
   document.getElementById('cfgOb').value=C.mix.ob;
   document.getElementById('cfgOr').value=C.mix.or;
   document.getElementById('cfgLiq').value=C.mix.liq;
   buildLiqSub();
-  buildInputList('cfgValori'); // ricostruisce sempre con i valori aggiornati di D
+  buildFeInput();
+  buildStrumentiManager();
+  updatePacTab();
+}
+
+// ── STRUMENTI MANAGER (con valore inline) ────────────────────
+function buildStrumentiManager(){
+  const container = document.getElementById('strumentiManager');
+  if(!container) return;
+  const strum = getStrumenti().filter(s=>s.tipo!=='liq'&&s.tipo!=='fe');
+  if(!strum.length){ container.innerHTML='<div class="empty">Nessuno strumento configurato.</div>'; return; }
+  container.innerHTML = strum.map((s,i)=>{
+    const v = D[s.id]||0;
+    const opacity = v===0 ? 'opacity:.6;' : '';
+    return `<div class="strum-mgr-row" style="${opacity}">
+      <div class="strum-mgr-dot" style="background:${TIPO_COL[s.tipo]||'var(--dim)'}"></div>
+      <div class="strum-mgr-info">
+        <div class="strum-mgr-name">${s.ticker} <span style="color:var(--dim);font-weight:500;font-size:11px;">${s.nome}</span></div>
+        <div class="strum-mgr-sub">${TIPO_LABEL[s.tipo]||s.tipo}${s.nota?' · '+s.nota:''}</div>
+        ${(s.pac||0)>0?`<div class="strum-mgr-pac">PAC ${fmt(s.pac)}/mese</div>`:''}
+      </div>
+      <div class="strum-mgr-val-wrap">
+        <div class="strum-mgr-sym">€</div>
+        <input class="strum-mgr-input" type="number" id="i_${s.id}" value="${v}" step="0.01" min="0" placeholder="0">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <button class="strum-mgr-btn" onclick="apriModificaStrumento(${i})">✎</button>
+        <button class="strum-mgr-del" onclick="eliminaStrumento(${i})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── FE INPUT ─────────────────────────────────────────────────
+function buildFeInput(){
+  const container = document.getElementById('feInput');
+  if(!container) return;
+  container.innerHTML = `<div class="irow">
+    <div><div class="irow-lbl">Fondo emergenza</div><div class="irow-sub">Separato dal portafoglio</div></div>
+    <div class="irow-r"><span class="isym">€</span><input class="iinput" type="number" id="i_fe" value="${D.fe||0}" step="0.01" min="0"></div>
+  </div>`;
+}
+
+// ── PAC TAB VISIBILITY ───────────────────────────────────────
+function updatePacTab(){
+  const hasPac = getStrumenti().some(s=>s.tipo!=='liq'&&s.tipo!=='fe'&&(s.pac||0)>0);
+  const btn = document.getElementById('tab-pac');
+  if(btn) btn.style.display = hasPac ? '' : 'none';
+  // se PAC sparisce e siamo sulla tab pac, torna a home
+  if(!hasPac && document.getElementById('page-pac')?.classList.contains('active')){
+    goTab('home');
+  }
+}
+
+let _strumEditIdx = -1;
+
+function apriNuovoStrumento(){
+  _strumEditIdx = -1;
+  document.getElementById('strumModalTitle').textContent = 'Nuovo strumento';
+  document.getElementById('strumModalId').value = '';
+  document.getElementById('smNome').value = '';
+  document.getElementById('smTicker').value = '';
+  document.getElementById('smTipo').value = 'az';
+  document.getElementById('smIsin').value = '';
+  document.getElementById('smBroker').value = '';
+  document.getElementById('smNota').value = '';
+  document.getElementById('smPac').value = '0';
+  document.getElementById('strumModal').classList.remove('hidden');
+}
+
+function apriModificaStrumento(idx){
+  const strum = getStrumenti().filter(s=>s.tipo!=='liq'&&s.tipo!=='fe');
+  const s = strum[idx];
+  if(!s) return;
+  _strumEditIdx = C.strumenti.indexOf(s);
+  document.getElementById('strumModalTitle').textContent = 'Modifica strumento';
+  document.getElementById('strumModalId').value = s.id;
+  document.getElementById('smNome').value = s.nome;
+  document.getElementById('smTicker').value = s.ticker;
+  document.getElementById('smTipo').value = s.tipo;
+  document.getElementById('smIsin').value = s.isin||'';
+  document.getElementById('smBroker').value = s.broker||'';
+  document.getElementById('smNota').value = s.nota||'';
+  document.getElementById('smPac').value = s.pac||0;
+  document.getElementById('strumModal').classList.remove('hidden');
+}
+
+function chiudiModalStrumento(){
+  document.getElementById('strumModal').classList.add('hidden');
+}
+
+async function salvaStrumento(){
+  const nome   = document.getElementById('smNome').value.trim();
+  const ticker = document.getElementById('smTicker').value.trim().toUpperCase();
+  const tipo   = document.getElementById('smTipo').value;
+  const isin   = document.getElementById('smIsin').value.trim().toUpperCase();
+  const broker = document.getElementById('smBroker').value.trim();
+  const nota   = document.getElementById('smNota').value.trim();
+  const pac    = parseFloat(document.getElementById('smPac').value)||0;
+
+  if(!nome||!ticker){ toast('⚠ Nome e ticker obbligatori'); return; }
+
+  if(_strumEditIdx>=0){
+    // modifica
+    const s = C.strumenti[_strumEditIdx];
+    s.nome=nome; s.ticker=ticker; s.tipo=tipo; s.isin=isin;
+    s.broker=broker; s.nota=nota||undefined; s.pac=pac;
+  } else {
+    // nuovo — genera id univoco
+    const id = ticker.toLowerCase()+'_'+Date.now().toString(36);
+    C.strumenti.push({id,nome,ticker,isin,broker,tipo,pac,attivo:true,nota:nota||undefined});
+    // inizializza D per il nuovo strumento
+    D[id] = 0;
+  }
+
+  chiudiModalStrumento();
+  buildStrumentiManager();
+  buildFeInput();
+  updatePacTab();
+  renderAll();
+  const ok = await saveToCloud();
+  if(ok) toast('✓ Strumento salvato');
+}
+
+async function eliminaStrumento(idx){
+  const strum = getStrumenti().filter(s=>s.tipo!=='liq'&&s.tipo!=='fe');
+  const s = strum[idx];
+  if(!s) return;
+  if(!confirm(`Eliminare "${s.nome}"? Il valore associato verrà azzerato.`)) return;
+  const realIdx = C.strumenti.indexOf(s);
+  C.strumenti.splice(realIdx,1);
+  delete D[s.id];
+  buildStrumentiManager();
+  buildFeInput();
+  updatePacTab();
+  renderAll();
+  const ok = await saveToCloud();
+  if(ok) toast('✓ Strumento rimosso');
 }
 
 function renderAll(){
@@ -1222,9 +1540,9 @@ function renderAll(){
     set('cFE',  fmt(D.fe));
     ['cInv','cLiq','cFE'].forEach(id=>setS(id,'filter',b));
 
-    set('sr-az',  fmt(D.az));
-    set('sr-ob',  fmt(D.ob));
-    set('sr-or',  fmt(D.or));
+    set('sr-az',  fmt(c.vAz));
+    set('sr-ob',  fmt(c.vOb));
+    set('sr-or',  fmt(c.vOr));
     set('sr-cc',  fmt(C.liqSub.cc));
     set('sr-tr',  fmt(C.liqSub.tr));
     set('sr-fe2', fmt(D.fe));
@@ -1235,17 +1553,50 @@ function renderAll(){
     set('sr-festat', feOk?'✓ Nella finestra ideale':'⚠ Sopra il massimo');
     setS('sr-festat','color', feOk?'var(--green)':'var(--amber)');
 
-    const pct=Math.min(D.liq/C.soglia*100,100);
-    setS('sogliaFill','width', pct+'%');
-    setS('sogliaFill','background', D.liq>=C.soglia?'var(--green)':'#d97706');
-    set('sogliaStatus', D.liq>=C.soglia?'✓ Soglia raggiunta':'⚠ Sotto soglia');
-    setS('sogliaStatus','color', D.liq>=C.soglia?'var(--green)':'#b45309');
-    set('sogliaPct', pct.toFixed(0)+'% di '+fmt(C.soglia));
+    // ── BARRA LIQUIDITÀ A FASI ──
+    {
+      const liq = D.liq;
+      const soglia = C.soglia;
+      const buffer = C.liqBuffer||1000;
+      const sogliaEff = c.sogliaEff; // max(soglia, totale*liq%)
+      const phase = c.liqPhase;
+
+      let barPct, barCol, statusTxt, statusCol, rightTxt;
+
+      if(phase === 'under'){
+        // fase 1: scala da 0 a soglia
+        barPct = Math.min(liq/soglia*100, 100);
+        barCol = '#ef4444';
+        statusTxt = `⚠ Mancano ${fmt(soglia-liq)} alla soglia minima`;
+        statusCol = '#b91c1c';
+        rightTxt = `${fmt(liq)} / ${fmt(soglia)}`;
+      } else if(phase === 'ok'){
+        // fase 2: nella finestra — scala da soglia a soglia+buffer
+        barPct = Math.min((liq-soglia)/buffer*100, 100);
+        barCol = 'var(--green)';
+        statusTxt = `✓ Soglia raggiunta`;
+        statusCol = 'var(--green)';
+        rightTxt = `${fmt(liq)} · target ${fmt(sogliaEff)} (${C.mix.liq}%)`;
+      } else {
+        // fase 3: eccedente — barra piena, mostra eccedente
+        barPct = 100;
+        barCol = '#d97706';
+        statusTxt = `⚠ Eccedente ${fmt(c.liqExcess)} — valuta di investire`;
+        statusCol = '#b45309';
+        rightTxt = `target ${fmt(sogliaEff)} (${C.mix.liq}%)`;
+      }
+
+      setS('sogliaFill','width', barPct+'%');
+      setS('sogliaFill','background', barCol);
+      set('sogliaStatus', statusTxt);
+      setS('sogliaStatus','color', statusCol);
+      set('sogliaPct', rightTxt);
+    }
 
     setH('homeAlerts', buildAlerts(c));
     renderAlloc(c);
     renderStrategia();
-    setH('homeSteps', buildSteps(c,3));
+    updatePacTab();
 
     setH('pfStrum', buildStrum());
     setH('pfAlloc', buildPfAlloc(c));
