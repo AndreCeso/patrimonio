@@ -1304,6 +1304,20 @@ function renderDash(){
   const mezzoHtml=buildMezzoBreakdown(c.allTxns,'var(--text)');
   const mezzoCard=mezzoHtml?'<div class="card card-p" style="margin-top:12px;"><div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">💳 Spese per mezzo</div>'+mezzoHtml+'</div>':'';
   cont.innerHTML=rdisCard+gridHtml+(alertsHtml?'<div>'+alertsHtml+'</div>':'')+mezzoCard;
+
+  // Attach mezzo expand/collapse
+  cont.querySelectorAll('.mezzo-row-hdr').forEach(function(hdr){
+    hdr.addEventListener('click', function(){
+      var id = hdr.getAttribute('data-mezzo-id');
+      var body = document.getElementById(id);
+      var chev = hdr.querySelector('.mezzo-chev');
+      if(!body) return;
+      var isOpen = body.style.maxHeight && body.style.maxHeight !== '0px';
+      body.style.maxHeight = isOpen ? '0px' : body.scrollHeight + 'px';
+      if(chev) chev.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+    });
+  });
+
   var benefitCardEl=document.getElementById('benefit-card-m');
   if(benefitCardEl){
     benefitCardEl.addEventListener('click',function(){
@@ -1335,24 +1349,51 @@ function buildMezzoBreakdown(txns, color){
   var byMezzo = {};
   rilevanti.forEach(function(t){
     var m = t.mezzo || '';
-    if(!byMezzo[m]) byMezzo[m] = 0;
-    byMezzo[m] += t.amt;
+    if(!byMezzo[m]) byMezzo[m] = { tot: 0, items: [] };
+    byMezzo[m].tot += t.amt;
+    byMezzo[m].items.push(t);
   });
-  var entries = Object.entries(byMezzo).sort(function(a,b){ return b[1]-a[1]; });
+  var entries = Object.entries(byMezzo).sort(function(a,b){ return b[1].tot-a[1].tot; });
   var tot = rilevanti.reduce(function(s,t){ return s+t.amt; }, 0);
-  var rows = entries.map(function(e){
-    var lbl = e[0] || 'Non specificato';
-    var emoji = MEZZO_EMOJI[e[0]] || '❔';
-    var pct = tot ? Math.round(e[1]/tot*100) : 0;
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">'
+  var rows = entries.map(function(e, idx){
+    var key = e[0];
+    var data = e[1];
+    var lbl = key || 'Non specificato';
+    var emoji = MEZZO_EMOJI[key] || '❔';
+    var pct = tot ? Math.round(data.tot/tot*100) : 0;
+    var detailId = 'mezzo-detail-'+idx+'-'+Date.now();
+
+    // Sort items by date desc
+    var items = data.items.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+    var TIPO_COLOR = {'EXPENSES':'#e91e8c','TEMPO LIBERO':'#7c3aed'};
+    var detailRows = items.map(function(t){
+      var tColor = TIPO_COLOR[t.tipo] || '#5a6b62';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0 7px 24px;border-bottom:1px solid var(--border);">'
+        +'<div style="flex:1;min-width:0;">'
+        +'<div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(t.desc||t.cat)+'</div>'
+        +'<div style="font-size:10px;color:var(--dim);">'+t.cat+' · '+fmtDate(t.date)+'</div>'
+        +'</div>'
+        +'<div style="font-size:12px;font-weight:800;color:'+tColor+';flex-shrink:0;margin-left:8px;">-'+fmt(t.amt)+'</div>'
+        +'</div>';
+    }).join('');
+
+    return '<div>'
+      +'<div class="mezzo-row-hdr" data-mezzo-id="'+detailId+'" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;">'
       +'<div style="display:flex;align-items:center;gap:8px;">'
       +'<span style="font-size:16px;">'+emoji+'</span>'
       +'<div>'
       +'<div style="font-size:12px;font-weight:700;color:var(--text);">'+lbl+'</div>'
-      +'<div style="font-size:10px;color:var(--dim);">'+pct+'% del totale</div>'
+      +'<div style="font-size:10px;color:var(--dim);">'+pct+'% · '+items.length+' moviment'+(items.length===1?'o':'i')+'</div>'
       +'</div>'
       +'</div>'
-      +'<div style="font-size:13px;font-weight:800;color:var(--text);">'+fmt(e[1])+'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;">'
+      +'<div style="font-size:13px;font-weight:800;color:var(--text);">'+fmt(data.tot)+'</div>'
+      +'<div class="mezzo-chev" style="color:var(--dim);transition:transform .2s;font-size:12px;">▼</div>'
+      +'</div>'
+      +'</div>'
+      +'<div id="'+detailId+'" style="max-height:0;overflow:hidden;transition:max-height .3s ease;">'
+      +detailRows
+      +'</div>'
       +'</div>';
   }).join('');
   return '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">'
