@@ -1572,8 +1572,8 @@ function renderAll(){
         statusCol = '#b91c1c';
         rightTxt = `${fmt(liq)} / ${fmt(soglia)}`;
       } else if(phase === 'ok'){
-        // fase 2: nella finestra — scala da soglia a soglia+buffer
-        barPct = Math.min((liq-soglia)/buffer*100, 100);
+        // fase 2: soglia raggiunta — barra piena verde
+        barPct = 100;
         barCol = 'var(--green)';
         statusTxt = `✓ Soglia raggiunta`;
         statusCol = 'var(--green)';
