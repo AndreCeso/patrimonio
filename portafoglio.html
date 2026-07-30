@@ -900,9 +900,15 @@ function renderStrategia(){
     invBadge='Bilanciato'; invBadgeBg='#e8f5ee'; invBadgeFg='#006636'; invDot='#006636';
   }
 
-  // Barra liquidità
-  const liqBarPct = Math.min(D.liq / (liqIdeal * 1.5) * 100, 100);
-  const liqBarCol = liqDot;
+  // Barra liquidità — stessa logica a fasi della home card
+  const buffer = C.liqBuffer||1000;
+  const liqPhase = c.liqPhase;
+  const liqBarPct = liqPhase === 'under'
+    ? Math.min(D.liq / C.soglia * 100, 100)
+    : 100;
+  const liqBarCol = liqPhase === 'under' ? '#ef4444'
+                  : liqPhase === 'ok'    ? 'var(--green)'
+                  : '#d97706';
 
   // Barre capitale investito
   const invBars = [
