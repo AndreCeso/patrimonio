@@ -788,7 +788,47 @@ function calc() {
   };
 }
 
-// ── HIDE/SHOW ────────────────────────────────────────────────
+// ── LIQUIDITY BAR HELPER ─────────────────────────────────────
+// Logica unica usata in home, strategia e portafoglio
+function liqBarData(c){
+  const liq    = D.liq;
+  const soglia = C.soglia;
+  const buffer = C.liqBuffer || 1000;
+  const phase  = c.liqPhase;
+  // soglia dinamica entra in gioco solo quando 10% > soglia+buffer
+  const target10 = c.totale * (C.mix.liq / 100);
+  const sogliaDinamica = target10 > (soglia + buffer); // es. patrimonio > 160k
+
+  let barPct, barCol, statusTxt, statusCol, rightTxt;
+
+  if(phase === 'under'){
+    barPct    = Math.min(liq / soglia * 100, 100);
+    barCol    = '#ef4444';
+    statusTxt = `⚠ Mancano ${fmt(soglia - liq)} alla soglia minima`;
+    statusCol = '#b91c1c';
+    rightTxt  = `${fmt(liq)} / ${fmt(soglia)}`;
+
+  } else if(phase === 'ok'){
+    barPct    = 100;
+    barCol    = 'var(--green)';
+    statusTxt = `✓ Soglia raggiunta`;
+    statusCol = 'var(--green)';
+    rightTxt  = fmt(liq);
+
+  } else {
+    // over: eccedente = liq - (soglia effettiva + buffer)
+    const sogliaEff = sogliaDinamica ? target10 : soglia;
+    const eccedente = liq - (sogliaEff + buffer);
+    barPct    = 100;
+    barCol    = '#d97706';
+    statusTxt = `⚠ Valuta di investire ${fmt(eccedente)}`
+              + (sogliaDinamica ? ` · target ${C.mix.liq}% è ${fmt(target10)}` : '');
+    statusCol = '#b45309';
+    rightTxt  = sogliaDinamica ? `target ${fmt(target10)} (${C.mix.liq}%)` : fmt(liq);
+  }
+
+  return {barPct, barCol, statusTxt, statusCol, rightTxt};
+}
 const HIDS = ['patAmt','cInv','cLiq','cFE',
               'sr-az','sr-ob','sr-or','sr-cc','sr-tr','sr-fe2'];
 function toggleHide(){
@@ -900,15 +940,10 @@ function renderStrategia(){
     invBadge='Bilanciato'; invBadgeBg='#e8f5ee'; invBadgeFg='#006636'; invDot='#006636';
   }
 
-  // Barra liquidità — stessa logica a fasi della home card
-  const buffer = C.liqBuffer||1000;
-  const liqPhase = c.liqPhase;
-  const liqBarPct = liqPhase === 'under'
-    ? Math.min(D.liq / C.soglia * 100, 100)
-    : 100;
-  const liqBarCol = liqPhase === 'under' ? '#ef4444'
-                  : liqPhase === 'ok'    ? 'var(--green)'
-                  : '#d97706';
+  // Barra liquidità — logica condivisa
+  const liqBD = liqBarData(c);
+  const liqBarPct = liqBD.barPct;
+  const liqBarCol = liqBD.barCol;
 
   // Barre capitale investito
   const invBars = [
@@ -1073,22 +1108,11 @@ function buildPfAlloc(c){
     catSub[cat] = getStrumenti().filter(s=>s.tipo===cat).map(s=>s.ticker).join(' · ') || cat;
   });
 
-  const buffer = C.liqBuffer||1000;
-  const liqPhase = c.liqPhase;
-  const liqBarPct = liqPhase === 'under'
-    ? Math.min(D.liq / C.soglia * 100, 100)
-    : 100;
-  const liqBarCol = liqPhase === 'under' ? '#ef4444'
-                  : liqPhase === 'ok'    ? 'var(--col-liq)'
-                  : '#d97706';
-  const liqStatusTxt = liqPhase === 'under'
-    ? `⚠ Mancano ${fmt(C.soglia - D.liq)} alla soglia`
-    : liqPhase === 'ok'
-    ? `✓ Soglia ${fmt(C.soglia)} raggiunta · target ${fmt(c.tLiq)} (${C.mix.liq}%)`
-    : `⚠ Eccedente ${fmt(c.liqExcess)} — valuta di investire`;
-  const liqStatusCol = liqPhase === 'under' ? 'var(--red)'
-                     : liqPhase === 'ok'    ? 'var(--green)'
-                     : '#b45309';
+  const liqBD = liqBarData(c);
+  const liqBarPct = liqBD.barPct;
+  const liqBarCol = liqBD.barCol;
+  const liqStatusTxt = liqBD.statusTxt;
+  const liqStatusCol = liqBD.statusCol;
 
   // Righe investimento (az/ob/or) — logica normale %
   const invRows = cats.map((cat,i)=>({
@@ -1120,17 +1144,16 @@ function buildPfAlloc(c){
     </div>`;
   }).join('');
 
-  // Riga liquidità — logica a fasi
+  // Riga liquidità — logica a fasi tramite helper
   const liqHtml = `<div>
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;">
       <div>
         <div style="font-size:13px;font-weight:700;">Liquidità</div>
         <div style="font-size:11px;color:var(--dim);">CC + TR</div>
-        <div style="font-size:11px;color:var(--dim);margin-top:2px;">soglia: <strong style="color:var(--muted);">${fmt(C.soglia)}</strong> · target: <strong style="color:var(--muted);">${fmt(c.tLiq)}</strong> (${C.mix.liq}%)</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:2px;">soglia min: <strong style="color:var(--muted);">${fmt(C.soglia)}</strong></div>
       </div>
       <div style="text-align:right;">
         <div style="font-size:15px;font-weight:800;" class="strum-val">${fmt(D.liq)}</div>
-        <div style="font-size:11px;font-weight:700;color:${liqStatusCol};margin-top:1px;">${liqPhase==='under'?fmtD(D.liq-C.soglia):liqPhase==='over'?'+'+fmt(c.liqExcess):''}</div>
       </div>
     </div>
     <div style="height:10px;background:var(--bg2);border-radius:99px;overflow:hidden;">
@@ -1598,42 +1621,12 @@ function renderAll(){
 
     // ── BARRA LIQUIDITÀ A FASI ──
     {
-      const liq = D.liq;
-      const soglia = C.soglia;
-      const buffer = C.liqBuffer||1000;
-      const sogliaEff = c.sogliaEff; // max(soglia, totale*liq%)
-      const phase = c.liqPhase;
-
-      let barPct, barCol, statusTxt, statusCol, rightTxt;
-
-      if(phase === 'under'){
-        // fase 1: scala da 0 a soglia
-        barPct = Math.min(liq/soglia*100, 100);
-        barCol = '#ef4444';
-        statusTxt = `⚠ Mancano ${fmt(soglia-liq)} alla soglia minima`;
-        statusCol = '#b91c1c';
-        rightTxt = `${fmt(liq)} / ${fmt(soglia)}`;
-      } else if(phase === 'ok'){
-        // fase 2: soglia raggiunta — barra piena verde
-        barPct = 100;
-        barCol = 'var(--green)';
-        statusTxt = `✓ Soglia raggiunta`;
-        statusCol = 'var(--green)';
-        rightTxt = `${fmt(liq)} · target ${fmt(sogliaEff)} (${C.mix.liq}%)`;
-      } else {
-        // fase 3: eccedente — barra piena, mostra eccedente
-        barPct = 100;
-        barCol = '#d97706';
-        statusTxt = `⚠ Eccedente ${fmt(c.liqExcess)} — valuta di investire`;
-        statusCol = '#b45309';
-        rightTxt = `target ${fmt(sogliaEff)} (${C.mix.liq}%)`;
-      }
-
-      setS('sogliaFill','width', barPct+'%');
-      setS('sogliaFill','background', barCol);
-      set('sogliaStatus', statusTxt);
-      setS('sogliaStatus','color', statusCol);
-      set('sogliaPct', rightTxt);
+      const bd = liqBarData(c);
+      setS('sogliaFill','width', bd.barPct+'%');
+      setS('sogliaFill','background', bd.barCol);
+      set('sogliaStatus', bd.statusTxt);
+      setS('sogliaStatus','color', bd.statusCol);
+      set('sogliaPct', bd.rightTxt);
     }
 
     setH('homeAlerts', buildAlerts(c));
