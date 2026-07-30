@@ -918,16 +918,15 @@ function renderStrategia(){
     {lbl:'Fondo emergenza', sub:`Separato · max consigliato ${fmt(C.maxFE)}`, pct:null,  eur:C.maxFE},
   ];
 
-  // Badge liquidità
-  const liqPct = D.liq / totale * 100;
-  const liqIdeal = c.tLiq;
+
+  // Badge liquidità — allineato alle fasi
   let liqBadge, liqBadgeBg, liqBadgeFg, liqDot;
-  if(D.liq > C.soglia * 1.5){
-    liqBadge='Troppa'; liqBadgeBg='#fef2f2'; liqBadgeFg='#b91c1c'; liqDot='#ef4444';
-  } else if(D.liq < C.soglia){
-    liqBadge='Bassa'; liqBadgeBg='#fffbeb'; liqBadgeFg='#92400e'; liqDot='#f59e0b';
+  if(c.liqPhase === 'under'){
+    liqBadge='Bassa';   liqBadgeBg='#fffbeb'; liqBadgeFg='#92400e'; liqDot='#f59e0b';
+  } else if(c.liqPhase === 'ok'){
+    liqBadge='OK';      liqBadgeBg='#e8f5ee'; liqBadgeFg='#006636'; liqDot='#006636';
   } else {
-    liqBadge='OK'; liqBadgeBg='#e8f5ee'; liqBadgeFg='#006636'; liqDot='#006636';
+    liqBadge='Eccesso'; liqBadgeBg='#fff7ed'; liqBadgeFg='#b45309'; liqDot='#d97706';
   }
 
   // Badge capitale investito
@@ -1004,17 +1003,10 @@ function renderStrategia(){
         </div>
         <div class="stato-body" id="stato-body-liq">
           <div class="stato-body-inner">
-            <div class="stato-bar-lbl">
-              <span>Attuale: <strong>${fmt(D.liq)}</strong></span>
-              <span>Ideale: ${fmt(liqIdeal)} (${C.mix.liq}%)</span>
-            </div>
             <div class="stato-bar-track">
               <div class="stato-bar-fill" style="width:${liqBarPct.toFixed(1)}%;background:${liqBarCol};"></div>
             </div>
-            <div class="stato-bar-meta">
-              <span>${liqPct.toFixed(1)}% del patrimonio</span>
-              <span>Soglia min ${fmt(C.soglia)}</span>
-            </div>
+            <div style="font-size:11px;font-weight:600;color:${liqBD.statusCol};margin-top:5px;">${liqBD.statusTxt}</div>
           </div>
         </div>
       </div>
