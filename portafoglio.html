@@ -1064,27 +1064,42 @@ function buildSteps(c,lim){
 
 // ── PORTAFOGLIO ALLOC ────────────────────────────────────────
 function buildPfAlloc(c){
-  // raggruppa strumenti per categoria
   const cats = ['az','ob','or'];
   const catVals = {az:c.vAz, ob:c.vOb, or:c.vOr};
   const catTargets = {az:c.tAz, ob:c.tOb, or:c.tOr};
   const catNames = {az:'Azioni', ob:'Obbligazioni', or:'Oro'};
-  // sub: lista ticker della categoria
   const catSub = {};
   cats.forEach(cat=>{
     catSub[cat] = getStrumenti().filter(s=>s.tipo===cat).map(s=>s.ticker).join(' · ') || cat;
   });
-  const rows=[
-    {lbl:catNames.az, sub:catSub.az, v:catVals.az, tv:catTargets.az, tot:c.totale, col:'var(--col-az)'},
-    {lbl:catNames.ob, sub:catSub.ob, v:catVals.ob, tv:catTargets.ob, tot:c.totale, col:'var(--col-ob)'},
-    {lbl:catNames.or, sub:catSub.or, v:catVals.or, tv:catTargets.or, tot:c.totale, col:'var(--col-or)'},
-    {lbl:'Liquidità', sub:'CC + TR', v:D.liq,       tv:c.tLiq,       tot:c.totale, col:'var(--col-liq)'},
-  ];
-  return rows.map((r,i)=>{
+
+  const buffer = C.liqBuffer||1000;
+  const liqPhase = c.liqPhase;
+  const liqBarPct = liqPhase === 'under'
+    ? Math.min(D.liq / C.soglia * 100, 100)
+    : 100;
+  const liqBarCol = liqPhase === 'under' ? '#ef4444'
+                  : liqPhase === 'ok'    ? 'var(--col-liq)'
+                  : '#d97706';
+  const liqStatusTxt = liqPhase === 'under'
+    ? `⚠ Mancano ${fmt(C.soglia - D.liq)} alla soglia`
+    : liqPhase === 'ok'
+    ? `✓ Soglia ${fmt(C.soglia)} raggiunta · target ${fmt(c.tLiq)} (${C.mix.liq}%)`
+    : `⚠ Eccedente ${fmt(c.liqExcess)} — valuta di investire`;
+  const liqStatusCol = liqPhase === 'under' ? 'var(--red)'
+                     : liqPhase === 'ok'    ? 'var(--green)'
+                     : '#b45309';
+
+  // Righe investimento (az/ob/or) — logica normale %
+  const invRows = cats.map((cat,i)=>({
+    lbl:catNames[cat], sub:catSub[cat],
+    v:catVals[cat], tv:catTargets[cat], tot:c.totale, col:`var(--col-${cat})`
+  }));
+
+  const invHtml = invRows.map((r,i)=>{
     const pa=r.v/r.tot*100, pt=r.tv/r.tot*100, d=r.v-r.tv;
     const dc=Math.abs(d)<50?'var(--dim)':d>0?'var(--muted)':'var(--red)';
-    const sep=i<rows.length-1?'padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;':'';
-    return `<div style="${sep}">
+    return `<div style="padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;">
         <div>
           <div style="font-size:13px;font-weight:700;">${r.lbl}</div>
@@ -1104,6 +1119,27 @@ function buildPfAlloc(c){
       </div>
     </div>`;
   }).join('');
+
+  // Riga liquidità — logica a fasi
+  const liqHtml = `<div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;">
+      <div>
+        <div style="font-size:13px;font-weight:700;">Liquidità</div>
+        <div style="font-size:11px;color:var(--dim);">CC + TR</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:2px;">soglia: <strong style="color:var(--muted);">${fmt(C.soglia)}</strong> · target: <strong style="color:var(--muted);">${fmt(c.tLiq)}</strong> (${C.mix.liq}%)</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:15px;font-weight:800;" class="strum-val">${fmt(D.liq)}</div>
+        <div style="font-size:11px;font-weight:700;color:${liqStatusCol};margin-top:1px;">${liqPhase==='under'?fmtD(D.liq-C.soglia):liqPhase==='over'?'+'+fmt(c.liqExcess):''}</div>
+      </div>
+    </div>
+    <div style="height:10px;background:var(--bg2);border-radius:99px;overflow:hidden;">
+      <div style="height:100%;width:${liqBarPct.toFixed(1)}%;background:${liqBarCol};border-radius:99px;transition:width .5s;"></div>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:${liqStatusCol};margin-top:4px;">${liqStatusTxt}</div>
+  </div>`;
+
+  return invHtml + liqHtml;
 }
 
 // ── STRUMENTI ────────────────────────────────────────────────
