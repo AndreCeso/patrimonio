@@ -453,7 +453,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
         <div class="subrow"><div class="subrow-l"><div class="subrow-dot" style="background:#111"></div><div><div class="subrow-lbl">Conto TR</div><div class="subrow-sub">Trade Republic</div></div></div><div class="subrow-val" id="sr-tr">—</div></div>
         <div style="margin-top:12px;">
           <div class="soglia-bg"><div class="soglia-fill" id="sogliaFill" style="width:0%"></div></div>
-          <div class="soglia-meta"><span id="sogliaStatus">—</span><span id="sogliaPct" style="color:var(--dim);">—</span></div>
+          <div id="sogliaStatus" style="font-size:11px;font-weight:600;margin-top:5px;">—</div>
         </div>
       </div></div>
     </div>
@@ -1626,7 +1626,6 @@ function renderAll(){
       setS('sogliaFill','background', bd.barCol);
       set('sogliaStatus', bd.statusTxt);
       setS('sogliaStatus','color', bd.statusCol);
-      set('sogliaPct', bd.rightTxt);
     }
 
     setH('homeAlerts', buildAlerts(c));
