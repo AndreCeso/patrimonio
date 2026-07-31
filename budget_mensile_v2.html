@@ -2423,12 +2423,18 @@ var erTipo = 'EXPENSES';
 function openEditRicp(i){
   editRicpIdx = i;
   var r = CFG.ricorsive[i];
+  // selEditRicp populates the category select and handles mezzo visibility
   selEditRicp(r.tipo);
-  document.getElementById('er-cat').value   = r.cat;
-  document.getElementById('er-desc').value  = r.desc || '';
-  document.getElementById('er-amt').value   = r.amt;
-  document.getElementById('er-giorno').value = r.giorno || '';
-  document.getElementById('er-mezzo').value  = r.mezzo  || '';
+  // Set values AFTER selEditRicp so the cat select has its options populated
+  document.getElementById('er-cat').value    = r.cat;
+  document.getElementById('er-desc').value   = r.desc    || '';
+  document.getElementById('er-amt').value    = r.amt;
+  document.getElementById('er-giorno').value = r.giorno  || '';
+  // Set mezzo last — selEditRicp may have cleared it; restore here if tipo allows it
+  var mezzoRow = document.getElementById('er-mezzo-row');
+  if(mezzoRow && (r.tipo==='EXPENSES'||r.tipo==='TEMPO LIBERO')){
+    document.getElementById('er-mezzo').value = r.mezzo || '';
+  }
   openModal('modal-edit-ricp');
 }
 
@@ -3769,6 +3775,8 @@ function renderSimulaLista(){
       <input type="number" class="form-input" id="er-giorno" placeholder="es. 1, 15, 27…" min="1" max="31">
     </div>
     <div class="form-row" id="er-mezzo-row">
+      <div class="form-lbl">Mezzo di pagamento</div>
+      <select class="form-select" id="er-mezzo">
         <option value="">— Non specificato —</option>
         <option value="Bancomat">💳 Bancomat</option>
         <option value="Contanti">💵 Contanti</option>
