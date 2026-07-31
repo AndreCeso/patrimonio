@@ -2441,6 +2441,12 @@ function selEditRicp(t){
     b.className = 'tipo-btn'+(x===t?' sel-'+cls:'');
   });
   updateCatSelect('er-cat', t);
+  var mezzoRow = document.getElementById('er-mezzo-row');
+  if(mezzoRow){
+    var show = (t==='EXPENSES'||t==='TEMPO LIBERO');
+    mezzoRow.style.display = show ? 'block' : 'none';
+    if(!show) document.getElementById('er-mezzo').value = '';
+  }
 }
 
 function saveEditRicp(){
@@ -2449,7 +2455,8 @@ function saveEditRicp(){
   var amt    = parseFloat(document.getElementById('er-amt').value);
   var gRaw   = parseInt(document.getElementById('er-giorno').value);
   var giorno = (!isNaN(gRaw) && gRaw>=1 && gRaw<=31) ? gRaw : null;
-  var mezzo  = document.getElementById('er-mezzo').value || '';
+  var mezzoRaw = document.getElementById('er-mezzo').value || '';
+  var mezzo = (erTipo==='EXPENSES'||erTipo==='TEMPO LIBERO') ? mezzoRaw : '';
   if(!cat || isNaN(amt) || amt<=0){ showToast('Compila tutti i campi'); return; }
   CFG.ricorsive[editRicpIdx] = {tipo:erTipo, cat, desc, amt, giorno, mezzo};
   saveAll();
@@ -2476,6 +2483,12 @@ function selRicp(t){
     b.className='tipo-btn'+(x===t?' sel-'+cls:'');
   });
   updateCatSelect('ricp-cat',t);
+  var mezzoRow=document.getElementById('ricp-mezzo-row');
+  if(mezzoRow){
+    var show=(t==='EXPENSES'||t==='TEMPO LIBERO');
+    mezzoRow.style.display=show?'block':'none';
+    if(!show) document.getElementById('ricp-mezzo').value='';
+  }
 }
 function saveRicp(){
   const cat=document.getElementById('ricp-cat').value;
@@ -2483,7 +2496,8 @@ function saveRicp(){
   const amt=parseFloat(document.getElementById('ricp-amt').value);
   const giornoRaw=parseInt(document.getElementById('ricp-giorno').value);
   const giorno=(!isNaN(giornoRaw)&&giornoRaw>=1&&giornoRaw<=31)?giornoRaw:null;
-  const mezzo=document.getElementById('ricp-mezzo').value||'';
+  const mezzoRaw=document.getElementById('ricp-mezzo').value||'';
+  const mezzo=(rTipo==='EXPENSES'||rTipo==='TEMPO LIBERO')?mezzoRaw:'';
   if(!cat||isNaN(amt)||amt<=0){showToast('Compila tutti i campi');return;}
   CFG.ricorsive.push({tipo:rTipo,cat,desc,amt,giorno,mezzo});
   saveAll();
@@ -3754,9 +3768,7 @@ function renderSimulaLista(){
       <div class="form-lbl">Giorno del mese <span style="font-weight:400;color:var(--dim);font-size:10px;">(opzionale · 1–31)</span></div>
       <input type="number" class="form-input" id="er-giorno" placeholder="es. 1, 15, 27…" min="1" max="31">
     </div>
-    <div class="form-row">
-      <div class="form-lbl">Mezzo di pagamento</div>
-      <select class="form-select" id="er-mezzo">
+    <div class="form-row" id="er-mezzo-row">
         <option value="">— Non specificato —</option>
         <option value="Bancomat">💳 Bancomat</option>
         <option value="Contanti">💵 Contanti</option>
