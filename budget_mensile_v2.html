@@ -306,7 +306,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
         <input type="checkbox" id="add-differito" style="width:18px;height:18px;accent-color:#7c3aed;cursor:pointer;flex-shrink:0;margin-top:2px;" onclick="event.stopPropagation();">
         <div>
           <div style="font-size:13px;font-weight:700;color:#7c3aed;">🔮 Differito</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4;">Tempo libero accantonato per il futuro (es. vacanze). Conta come TL ma è evidenziato in giallo nelle dashboard.</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4;">Spesa accantonata per il futuro (es. vacanze, regalo). Conta nel totale ma è evidenziata in giallo nelle dashboard.</div>
         </div>
       </div>
       <button class="btn-p" onclick="addTransaction()">
@@ -971,6 +971,9 @@ function calcMonth(y,m){
   // Differito: TL accantonato per il futuro
   const tlDiff=txns.filter(t=>t.tipo==='TEMPO LIBERO'&&t.differito).reduce((s,t)=>s+t.amt,0);
   const tlNow=tl-tlDiff;
+  // Differito: Spese accantonate per il futuro
+  const speseDiff=txns.filter(t=>t.tipo==='EXPENSES'&&t.differito).reduce((s,t)=>s+t.amt,0);
+  const speseDiffNow=spese-speseDiff;
   // Extra amounts per tipo (for display)
   const extraSpese=sumByTipo(extraTxns,'EXPENSES');
   const extraTl=sumByTipo(extraTxns,'TEMPO LIBERO');
@@ -996,14 +999,14 @@ function calcMonth(y,m){
     if(!byCat[t.tipo]) byCat[t.tipo]={};
     if(!byCat[t.tipo][t.cat]) byCat[t.tipo][t.cat]=0;
     byCat[t.tipo][t.cat]+=t.amt;
-    if(t.differito&&t.tipo==='TEMPO LIBERO'){
+    if(t.differito&&(t.tipo==='TEMPO LIBERO'||t.tipo==='EXPENSES')){
       if(!byCatDiff[t.cat]) byCatDiff[t.cat]=0;
       byCatDiff[t.cat]+=t.amt;
     }
   });
   // Scheduled summary
   const schedAmt = scheduledTxns.reduce(function(s,t){return s+t.amt;},0);
-  return {reddito,spese,tl,risp,bSpese,bTl,bRisp,saldo,ref,pct,txns,byCat,byCatDiff,tlDiff,tlNow,totBenefit,extraTxns,
+  return {reddito,spese,tl,risp,bSpese,bTl,bRisp,saldo,ref,pct,txns,byCat,byCatDiff,tlDiff,tlNow,speseDiff,speseDiffNow,totBenefit,extraTxns,
     speseNorm,tlNorm,rispNorm,redditoNorm,
     extraSpese,extraTl,extraRisp,extraReddito,
     scheduledTxns,schedAmt,allTxns,riconciliaCC};
@@ -1050,11 +1053,11 @@ function selTipo(t){
     b.className='tipo-btn'+(x===t?' sel-'+cls:'');
   });
   updateCatSelect('add-cat',t);
-  // Show differito only for TEMPO LIBERO
+  // Show differito for TEMPO LIBERO and EXPENSES
   var difRow = document.getElementById('add-differito-row');
   if(difRow){
-    difRow.style.display = t==='TEMPO LIBERO' ? 'flex' : 'none';
-    if(t!=='TEMPO LIBERO') document.getElementById('add-differito').checked = false;
+    difRow.style.display = (t==='TEMPO LIBERO'||t==='EXPENSES') ? 'flex' : 'none';
+    if(t!=='TEMPO LIBERO'&&t!=='EXPENSES') document.getElementById('add-differito').checked = false;
   }
   var mezzoRow = document.getElementById('add-mezzo-row');
   if(mezzoRow){
@@ -1124,7 +1127,7 @@ function addTransaction(){
   const k=mKey(y,m);
   if(!TXN[k]) TXN[k]=[];
   const extra=document.getElementById('add-extra')?.checked||false;
-  const differito=addTipo==='TEMPO LIBERO'&&(document.getElementById('add-differito')?.checked||false);
+  const differito=(addTipo==='TEMPO LIBERO'||addTipo==='EXPENSES')&&(document.getElementById('add-differito')?.checked||false);
   const mezzoEl=document.getElementById('add-mezzo');
   const mezzo=(addTipo==='EXPENSES'||addTipo==='TEMPO LIBERO')&&mezzoEl ? mezzoEl.value : '';
   TXN[k].push({tipo:addTipo,cat,desc,amt,date,extra,differito,mezzo});
@@ -1217,7 +1220,7 @@ function renderDash(){
     +'<div class="rdis-val" style="color:'+rdisColor+';">'+(c.saldo<0?'-':'')+fmt(Math.abs(c.saldo))+'</div>'
     +'<div class="rdis-sub">Reddito '+fmt(c.reddito||CFG.reddito)+' \u2212 Uscite '+fmt(c.spese+c.tl+c.risp)+'</div>'+((c.extraSpese+c.extraTl+c.extraRisp)>0?'<div style="font-size:11px;color:var(--muted);margin-top:3px;">di cui '+fmt(c.extraSpese+c.extraTl+c.extraRisp)+' risparmio da benefit</div>':'')
     +'<div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;">'
-    +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;"><span style="width:9px;height:9px;border-radius:2px;background:#e91e8c;display:inline-block;"></span>Spese '+fmt(c.spese)+'</div>'
+    +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;"><span style="width:9px;height:9px;border-radius:2px;background:#e91e8c;display:inline-block;"></span>Spese '+fmt(c.spese)+(c.speseDiff>0?' <span style="color:#f59e0b;font-size:10px;">🔮 '+fmt(c.speseDiff)+' diff.</span>':'')+' </div>'
     +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;"><span style="width:9px;height:9px;border-radius:2px;background:#7c3aed;display:inline-block;"></span>T.Libero '+fmt(c.tl)+(c.tlDiff>0?' <span style="color:#f59e0b;font-size:10px;">🔮 '+fmt(c.tlDiff)+' diff.</span>':'')+' </div>'
     +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;"><span style="width:9px;height:9px;border-radius:2px;background:#f0a500;display:inline-block;"></span>Risparmi '+fmt(c.risp)+'</div>'
     +'</div>'
@@ -1228,7 +1231,7 @@ function renderDash(){
   // ── 4 KPI cards ──
   const macros=[
     {tipo:'INCOME',      lbl:'Reddito',      val:c.reddito, norm:c.redditoNorm, extra:c.extraReddito, bud:c.ref,    color:'#00b365', bg:'#e8faf2'},
-    {tipo:'EXPENSES',    lbl:'Spese',        val:c.spese,   norm:c.speseNorm,   extra:c.extraSpese,   bud:c.bSpese, color:'#e91e8c', bg:'#fde8f3'},
+    {tipo:'EXPENSES',    lbl:'Spese',        val:c.spese,   norm:c.speseNorm,   extra:c.extraSpese,   bud:c.bSpese, color:'#e91e8c', bg:'#fde8f3', diff:c.speseDiff, diffNow:c.speseDiffNow},
     {tipo:'SAVINGS',     lbl:'Risparmi',     val:c.risp,    norm:c.rispNorm,    extra:c.extraRisp,    bud:c.bRisp,  color:'#f0a500', bg:'#fff8e6'},
     {tipo:'TEMPO LIBERO',lbl:'Tempo Libero', val:c.tl,      norm:c.tlNorm,      extra:c.extraTl,      bud:c.bTl,    color:'#7c3aed', bg:'#f3f0ff', diff:c.tlDiff, diffNow:c.tlNow},
   ];
@@ -1483,7 +1486,7 @@ function buildDetailContent(c,macro){
       const sign=t.tipo==='INCOME'?'+':'-';
       const realIdx=c.allTxns.indexOf(t);
       const sched=isScheduled(t.date,t.tipo);
-      const isDiff=t.differito&&t.tipo==='TEMPO LIBERO';
+      const isDiff=t.differito&&(t.tipo==='TEMPO LIBERO'||t.tipo==='EXPENSES');
       const schedStyle=sched?'opacity:.5;border:1.5px dashed var(--border);border-radius:10px;':'';
       const diffStyle=isDiff?'border-left:3px solid #f59e0b;':'';
       const txColor=isDiff?'#f59e0b':macro.color;
