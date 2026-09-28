@@ -71,10 +71,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 .mini-bar-top{display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:3px;}
 .mini-bar-track{height:7px;background:var(--bg2);border-radius:99px;overflow:hidden;}
 .mini-bar-fill{height:100%;border-radius:99px;transition:width .5s;}
-.cat-drill-block{border:1px solid var(--border);border-radius:12px;margin-bottom:8px;overflow:hidden;}
-.cat-drill-hdr{padding:10px 12px;background:var(--bg2);transition:background .15s;}
-.cat-drill-hdr:active{background:var(--border);}
-.cat-drill-body{background:var(--white);}
 
 /* ADD FORM */
 .form-row{margin-bottom:14px;}
@@ -310,7 +306,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
         <input type="checkbox" id="add-differito" style="width:18px;height:18px;accent-color:#7c3aed;cursor:pointer;flex-shrink:0;margin-top:2px;" onclick="event.stopPropagation();">
         <div>
           <div style="font-size:13px;font-weight:700;color:#7c3aed;">🔮 Differito</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4;">Tempo libero accantonato per il futuro (es. vacanze). Conta come TL ma è evidenziato in giallo nelle dashboard.</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4;">Spesa accantonata per il futuro (es. vacanze, regalo). Conta nel totale ma è evidenziata in giallo nelle dashboard.</div>
         </div>
       </div>
       <button class="btn-p" onclick="addTransaction()">
@@ -975,6 +971,9 @@ function calcMonth(y,m){
   // Differito: TL accantonato per il futuro
   const tlDiff=txns.filter(t=>t.tipo==='TEMPO LIBERO'&&t.differito).reduce((s,t)=>s+t.amt,0);
   const tlNow=tl-tlDiff;
+  // Differito: Spese accantonate per il futuro
+  const speseDiff=txns.filter(t=>t.tipo==='EXPENSES'&&t.differito).reduce((s,t)=>s+t.amt,0);
+  const speseDiffNow=spese-speseDiff;
   // Extra amounts per tipo (for display)
   const extraSpese=sumByTipo(extraTxns,'EXPENSES');
   const extraTl=sumByTipo(extraTxns,'TEMPO LIBERO');
@@ -1000,14 +999,14 @@ function calcMonth(y,m){
     if(!byCat[t.tipo]) byCat[t.tipo]={};
     if(!byCat[t.tipo][t.cat]) byCat[t.tipo][t.cat]=0;
     byCat[t.tipo][t.cat]+=t.amt;
-    if(t.differito&&t.tipo==='TEMPO LIBERO'){
+    if(t.differito&&(t.tipo==='TEMPO LIBERO'||t.tipo==='EXPENSES')){
       if(!byCatDiff[t.cat]) byCatDiff[t.cat]=0;
       byCatDiff[t.cat]+=t.amt;
     }
   });
   // Scheduled summary
   const schedAmt = scheduledTxns.reduce(function(s,t){return s+t.amt;},0);
-  return {reddito,spese,tl,risp,bSpese,bTl,bRisp,saldo,ref,pct,txns,byCat,byCatDiff,tlDiff,tlNow,totBenefit,extraTxns,
+  return {reddito,spese,tl,risp,bSpese,bTl,bRisp,saldo,ref,pct,txns,byCat,byCatDiff,tlDiff,tlNow,speseDiff,speseDiffNow,totBenefit,extraTxns,
     speseNorm,tlNorm,rispNorm,redditoNorm,
     extraSpese,extraTl,extraRisp,extraReddito,
     scheduledTxns,schedAmt,allTxns,riconciliaCC};
@@ -1054,11 +1053,11 @@ function selTipo(t){
     b.className='tipo-btn'+(x===t?' sel-'+cls:'');
   });
   updateCatSelect('add-cat',t);
-  // Show differito only for TEMPO LIBERO
+  // Show differito for TEMPO LIBERO and EXPENSES
   var difRow = document.getElementById('add-differito-row');
   if(difRow){
-    difRow.style.display = t==='TEMPO LIBERO' ? 'flex' : 'none';
-    if(t!=='TEMPO LIBERO') document.getElementById('add-differito').checked = false;
+    difRow.style.display = (t==='TEMPO LIBERO'||t==='EXPENSES') ? 'flex' : 'none';
+    if(t!=='TEMPO LIBERO'&&t!=='EXPENSES') document.getElementById('add-differito').checked = false;
   }
   var mezzoRow = document.getElementById('add-mezzo-row');
   if(mezzoRow){
@@ -1128,7 +1127,7 @@ function addTransaction(){
   const k=mKey(y,m);
   if(!TXN[k]) TXN[k]=[];
   const extra=document.getElementById('add-extra')?.checked||false;
-  const differito=addTipo==='TEMPO LIBERO'&&(document.getElementById('add-differito')?.checked||false);
+  const differito=(addTipo==='TEMPO LIBERO'||addTipo==='EXPENSES')&&(document.getElementById('add-differito')?.checked||false);
   const mezzoEl=document.getElementById('add-mezzo');
   const mezzo=(addTipo==='EXPENSES'||addTipo==='TEMPO LIBERO')&&mezzoEl ? mezzoEl.value : '';
   TXN[k].push({tipo:addTipo,cat,desc,amt,date,extra,differito,mezzo});
@@ -1221,7 +1220,7 @@ function renderDash(){
     +'<div class="rdis-val" style="color:'+rdisColor+';">'+(c.saldo<0?'-':'')+fmt(Math.abs(c.saldo))+'</div>'
     +'<div class="rdis-sub">Reddito '+fmt(c.reddito||CFG.reddito)+' \u2212 Uscite '+fmt(c.spese+c.tl+c.risp)+'</div>'+((c.extraSpese+c.extraTl+c.extraRisp)>0?'<div style="font-size:11px;color:var(--muted);margin-top:3px;">di cui '+fmt(c.extraSpese+c.extraTl+c.extraRisp)+' risparmio da benefit</div>':'')
     +'<div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;">'
-    +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;"><span style="width:9px;height:9px;border-radius:2px;background:#e91e8c;display:inline-block;"></span>Spese '+fmt(c.spese)+'</div>'
+    +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;"><span style="width:9px;height:9px;border-radius:2px;background:#e91e8c;display:inline-block;"></span>Spese '+fmt(c.spese)+(c.speseDiff>0?' <span style="color:#f59e0b;font-size:10px;">🔮 '+fmt(c.speseDiff)+' diff.</span>':'')+' </div>'
     +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;"><span style="width:9px;height:9px;border-radius:2px;background:#7c3aed;display:inline-block;"></span>T.Libero '+fmt(c.tl)+(c.tlDiff>0?' <span style="color:#f59e0b;font-size:10px;">🔮 '+fmt(c.tlDiff)+' diff.</span>':'')+' </div>'
     +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;"><span style="width:9px;height:9px;border-radius:2px;background:#f0a500;display:inline-block;"></span>Risparmi '+fmt(c.risp)+'</div>'
     +'</div>'
@@ -1232,7 +1231,7 @@ function renderDash(){
   // ── 4 KPI cards ──
   const macros=[
     {tipo:'INCOME',      lbl:'Reddito',      val:c.reddito, norm:c.redditoNorm, extra:c.extraReddito, bud:c.ref,    color:'#00b365', bg:'#e8faf2'},
-    {tipo:'EXPENSES',    lbl:'Spese',        val:c.spese,   norm:c.speseNorm,   extra:c.extraSpese,   bud:c.bSpese, color:'#e91e8c', bg:'#fde8f3'},
+    {tipo:'EXPENSES',    lbl:'Spese',        val:c.spese,   norm:c.speseNorm,   extra:c.extraSpese,   bud:c.bSpese, color:'#e91e8c', bg:'#fde8f3', diff:c.speseDiff, diffNow:c.speseDiffNow},
     {tipo:'SAVINGS',     lbl:'Risparmi',     val:c.risp,    norm:c.rispNorm,    extra:c.extraRisp,    bud:c.bRisp,  color:'#f0a500', bg:'#fff8e6'},
     {tipo:'TEMPO LIBERO',lbl:'Tempo Libero', val:c.tl,      norm:c.tlNorm,      extra:c.extraTl,      bud:c.bTl,    color:'#7c3aed', bg:'#f3f0ff', diff:c.tlDiff, diffNow:c.tlNow},
   ];
@@ -1455,82 +1454,57 @@ function buildDetailContent(c,macro){
   const cats=c.byCat[macro.tipo]||{};
   const catEntries=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
   const catTotal=Object.values(cats).reduce((s,v)=>s+v,0);
-  const allTxns=c.allTxns.filter(t=>t.tipo===macro.tipo&&!t.extra&&!(t.tipo==='INCOME'&&t.cat==='Riconcilia C/C'));
-  const byCatDiff=c.byCatDiff||{};
-
-  if(!catEntries.length) return `<div class="empty">Nessuna transazione</div>`;
-
-  // Build one collapsible block per categoria
-  const uid=macro.tipo.replace(/\s/g,'-')+'-'+Date.now();
-  let html=`<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Per categoria — tocca per vedere i movimenti</div>`;
-
-  html+=catEntries.map(([cat,val],ci)=>{
-    const pctCat=catTotal?Math.round(val/catTotal*100):0;
-    const diffAmt=byCatDiff[cat]||0;
-    const nowAmt=val-diffAmt;
-    const pctNow=val?Math.round(nowAmt/val*100):100;
-    const pctDiff=100-pctNow;
-    const catId=uid+'-cat-'+ci;
-
-    const barHtml=macro.tipo==='TEMPO LIBERO'&&diffAmt>0
-      ?`<div class="mini-bar-fill" style="width:${pctCat}%;background:${macro.color}70;display:flex;overflow:hidden;border-radius:4px;">
-          <div style="width:${pctNow}%;background:${macro.color}70;height:100%;"></div>
-          <div style="width:${pctDiff}%;background:#f59e0b;height:100%;"></div>
-        </div>`
-      :`<div class="mini-bar-fill" style="width:${pctCat}%;background:${macro.color}70;"></div>`;
-
-    const diffNote=macro.tipo==='TEMPO LIBERO'&&diffAmt>0
-      ?`<span style="color:#f59e0b;font-size:9px;margin-left:4px;">🔮${fmt(diffAmt)}</span>`:'';
-
-    // Movimenti di questa categoria
-    const catTxns=allTxns.filter(t=>t.cat===cat).sort((a,b)=>b.date.localeCompare(a.date));
-    const txHtml=catTxns.map(t=>{
+  const txns=c.allTxns.filter(t=>t.tipo===macro.tipo&&!t.extra&&!(t.tipo==='INCOME'&&t.cat==='Riconcilia C/C')).sort((a,b)=>b.date.localeCompare(a.date));
+  let html='';
+  if(catEntries.length){
+    html+=`<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Per categoria</div>`;
+    const byCatDiff = c.byCatDiff || {};
+    html+=catEntries.map(([cat,val])=>{
+      const pctCat=catTotal?Math.round(val/catTotal*100):0;
+      const diffAmt=byCatDiff[cat]||0;
+      const nowAmt=val-diffAmt;
+      const pctNow=val?Math.round(nowAmt/val*100):100;
+      const pctDiff=100-pctNow;
+      const barHtml = macro.tipo==='TEMPO LIBERO' && diffAmt>0
+        ? `<div class="mini-bar-fill" style="width:${pctCat}%;background:${macro.color}70;display:flex;overflow:hidden;border-radius:4px;">
+            <div style="width:${pctNow}%;background:${macro.color}70;height:100%;"></div>
+            <div style="width:${pctDiff}%;background:#f59e0b;height:100%;"></div>
+           </div>`
+        : `<div class="mini-bar-fill" style="width:${pctCat}%;background:${macro.color}70;"></div>`;
+      const diffNote = macro.tipo==='TEMPO LIBERO' && diffAmt>0
+        ? `<span style="color:#f59e0b;font-size:9px;margin-left:4px;">🔮${fmt(diffAmt)}</span>`
+        : '';
+      return `<div class="mini-bar-row">
+        <div class="mini-bar-top"><span>${cat}</span><span style="color:${macro.color}">${fmt(val)}${diffNote} <span style="color:var(--dim);font-weight:500">(${pctCat}%)</span></span></div>
+        <div class="mini-bar-track">${barHtml}</div>
+      </div>`;
+    }).join('');
+  }
+  if(txns.length){
+    html+=`<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin:12px 0 8px;">Movimenti (${txns.length})</div>`;
+    html+=txns.map(t=>{
       const sign=t.tipo==='INCOME'?'+':'-';
       const realIdx=c.allTxns.indexOf(t);
       const sched=isScheduled(t.date,t.tipo);
-      const isDiff=t.differito&&t.tipo==='TEMPO LIBERO';
+      const isDiff=t.differito&&(t.tipo==='TEMPO LIBERO'||t.tipo==='EXPENSES');
+      const schedStyle=sched?'opacity:.5;border:1.5px dashed var(--border);border-radius:10px;':'';
+      const diffStyle=isDiff?'border-left:3px solid #f59e0b;':'';
       const txColor=isDiff?'#f59e0b':macro.color;
       const schedBadge=sched?`<span style="background:#fef9c3;color:#a16207;font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;">📅 ${fmtDate(t.date)}</span>`:'';
       const diffBadge=isDiff?`<span style="background:#fef9c3;color:#b45309;font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;">🔮 Differito</span>`:'';
-      const schedStyle=sched?'opacity:.5;border:1.5px dashed var(--border);border-radius:10px;':'';
-      const diffStyle=isDiff?'border-left:3px solid #f59e0b;':'';
-      return `<div class="tx-item" style="margin-left:0;${schedStyle}${diffStyle}" onclick="event.stopPropagation();openTxDetail(${realIdx},${curYear},${curMonth})">
+      return `<div class="tx-item" style="${schedStyle}${diffStyle}" onclick="event.stopPropagation();openTxDetail(${realIdx},${curYear},${curMonth})">
         <div class="tx-icon-wrap" style="background:${txColor}15;">${TIPO_EMOJI[t.tipo]}</div>
         <div class="tx-info">
-          <div class="tx-desc">${t.desc||t.cat}</div>
-          <div class="tx-cat">${t.desc?t.cat+' · ':''}${sched?schedBadge:fmtDate(t.date)} ${diffBadge}</div>
+          <div class="tx-desc">${t.cat}</div>
+          <div class="tx-cat">${t.desc ? t.desc+' · ' : ''}${sched?schedBadge:fmtDate(t.date)} ${diffBadge}</div>
         </div>
         <div class="tx-amt" style="color:${txColor}">${sign}${fmt(t.amt)}</div>
       </div>`;
     }).join('');
-
-    return `<div class="cat-drill-block" id="${catId}-wrap">
-      <div class="cat-drill-hdr" onclick="event.stopPropagation();toggleCatDrill('${catId}')" style="cursor:pointer;">
-        <div class="mini-bar-top" style="margin-bottom:4px;">
-          <span style="font-weight:700;">${cat}</span>
-          <span style="color:${macro.color};font-weight:800;">${fmt(val)}${diffNote} <span style="color:var(--dim);font-weight:500">(${pctCat}%)</span>
-            <span class="cat-drill-chev" id="${catId}-chev" style="display:inline-block;margin-left:6px;transition:transform .2s;color:var(--dim);font-size:10px;">▼</span>
-          </span>
-        </div>
-        <div class="mini-bar-track">${barHtml}</div>
-        <div style="font-size:10px;color:var(--dim);margin-top:3px;">${catTxns.length} moviment${catTxns.length===1?'o':'i'}</div>
-      </div>
-      <div class="cat-drill-body" id="${catId}-body" style="max-height:0;overflow:hidden;transition:max-height .35s ease;">
-        <div style="padding-top:6px;">${txHtml}</div>
-      </div>
-    </div>`;
-  }).join('');
-
+  } else {
+    html+=`<div class="empty">Nessuna transazione</div>`;
+  }
   return html;
-}
-
-function toggleCatDrill(catId){
-  var body=document.getElementById(catId+'-body');
-  var chev=document.getElementById(catId+'-chev');
-  if(!body) return;
-  var isOpen=body.style.maxHeight&&body.style.maxHeight!=='0px';
-  body.style.maxHeight=isOpen?'0px':body.scrollHeight+200+'px';
-  if(chev) chev.style.transform=isOpen?'rotate(0deg)':'rotate(180deg)';
 }
 
 function buildDonut(c){ return ''; } // kept for compat
