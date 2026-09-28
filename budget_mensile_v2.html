@@ -561,6 +561,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
         <div class="hdr-name">🧮 Simulatore mese</div>
       </div>
       <button onclick="resetSimula()" style="background:rgba(255,255,255,.2);border:none;border-radius:8px;padding:6px 14px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">↺ Reset</button>
+      <button onclick="saveSimulaPiano()" style="background:rgba(255,255,255,.2);border:none;border-radius:8px;padding:6px 14px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">💾 Salva piano</button>
     </div>
   </div>
   <div class="wrap" style="margin-top:-20px;">
@@ -624,7 +625,17 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
 
     <!-- LISTA VOCI -->
     <div class="card" id="sim-lista-card" style="display:none;">
-      <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Voci inserite</div>
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Voci inserite</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:11px;color:var(--dim);">Piano per</span>
+            <select id="sim-piano-mese" style="font-size:12px;font-weight:700;border:1px solid var(--border);border-radius:8px;padding:3px 6px;background:var(--bg);color:var(--text);font-family:Inter,sans-serif;"></select>
+            <select id="sim-piano-anno" style="font-size:12px;font-weight:700;border:1px solid var(--border);border-radius:8px;padding:3px 6px;background:var(--bg);color:var(--text);font-family:Inter,sans-serif;"></select>
+          </div>
+        </div>
+        <div id="sim-piano-saved-badge" style="display:none;margin-top:8px;background:#e8faf2;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;color:var(--green);"></div>
+      </div>
       <div id="sim-lista"></div>
     </div>
   </div>
@@ -1351,7 +1362,9 @@ function renderDash(){
   const alertsHtml=buildAlerts(c);
   const mezzoHtml=buildMezzoBreakdown(c.allTxns,'var(--text)');
   const mezzoCard=mezzoHtml?'<div class="card card-p" style="margin-top:12px;"><div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">💳 Spese per mezzo</div>'+mezzoHtml+'</div>':'';
-  cont.innerHTML=rdisCard+gridHtml+(alertsHtml?'<div>'+alertsHtml+'</div>':'')+mezzoCard;
+  const pianoKey=mKey(curYear,curMonth);
+  const pianoCard=buildPianoVsReale(c,pianoKey);
+  cont.innerHTML=rdisCard+gridHtml+(alertsHtml?'<div>'+alertsHtml+'</div>':'')+mezzoCard+pianoCard;
 
   // Attach mezzo expand/collapse
   cont.querySelectorAll('.mezzo-row-hdr').forEach(function(hdr){
@@ -3755,6 +3768,10 @@ function renderSimulaLista(){
   if(!card || !lista) return;
   if(simulaVoci.length === 0){ card.style.display='none'; return; }
   card.style.display = 'block';
+  // Init selectors if needed
+  initSimulaPianoSelectors();
+  // Show saved badge if plan exists for selected month
+  updateSimulaSavedBadge();
   lista.innerHTML = simulaVoci.map(function(v){
     var meta = SIMULA_TIPO_MAP[v.tipo];
     var sign = meta.sign > 0 ? '+' : '-';
@@ -3772,6 +3789,162 @@ function renderSimulaLista(){
       +'</div>'
       +'</div>';
   }).join('');
+}
+
+function initSimulaPianoSelectors(){
+  var meseEl = document.getElementById('sim-piano-mese');
+  var annoEl = document.getElementById('sim-piano-anno');
+  if(!meseEl || !annoEl || meseEl.options.length > 0) return;
+  MESI.forEach(function(m, i){
+    var opt = document.createElement('option');
+    opt.value = i+1;
+    opt.textContent = m;
+    meseEl.appendChild(opt);
+  });
+  var now = new Date();
+  meseEl.value = now.getMonth()+1;
+  for(var y = now.getFullYear()-1; y <= now.getFullYear()+2; y++){
+    var opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    annoEl.appendChild(opt);
+  }
+  annoEl.value = now.getFullYear();
+  meseEl.addEventListener('change', updateSimulaSavedBadge);
+  annoEl.addEventListener('change', updateSimulaSavedBadge);
+}
+
+function getSimulaPianoKey(){
+  var m = document.getElementById('sim-piano-mese');
+  var a = document.getElementById('sim-piano-anno');
+  if(!m || !a) return null;
+  return String(a.value)+'-'+String(m.value).padStart(2,'0');
+}
+
+function updateSimulaSavedBadge(){
+  var badge = document.getElementById('sim-piano-saved-badge');
+  if(!badge) return;
+  var key = getSimulaPianoKey();
+  var piano = key && CFG.piani && CFG.piani[key];
+  if(piano){
+    var d = new Date(piano.savedAt);
+    badge.style.display='block';
+    badge.textContent='✅ Piano salvato il '+d.toLocaleDateString('it-IT')+' — '+piano.voci.length+' voci';
+  } else {
+    badge.style.display='none';
+  }
+}
+
+function saveSimulaPiano(){
+  if(simulaVoci.length === 0){ showToast('Nessuna voce da salvare'); return; }
+  initSimulaPianoSelectors();
+  var key = getSimulaPianoKey();
+  if(!key){ showToast('Seleziona mese/anno'); return; }
+  if(!CFG.piani) CFG.piani = {};
+  CFG.piani[key] = { voci: simulaVoci.slice(), savedAt: new Date().toISOString() };
+  saveAll();
+  updateSimulaSavedBadge();
+  showToast('💾 Piano salvato per '+key);
+  // refresh dashboard if visible
+  if(document.getElementById('page-dash') && document.getElementById('page-dash').classList.contains('active')) renderDash();
+}
+
+// ── Piano vs Reale — sezione Dashboard ──
+function buildPianoVsReale(c, key){
+  if(!CFG.piani || !CFG.piani[key]) return '';
+  var piano = CFG.piani[key];
+  var voci  = piano.voci;
+
+  // Aggregati piano per tipo
+  function pianoTotale(tipo){ return voci.filter(function(v){return v.tipo===tipo;}).reduce(function(s,v){return s+v.amt;},0); }
+  // Aggregati piano per categoria
+  function pianoByCat(tipo){
+    var map = {};
+    voci.filter(function(v){return v.tipo===tipo;}).forEach(function(v){
+      map[v.cat] = (map[v.cat]||0) + v.amt;
+    });
+    return map;
+  }
+
+  var tipi = [
+    {tipo:'INCOME',       lbl:'Reddito',      color:'#00b365', reale:c.reddito},
+    {tipo:'EXPENSES',     lbl:'Spese',        color:'#e91e8c', reale:c.spese},
+    {tipo:'SAVINGS',      lbl:'Risparmi',     color:'#f0a500', reale:c.risp},
+    {tipo:'TEMPO LIBERO', lbl:'Tempo Libero', color:'#7c3aed', reale:c.tl},
+  ];
+
+  var macroRows = tipi.map(function(t){
+    var plan = pianoTotale(t.tipo);
+    if(!plan && !t.reale) return '';
+    var delta = t.reale - plan;
+    // per uscite: delta negativo = hai speso di più (male), positivo = risparmiato (bene)
+    var isIncome = t.tipo==='INCOME';
+    var good = isIncome ? delta>=0 : delta<=0;
+    var deltaColor = delta===0 ? 'var(--dim)' : good ? 'var(--green)' : 'var(--red)';
+    var deltaSign  = delta>0 ? '+' : '';
+    var pct = plan ? Math.round(t.reale/plan*100) : 0;
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">'
+      +'<div style="display:flex;align-items:center;gap:8px;">'
+      +'<span style="width:10px;height:10px;border-radius:3px;background:'+t.color+';display:inline-block;flex-shrink:0;"></span>'
+      +'<span style="font-size:13px;font-weight:700;color:var(--text);">'+t.lbl+'</span>'
+      +'</div>'
+      +'<div style="text-align:right;">'
+      +'<div style="font-size:12px;font-weight:800;color:var(--text);">'+fmt(t.reale)+' <span style="color:var(--dim);font-weight:500;">/ '+fmt(plan)+'</span></div>'
+      +'<div style="font-size:11px;font-weight:700;color:'+deltaColor+';">'+(delta!==0?deltaSign+fmt(Math.abs(delta))+' ('+pct+'%)':'= pari')+'</div>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+
+  // Dettaglio per categoria (drill-down)
+  var catUid = 'pvr-'+Date.now();
+  var catBlocks = tipi.map(function(t, ti){
+    var planCat = pianoByCat(t.tipo);
+    var realCat = c.byCat[t.tipo] || {};
+    var allCats = {};
+    Object.keys(planCat).forEach(function(k){allCats[k]=true;});
+    Object.keys(realCat).forEach(function(k){allCats[k]=true;});
+    var catList = Object.keys(allCats);
+    if(!catList.length) return '';
+    var isIncome = t.tipo==='INCOME';
+    var blockId = catUid+'-'+ti;
+    var rows = catList.map(function(cat){
+      var plan = planCat[cat]||0;
+      var real = realCat[cat]||0;
+      var delta = real - plan;
+      var good = isIncome ? delta>=0 : delta<=0;
+      var dColor = delta===0?'var(--dim)':good?'var(--green)':'var(--red)';
+      var dSign  = delta>0?'+':'';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--border);">'
+        +'<span style="font-size:12px;font-weight:600;color:var(--text);">'+cat+'</span>'
+        +'<div style="text-align:right;">'
+        +'<div style="font-size:12px;font-weight:700;color:var(--text);">'+fmt(real)+' <span style="color:var(--dim);font-weight:400;">/ '+fmt(plan)+'</span></div>'
+        +(delta!==0?'<div style="font-size:10px;font-weight:700;color:'+dColor+';">'+dSign+fmt(Math.abs(delta))+'</div>':'')
+        +'</div>'
+        +'</div>';
+    }).join('');
+    return '<div style="border:1px solid var(--border);border-radius:12px;margin-bottom:8px;overflow:hidden;">'
+      +'<div onclick="(function(b,ch){var o=b.style.maxHeight&&b.style.maxHeight!==\'0px\';b.style.maxHeight=o?\'0px\':b.scrollHeight+200+\'px\';ch.style.transform=o?\'rotate(0deg)\':\'rotate(180deg)\';})(document.getElementById(\''+blockId+'\'),document.getElementById(\''+blockId+'-ch\'))" style="padding:10px 12px;background:var(--bg2);cursor:pointer;display:flex;align-items:center;justify-content:space-between;">'
+      +'<span style="font-size:12px;font-weight:700;color:'+t.color+';">'+t.lbl+'</span>'
+      +'<span style="font-size:10px;color:var(--dim);">'+catList.length+' categorie <span id="'+blockId+'-ch" style="display:inline-block;transition:transform .2s;">▼</span></span>'
+      +'</div>'
+      +'<div id="'+blockId+'" style="max-height:0;overflow:hidden;transition:max-height .35s ease;">'+rows+'</div>'
+      +'</div>';
+  }).join('');
+
+  var d = new Date(piano.savedAt);
+  return '<div class="card card-p" style="margin-top:12px;">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
+    +'<div>'
+    +'<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">📋 Piano vs Reale</div>'
+    +'<div style="font-size:11px;color:var(--dim);margin-top:2px;">Piano salvato il '+d.toLocaleDateString('it-IT')+'</div>'
+    +'</div>'
+    +'<button onclick="if(confirm(\'Eliminare il piano?\')){'
+    +'delete CFG.piani[\''+key+'\'];saveAll();renderDash();showToast(\'Piano eliminato\');}" '
+    +'style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:12px;font-family:Inter,sans-serif;">🗑</button>'
+    +'</div>'
+    + macroRows
+    +'<div style="margin-top:12px;font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Per categoria</div>'
+    + catBlocks
+    +'</div>';
 }
 
 </script>
