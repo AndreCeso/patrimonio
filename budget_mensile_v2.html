@@ -363,6 +363,11 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
       </button>
     </div>
+    <div id="dash-piano-btn-wrap" style="display:none;padding:0 16px 10px;">
+      <button id="dash-piano-btn" onclick="togglePianoVsReale()" style="width:100%;background:#f3f0ff;border:1.5px solid #7c3aed;color:#7c3aed;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;">
+        📋 Piano vs Reale
+      </button>
+    </div>
   </div>
 
   <div class="cards-pull" id="dash-content"></div>
@@ -1364,7 +1369,11 @@ function renderDash(){
   const mezzoCard=mezzoHtml?'<div class="card card-p" style="margin-top:12px;"><div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">💳 Spese per mezzo</div>'+mezzoHtml+'</div>':'';
   const pianoKey=mKey(curYear,curMonth);
   const pianoCard=buildPianoVsReale(c,pianoKey);
-  cont.innerHTML=rdisCard+gridHtml+(alertsHtml?'<div>'+alertsHtml+'</div>':'')+mezzoCard+pianoCard;
+  // mostra bottone solo se esiste piano per questo mese
+  var pianoBtnWrap=document.getElementById('dash-piano-btn-wrap');
+  if(pianoBtnWrap) pianoBtnWrap.style.display=(CFG.piani&&CFG.piani[pianoKey])?'block':'none';
+  cont.innerHTML=rdisCard+gridHtml+(alertsHtml?'<div>'+alertsHtml+'</div>':'')+mezzoCard
+    +(pianoCard?'<div id="dash-piano-section" style="display:none;">'+pianoCard+'</div>':'');
 
   // Attach mezzo expand/collapse
   cont.querySelectorAll('.mezzo-row-hdr').forEach(function(hdr){
@@ -3802,13 +3811,16 @@ function initSimulaPianoSelectors(){
     meseEl.appendChild(opt);
   });
   var now = new Date();
-  meseEl.value = now.getMonth()+1;
+  var nextM = now.getMonth()+2; // mese successivo (1-based)
+  var nextY = now.getFullYear();
+  if(nextM > 12){ nextM = 1; nextY++; }
+  meseEl.value = nextM;
   for(var y = now.getFullYear()-1; y <= now.getFullYear()+2; y++){
     var opt = document.createElement('option');
     opt.value = y; opt.textContent = y;
     annoEl.appendChild(opt);
   }
-  annoEl.value = now.getFullYear();
+  annoEl.value = nextY;
   meseEl.addEventListener('change', updateSimulaSavedBadge);
   annoEl.addEventListener('change', updateSimulaSavedBadge);
 }
@@ -3849,6 +3861,16 @@ function saveSimulaPiano(){
 }
 
 // ── Piano vs Reale — sezione Dashboard ──
+function togglePianoVsReale(){
+  var sec=document.getElementById('dash-piano-section');
+  var btn=document.getElementById('dash-piano-btn');
+  if(!sec) return;
+  var open=sec.style.display==='block';
+  sec.style.display=open?'none':'block';
+  if(btn) btn.textContent=open?'📋 Piano vs Reale':'✕ Chiudi confronto';
+  if(!open) sec.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 function buildPianoVsReale(c, key){
   if(!CFG.piani || !CFG.piani[key]) return '';
   var piano = CFG.piani[key];
