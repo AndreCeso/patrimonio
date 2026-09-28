@@ -358,14 +358,12 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-h
       <button class="month-sw-btn" onclick="changeMonth(-1)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
       </button>
-      <div class="month-sw-lbl" id="dash-month-lbl">Maggio 2026</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="month-sw-lbl" id="dash-month-lbl">Maggio 2026</div>
+        <button id="dash-piano-btn" onclick="togglePianoVsReale()" style="display:none;background:rgba(255,255,255,.18);border:none;border-radius:20px;padding:2px 10px;color:rgba(255,255,255,.9);font-size:10px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;letter-spacing:.03em;">📋 piano vs reale</button>
+      </div>
       <button class="month-sw-btn" onclick="changeMonth(1)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
-      </button>
-    </div>
-    <div id="dash-piano-btn-wrap" style="display:none;padding:0 16px 10px;">
-      <button id="dash-piano-btn" onclick="togglePianoVsReale()" style="width:100%;background:#f3f0ff;border:1.5px solid #7c3aed;color:#7c3aed;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;">
-        📋 Piano vs Reale
       </button>
     </div>
   </div>
@@ -1369,9 +1367,8 @@ function renderDash(){
   const mezzoCard=mezzoHtml?'<div class="card card-p" style="margin-top:12px;"><div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">💳 Spese per mezzo</div>'+mezzoHtml+'</div>':'';
   const pianoKey=mKey(curYear,curMonth);
   const pianoCard=buildPianoVsReale(c,pianoKey);
-  // mostra bottone solo se esiste piano per questo mese
-  var pianoBtnWrap=document.getElementById('dash-piano-btn-wrap');
-  if(pianoBtnWrap) pianoBtnWrap.style.display=(CFG.piani&&CFG.piani[pianoKey])?'block':'none';
+  var pianoBtn=document.getElementById('dash-piano-btn');
+  if(pianoBtn) pianoBtn.style.display=(CFG.piani&&CFG.piani[pianoKey])?'block':'none';
   cont.innerHTML=rdisCard+gridHtml+(alertsHtml?'<div>'+alertsHtml+'</div>':'')+mezzoCard
     +(pianoCard?'<div id="dash-piano-section" style="display:none;">'+pianoCard+'</div>':'');
 
@@ -3863,11 +3860,9 @@ function saveSimulaPiano(){
 // ── Piano vs Reale — sezione Dashboard ──
 function togglePianoVsReale(){
   var sec=document.getElementById('dash-piano-section');
-  var btn=document.getElementById('dash-piano-btn');
   if(!sec) return;
   var open=sec.style.display==='block';
   sec.style.display=open?'none':'block';
-  if(btn) btn.textContent=open?'📋 Piano vs Reale':'✕ Chiudi confronto';
   if(!open) sec.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
@@ -3952,6 +3947,26 @@ function buildPianoVsReale(c, key){
       +'</div>';
   }).join('');
 
+  // Reddito disponibile: reddito - tutte le uscite
+  var planReddito = pianoTotale('INCOME');
+  var planUscite  = pianoTotale('EXPENSES') + pianoTotale('TEMPO LIBERO') + pianoTotale('SAVINGS');
+  var planDisp    = planReddito - planUscite;
+  var realeDisp   = c.saldo;
+  var deltaDisp   = realeDisp - planDisp;
+  var dispColor   = realeDisp >= 0 ? 'var(--green)' : 'var(--red)';
+  var dispDeltaColor = deltaDisp >= 0 ? 'var(--green)' : 'var(--red)';
+  var rdispHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">'
+    +'<div style="background:var(--bg2);border-radius:10px;padding:10px 12px;">'
+    +'<div style="font-size:10px;color:var(--dim);font-weight:600;margin-bottom:3px;">Reddito disp. pianificato</div>'
+    +'<div style="font-size:20px;font-weight:900;color:'+(planDisp>=0?'var(--green)':'var(--red)')+';">'+(planDisp>=0?'':'-')+fmt(Math.abs(planDisp))+'</div>'
+    +'</div>'
+    +'<div style="background:var(--bg2);border-radius:10px;padding:10px 12px;">'
+    +'<div style="font-size:10px;color:var(--dim);font-weight:600;margin-bottom:3px;">Reddito disp. reale</div>'
+    +'<div style="font-size:20px;font-weight:900;color:'+dispColor+';">'+(realeDisp>=0?'':'-')+fmt(Math.abs(realeDisp))+'</div>'
+    +'<div style="font-size:10px;font-weight:700;color:'+dispDeltaColor+';margin-top:2px;">'+(deltaDisp>=0?'▲ +':'▼ ')+fmt(Math.abs(deltaDisp))+' dal piano</div>'
+    +'</div>'
+    +'</div>';
+
   var d = new Date(piano.savedAt);
   return '<div class="card card-p" style="margin-top:12px;">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
@@ -3963,6 +3978,8 @@ function buildPianoVsReale(c, key){
     +'delete CFG.piani[\''+key+'\'];saveAll();renderDash();showToast(\'Piano eliminato\');}" '
     +'style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:12px;font-family:Inter,sans-serif;">🗑</button>'
     +'</div>'
+    + rdispHtml
+    +'<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Dettaglio</div>'
     + macroRows
     +'<div style="margin-top:12px;font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Per categoria</div>'
     + catBlocks
